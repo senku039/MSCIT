@@ -6,7 +6,7 @@ import hashlib
 import logging
 from io import BytesIO
 from pathlib import Path
-from typing import Any
+from typing import Any, Mapping
 
 import joblib
 import numpy as np
@@ -19,10 +19,16 @@ LOGGER = logging.getLogger(__name__)
 class ModelService:
     """Loads and serves all ML model predictions."""
 
-    def __init__(self, config: Any):
+    def __init__(self, config: Mapping[str, Any] | Any):
         self.config = config
         self.dyslexia_model = None
         self.handwriting_model = None
+
+    def _cfg(self, key: str, default: Any = None) -> Any:
+        """Read config value from flask Config(dict-like) or object attributes."""
+        if hasattr(self.config, "get"):
+            return self.config.get(key, default)
+        return getattr(self.config, key, default)
 
     @staticmethod
     def _assert_local_file(path: str) -> Path:
@@ -41,8 +47,8 @@ class ModelService:
 
     def load_models(self) -> None:
         """Load models once at startup with sanity checks."""
-        dyslexia_path = self._assert_local_file(self.config.DYSLEXIA_MODEL_PATH)
-        handwriting_path = self._assert_local_file(self.config.HANDWRITING_MODEL_PATH)
+        dyslexia_path = self._assert_local_file(self._cfg("DYSLEXIA_MODEL_PATH"))
+        handwriting_path = self._assert_local_file(self._cfg("HANDWRITING_MODEL_PATH"))
 
         LOGGER.info("Loading dyslexia model from %s", dyslexia_path)
         self.dyslexia_model = joblib.load(dyslexia_path)
@@ -76,21 +82,24 @@ class ModelService:
         if self.handwriting_model is None:
             raise RuntimeError("Handwriting model is unavailable.")
 
+        image_size = self._cfg("HANDWRITING_IMAGE_SIZE", (128, 128))
+        threshold = float(self._cfg("HANDWRITING_THRESHOLD", 0.5))
+
         image_tensor = keras_image.img_to_array(
             keras_image.load_img(
                 BytesIO(image_bytes),
-                target_size=self.config.HANDWRITING_IMAGE_SIZE,
+                target_size=image_size,
             )
         )
         image_tensor = image_tensor.astype(np.float32) / 255.0
         image_tensor = np.expand_dims(image_tensor, axis=0)
 
         expected_shape = self.handwriting_model.input_shape
-        if len(expected_shape) == 4 and tuple(expected_shape[1:3]) != tuple(self.config.HANDWRITING_IMAGE_SIZE):
+        if len(expected_shape) == 4 and tuple(expected_shape[1:3]) != tuple(image_size):
             raise RuntimeError("Configured image size does not match model input shape.")
 
         prediction = self.handwriting_model.predict(image_tensor, verbose=0)
         probability = float(np.clip(prediction.reshape(-1)[0], 0.0, 1.0))
 
-        label = "Non_Dyslexic" if probability >= self.config.HANDWRITING_THRESHOLD else "Dyslexic"
+        label = "Non_Dyslexic" if probability >= threshold else "Dyslexic"
         return probability, label

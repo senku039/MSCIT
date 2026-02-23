@@ -56,7 +56,7 @@ Set these before production deployment:
 ## Running (development)
 
 ```bash
-python src/main/webapp/app.py
+flask --app src.main.webapp.wsgi:app run --debug
 ```
 
 ## Running (production)
@@ -64,7 +64,7 @@ python src/main/webapp/app.py
 Use a WSGI server such as Gunicorn:
 
 ```bash
-cd src/main/webapp && gunicorn --bind 0.0.0.0:5000 wsgi:app
+gunicorn --bind 0.0.0.0:5000 src.main.webapp.wsgi:app
 ```
 
 ## Notes for model artifacts
