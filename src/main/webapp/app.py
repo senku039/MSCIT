@@ -10,9 +10,12 @@ from io import BytesIO
 app = Flask(__name__)
 CORS(app)
 
-# Absolute paths to models
-DYSLEXIA_MODEL_PATH = "C:/Users/Umair/OneDrive/Desktop/simple frontend/src/main/webapp/dyslexia_reg_model.pkl"
-HANDWRITING_MODEL_PATH = "C:/Users/Umair/OneDrive/Desktop/simple frontend/src/main/webapp/final_model.keras"
+# Get base directory of this file
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+# Correct relative paths
+DYSLEXIA_MODEL_PATH = os.path.join(BASE_DIR, "dyslexia_reg_model.pkl")
+HANDWRITING_MODEL_PATH = os.path.join(BASE_DIR, "final_model.keras")
 
 # Load the Dyslexia Prediction Model (for /predict)
 if not os.path.exists(DYSLEXIA_MODEL_PATH):
