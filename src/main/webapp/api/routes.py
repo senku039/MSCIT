@@ -11,7 +11,7 @@ from typing import Any, Callable
 import numpy as np
 from flask import Blueprint, current_app, jsonify, request
 
-from utils.validators import (
+from src.main.webapp.utils.validators import (
     cast_numeric_features,
     validate_feature_payload,
     validate_image_upload,

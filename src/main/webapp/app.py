@@ -9,9 +9,10 @@ from flask import Flask, jsonify
 from flask_cors import CORS
 from werkzeug.exceptions import RequestEntityTooLarge
 
-from api.routes import api_bp
-from config import CONFIG_MAPPING
-from services.model_service import ModelService
+# 🔥 Use absolute imports from project root
+from src.main.webapp.api.routes import api_bp
+from src.main.webapp.config import CONFIG_MAPPING
+from src.main.webapp.services.model_service import ModelService
 
 
 def create_app() -> Flask:
@@ -29,6 +30,7 @@ def create_app() -> Flask:
 
     CORS(app, resources={r"/*": {"origins": app.config["CORS_ORIGINS"]}})
 
+    # Initialize model service safely
     model_service = ModelService(app.config)
     model_service.load_models()
     app.extensions["model_service"] = model_service
@@ -59,9 +61,13 @@ def register_error_handlers(app: Flask) -> None:
         logging.getLogger(__name__).exception("Unhandled server error")
         return jsonify({"error": "Internal server error."}), 500
 
-
+from src.main.webapp.app import create_app
 app = create_app()
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=int(os.getenv("PORT", "5000")), debug=False)
+    app.run(
+        host="0.0.0.0",
+        port=int(os.getenv("PORT", "5000")),
+        debug=False,
+    )

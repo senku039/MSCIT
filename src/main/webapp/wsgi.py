@@ -1,6 +1,5 @@
 """WSGI entrypoint for production servers."""
 
-from app import app
+from src.main.webapp.app import create_app
 
-if __name__ == "__main__":
-    app.run()
+app = create_app()
