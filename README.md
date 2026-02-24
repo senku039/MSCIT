@@ -75,3 +75,11 @@ Model binaries (`.keras`, `.pkl`, `.h5`) should be stored outside Git (artifact 
 ## OCR runtime dependency
 
 Install the native **Tesseract OCR engine** and ensure `tesseract` is available on your system PATH. `pytesseract` is only the Python wrapper.
+
+## Hardening additions
+
+- Optional Redis-backed rate limiting via `REDIS_URL` (falls back to in-memory limiter if unavailable).
+- Request/response schema contracts implemented with lightweight internal validators for key API responses.
+- Readiness probe endpoint: `GET /ready` (returns `200` when models are loaded, else `503`).
+- Legacy OCR standalone app now proxies to the main Flask application entrypoint for consistency.
+- Large native installers are excluded from Git; keep them in external artifact storage.
