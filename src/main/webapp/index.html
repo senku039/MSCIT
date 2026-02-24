@@ -8,7 +8,12 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
-        body { background: #f5f8ff; }
+        body {
+            background:
+                radial-gradient(circle at 12% 10%, rgba(56, 189, 248, 0.24), transparent 30%),
+                radial-gradient(circle at 88% 16%, rgba(147, 51, 234, 0.20), transparent 34%),
+                linear-gradient(180deg, #f2f7ff 0%, #e8efff 30%, #ece4ff 62%, #edf9f7 100%);
+        }
         .hero-section {
             padding: 130px 0 90px;
             color: #fff;
@@ -57,8 +62,7 @@
             <ul class="navbar-nav ms-auto">
                 <li class="nav-item"><a class="nav-link active" href="index.html">Home</a></li>
                 <li class="nav-item"><a class="nav-link" href="dyslexia-prediction.html">Dyslexia Test</a></li>
-                <li class="nav-item"><a class="nav-link" href="handwriting_analysis.html">Handwriting Analysis</a></li>
-                <li class="nav-item"><a class="nav-link" href="ocr.html">OCR Tool</a></li>
+                <li class="nav-item"><a class="nav-link" href="image_analysis.html">Image Analysis</a></li>
             </ul>
         </div>
     </div>
@@ -68,10 +72,18 @@
     <div class="container">
         <span class="hero-chip">Interactive Learning Support</span>
         <h1 class="display-4 fw-bold mt-3 mb-3">Smart Dyslexia Screening & Assistance</h1>
-        <p class="lead mb-4">Get structured insights from tests, handwriting checks, and OCR support with clear result pages.</p>
+        <p class="lead mb-4">Get structured insights from tests and a unified image analysis that combines handwriting + OCR in one report.</p>
         <div class="d-flex justify-content-center gap-2 flex-wrap">
             <a href="dyslexia-prediction.html" class="btn btn-primary btn-lg">Start Screening</a>
-            <a href="ocr.html" class="btn btn-outline-light btn-lg">Open OCR Tool</a>
+            <a href="image_analysis.html" class="btn btn-outline-light btn-lg">Open Image Analysis</a>
+        </div>
+    </div>
+</section>
+
+<section class="pb-5">
+    <div class="container" style="max-width:1320px;">
+        <div class="app-panel p-2" style="border-radius:22px; overflow:hidden;">
+            <img src="https://images.unsplash.com/photo-1503676260728-1c00da094a0b?auto=format&fit=crop&w=2100&q=80" alt="Learning banner" style="width:100%;max-height:380px;object-fit:cover;border-radius:16px;">
         </div>
     </div>
 </section>
@@ -102,10 +114,9 @@
 <section class="pb-5">
     <div class="container app-panel p-4 p-md-5">
         <h2 class="text-center mb-4" style="color:#1f2f65;">Use Our Tools</h2>
-        <div class="row g-3">
-            <div class="col-md-4"><div class="card feature-card h-100"><div class="card-body text-center"><i class="fas fa-clipboard-question fa-3x text-primary mb-3"></i><h4>Dyslexia Test</h4><p>Structured feature-based screening with clear explanations.</p><a href="dyslexia-prediction.html" class="btn btn-primary">Try Now</a></div></div></div>
-            <div class="col-md-4"><div class="card feature-card h-100"><div class="card-body text-center"><i class="fas fa-pen-fancy fa-3x text-primary mb-3"></i><h4>Handwriting Analysis</h4><p>Analyze handwriting quality and review recommendations.</p><a href="handwriting_analysis.html" class="btn btn-primary">Analyze</a></div></div></div>
-            <div class="col-md-4"><div class="card feature-card h-100"><div class="card-body text-center"><i class="fas fa-file-lines fa-3x text-primary mb-3"></i><h4>OCR Tool</h4><p>Extract, correct and simplify text from images.</p><a href="ocr.html" class="btn btn-primary">Use OCR</a></div></div></div>
+        <div class="row g-3 justify-content-center">
+            <div class="col-md-5"><div class="card feature-card h-100"><div class="card-body text-center"><i class="fas fa-clipboard-question fa-3x text-primary mb-3"></i><h4>Dyslexia Test</h4><p>Structured feature-based screening with clear explanations.</p><a href="dyslexia-prediction.html" class="btn btn-primary">Try Now</a></div></div></div>
+            <div class="col-md-5"><div class="card feature-card h-100 active"><div class="card-body text-center"><i class="fas fa-file-lines fa-3x text-primary mb-3"></i><h4>Unified Image Analysis</h4><p>One photo gives handwriting risk + OCR readability insights together.</p><a href="image_analysis.html" class="btn btn-primary">Analyze Image</a></div></div></div>
         </div>
     </div>
 </section>
