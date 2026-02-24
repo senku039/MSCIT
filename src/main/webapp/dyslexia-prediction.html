@@ -123,18 +123,48 @@
     }
 
     .runner {
+      font-size: 42px;
       position: absolute;
       z-index: 4;
       width: 58px;
       height: 58px;
       left: calc(50% - 29px);
       top: 58px;
-      background: url('https://cdn-icons-png.flaticon.com/512/3069/3069186.png') center/contain no-repeat;
+      background: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       filter: drop-shadow(0 10px 16px rgba(15, 23, 42, 0.22));
       transition: transform .9s cubic-bezier(.2,.9,.35,1), opacity .3s ease;
       pointer-events: none;
       opacity: 0.95;
     }
+
+
+    .runner::before {
+      content: "🐭";
+      filter: drop-shadow(0 3px 4px rgba(0,0,0,.18));
+    }
+
+    .side-mascot {
+      position: fixed;
+      z-index: 1;
+      font-size: 52px;
+      opacity: .88;
+      top: 46%;
+      pointer-events: none;
+      animation: floaty 2.8s ease-in-out infinite;
+      filter: drop-shadow(0 8px 12px rgba(15,23,42,.2));
+    }
+
+    .side-mascot.left { left: 18px; }
+    .side-mascot.right { right: 18px; }
+
+    @keyframes floaty {
+      0%,100% { transform: translateY(0); }
+      50% { transform: translateY(-8px); }
+    }
+    .side-mascot.left { animation-delay: .3s; }
 
     .level-list {
       position: relative;
@@ -336,13 +366,16 @@
     #result { margin-top: 10px; }
 
     @media (max-width: 960px) {
-      .road-line, .runner { display: none; }
+      .road-line, .runner {
+      font-size: 42px; display: none; }
       .level-card, .final-card, .goal-card { width: 100%; margin: 0; border-radius: 16px; }
       .level-card::after { display: none; }
     }
   </style>
 </head>
 <body>
+  <div class="side-mascot left" aria-hidden="true">🐹</div>
+  <div class="side-mascot right" aria-hidden="true">🐭</div>
   <button class="global-back-btn" type="button" onclick="window.location.href='/home'">← Back</button>
 
   <div class="quest-wrap">
@@ -370,11 +403,11 @@
 
       <div class="level-list">
         <div class="level-card active" data-input="reading_speed"><span class="level-badge">Level 1</span><div class="level-title">Reading Speed <span class="priority-chip">High Priority</span></div><input type="number" id="reading_speed" class="form-control" placeholder="Enter reading speed" disabled><button class="btn btn-primary w-100" id="takeReadingSpeedTest">Play Level</button></div>
-        <div class="level-card locked" data-input="spelling_accuracy"><span class="level-badge">Level 2</span><div class="level-title">Spelling Accuracy <span class="priority-chip">High Priority</span></div><input type="number" id="spelling_accuracy" class="form-control" placeholder="Enter spelling accuracy" disabled><button class="btn btn-primary w-100" id="takeSpellingAccuracyTest">Play Level</button></div>
-        <div class="level-card locked" data-input="phonemic_errors"><span class="level-badge">Level 3</span><div class="level-title">Phonemic Awareness Errors <span class="priority-chip">High Priority</span></div><input type="number" id="phonemic_errors" class="form-control" placeholder="Enter phonemic awareness errors" disabled><button class="btn btn-primary w-100" id="takePhonemicErrorsTest">Play Level</button></div>
-        <div class="level-card locked" data-input="writing_errors"><span class="level-badge">Level 4</span><div class="level-title">Writing Errors <span class="priority-chip">Medium</span></div><input type="number" id="writing_errors" class="form-control" placeholder="Enter writing errors" disabled><button class="btn btn-primary w-100" id="takeWritingErrorsTest">Play Level</button></div>
-        <div class="level-card locked" data-input="cognitive"><span class="level-badge">Level 5</span><div class="level-title">Cognitive Score <span class="priority-chip">Medium</span></div><input type="number" id="cognitive" class="form-control" placeholder="Enter cognitive score" disabled><button class="btn btn-primary w-100" id="takeCognitiveTest">Play Level</button></div>
-        <div class="level-card locked" data-input="attention"><span class="level-badge">Level 6</span><div class="level-title">Attention Span <span class="priority-chip">Supportive</span></div><input type="number" id="attention" class="form-control" placeholder="Enter attention span score" disabled><button class="btn btn-primary w-100" id="takeAttentionTest">Play Level</button></div>
+        <div class="level-card locked" data-input="attention"><span class="level-badge">Level 2</span><div class="level-title">Rapid Naming <span class="priority-chip">High Priority</span></div><input type="number" id="attention" class="form-control" placeholder="Enter rapid naming score" disabled><button class="btn btn-primary w-100" id="takeAttentionTest">Play Level</button></div>
+        <div class="level-card locked" data-input="spelling_accuracy"><span class="level-badge">Level 3</span><div class="level-title">Spelling Accuracy <span class="priority-chip">High Priority</span></div><input type="number" id="spelling_accuracy" class="form-control" placeholder="Enter spelling accuracy" disabled><button class="btn btn-primary w-100" id="takeSpellingAccuracyTest">Play Level</button></div>
+        <div class="level-card locked" data-input="phonemic_errors"><span class="level-badge">Level 4</span><div class="level-title">Phonemic Awareness Errors <span class="priority-chip">High Priority</span></div><input type="number" id="phonemic_errors" class="form-control" placeholder="Enter phonemic awareness errors" disabled><button class="btn btn-primary w-100" id="takePhonemicErrorsTest">Play Level</button></div>
+        <div class="level-card locked" data-input="writing_errors"><span class="level-badge">Level 5</span><div class="level-title">Writing Errors <span class="priority-chip">Medium</span></div><input type="number" id="writing_errors" class="form-control" placeholder="Enter writing errors" disabled><button class="btn btn-primary w-100" id="takeWritingErrorsTest">Play Level</button></div>
+        <div class="level-card locked" data-input="cognitive"><span class="level-badge">Level 6</span><div class="level-title">Cognitive Score <span class="priority-chip">Medium</span></div><input type="number" id="cognitive" class="form-control" placeholder="Enter cognitive score" disabled><button class="btn btn-primary w-100" id="takeCognitiveTest">Play Level</button></div>
 
         <div class="level-card final-card locked" data-input="response_time">
           <div class="goal-title">
@@ -400,14 +433,14 @@
 
   <script>
     const API_BASE = `${window.location.protocol}//127.0.0.1:5000`;
-    const LEVEL_KEYS = ["reading_speed", "spelling_accuracy", "phonemic_errors", "writing_errors", "cognitive", "attention", "response_time"];
+    const LEVEL_KEYS = ["reading_speed", "attention", "spelling_accuracy", "phonemic_errors", "writing_errors", "cognitive", "response_time"];
     const LEVEL_ROUTES = {
       reading_speed: "/reading_speed_test.html",
       spelling_accuracy: "/spelling_accuracy_test.html",
       phonemic_errors: "/phonemic_awareness_test.html",
       writing_errors: "/writing_errors_test.html",
       cognitive: "/cognitive_score_test.html",
-      attention: "/attention_span_calculator.html",
+      attention: "/rapid_naming_test.html",
       response_time: "/response_time_test.html"
     };
 
@@ -494,7 +527,7 @@
       const tips = [
         "Tip: You can unlock only one next level at a time.",
         "Tip: Complete all seven levels for the most reliable screen.",
-        "Tip: The duck follows your real progress automatically."
+        "Tip: Follow the guide character as you complete each level."
       ];
       document.getElementById('randomTip').textContent = tips[Math.floor(Math.random() * tips.length)];
       updateProgressUI();
