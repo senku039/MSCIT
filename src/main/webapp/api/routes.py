@@ -151,12 +151,17 @@ def handwriting_analysis() -> Any:
 @rate_limited
 def upload_ocr() -> Any:
     """Extract text from uploaded image and return normalized variants."""
-    if "file" not in request.files:
+    file_obj = request.files.get("file") or request.files.get("image")
+    if file_obj is None or not file_obj.filename:
         return jsonify({"error": "No file provided."}), 400
 
-    file_obj = request.files["file"]
-    if not file_obj.filename:
-        return jsonify({"error": "No file provided."}), 400
+    validation = validate_image_upload(
+        image_file=file_obj,
+        allowed_extensions=current_app.config["ALLOWED_IMAGE_EXTENSIONS"],
+        allowed_mime_types=current_app.config["ALLOWED_IMAGE_MIME_TYPES"],
+    )
+    if not validation.ok:
+        return jsonify({"error": validation.message}), 400
 
     try:
         file_bytes = np.frombuffer(file_obj.read(), dtype=np.uint8)
@@ -179,6 +184,7 @@ def upload_ocr() -> Any:
                 "extracted_text": extracted_text,
                 "corrected_text": corrected_text,
                 "simplified_text": simplified_text,
+                "original_text": extracted_text,
             }
         ), 200
     except Exception:
