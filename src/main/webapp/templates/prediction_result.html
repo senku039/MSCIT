@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Prediction Result</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        linear-gradient(145deg, rgba(17,35,90,0.88), rgba(31,79,181,0.85)),
+        radial-gradient(circle at 10% 20%, rgba(255,255,255,0.13), transparent 36%),
+        radial-gradient(circle at 90% 90%, rgba(255,255,255,0.12), transparent 40%);
+      color: #1f2a44;
+      font-family: "Segoe UI", Arial, sans-serif;
+    }
+    .wrap { max-width: 1040px; margin: 28px auto; }
+    .glass {
+      background: rgba(255,255,255,0.95);
+      backdrop-filter: blur(6px);
+      border: 1px solid rgba(255,255,255,0.4);
+      border-radius: 18px;
+      box-shadow: 0 16px 34px rgba(10, 22, 60, 0.22);
+    }
+    .badge-low { background:#198754; }
+    .badge-moderate { background:#fd7e14; }
+    .badge-high { background:#dc3545; }
+    .section-title { font-weight:700; color:#16316f; }
+    .hero {
+      background: linear-gradient(120deg, #edf3ff, #f9fcff);
+      border-radius: 14px;
+      padding: 16px;
+      border: 1px solid #d4e1ff;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap container">
+    <a class="btn btn-light border mb-3" href="/dyslexia-prediction">← Back to Test</a>
+
+    <div class="glass p-4 mb-3">
+      <div class="hero">
+        <h2 class="section-title mb-2">Dyslexia Prediction Result</h2>
+        <p id="summary" class="mb-2"></p>
+        <div class="d-flex flex-wrap gap-3 align-items-center">
+          <span id="riskBadge" class="badge fs-6"></span>
+          <strong id="probability"></strong>
+        </div>
+      </div>
+    </div>
+
+    <div class="glass p-4 mb-3">
+      <h4 class="section-title">Structured Analysis Table</h4>
+      <div class="table-responsive">
+        <table class="table table-bordered align-middle" id="analysisTable">
+          <thead class="table-primary"><tr><th>Feature</th><th>Value</th><th>Expected Range</th><th>Status</th><th>Impact</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="glass p-4 mb-3">
+      <h4 class="section-title">Key Observations</h4>
+      <ul id="observations" class="mb-0"></ul>
+    </div>
+
+    <div class="glass p-4">
+      <h4 class="section-title">Final Recommendations</h4>
+      <ul id="recommendations" class="mb-0"></ul>
+    </div>
+  </div>
+  <script>
+    function decodePayload() {
+      const params = new URLSearchParams(window.location.search);
+      const data = params.get('data');
+      if (!data) return null;
+      try { return JSON.parse(atob(data.replace(/-/g,'+').replace(/_/g,'/'))); } catch { return null; }
+    }
+    const payload = decodePayload();
+    if (!payload) {
+      document.body.innerHTML = '<div class="container mt-5"><div class="alert alert-warning">No result data found. Run the prediction test first.</div></div>';
+    } else {
+      document.getElementById('summary').textContent = payload.summary || '';
+      document.getElementById('probability').textContent = `Probability Score: ${payload.probability_percent ?? 0}%`;
+      const badge = document.getElementById('riskBadge');
+      badge.textContent = payload.risk_level || 'Unknown';
+      const r = (payload.risk_level || '').toLowerCase();
+      badge.classList.add(r.includes('high') ? 'badge-high' : r.includes('moderate') ? 'badge-moderate' : 'badge-low');
+
+      const tbody = document.querySelector('#analysisTable tbody');
+      (payload.feature_analysis || []).forEach(row => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td>${row.feature}</td><td>${row.value}</td><td>${row.expected_range}</td><td>${row.status}</td><td>${row.impact}</td>`;
+        if (row.abnormal) tr.classList.add('table-danger');
+        tbody.appendChild(tr);
+      });
+
+      const obs = document.getElementById('observations');
+      (payload.observations || []).forEach(item => { const li=document.createElement('li'); li.textContent=item; obs.appendChild(li); });
+      const rec = document.getElementById('recommendations');
+      (payload.recommendations || []).forEach(item => { const li=document.createElement('li'); li.textContent=item; rec.appendChild(li); });
+    }
+  </script>
+</body>
+</html>
