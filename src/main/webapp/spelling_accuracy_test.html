@@ -4,150 +4,108 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Spelling Accuracy Test</title>
+  <link rel="stylesheet" href="/theme.css">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <style>
-    body {
-      background: url("./IMAGES/kids.jpg") no-repeat center center/cover;
-      font-family: Arial, sans-serif;
-      padding: 20px;
-    }
-    .container {
-      max-width: 600px;
-      margin-top: 50px;
-      background: white;
-      padding: 30px;
-      border-radius: 10px;
-      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-    }
-    .feedback {
-      margin-top: 20px;
-      font-size: 1.2em;
-    }
-    .correct {
-      color: green;
-    }
-    .incorrect {
-      color: red;
-    }
-    .progress {
-      margin-top: 20px;
-      font-weight: bold;
-    }
+    body { background: url("/IMAGES/kids.jpg") no-repeat center center/cover; font-family: Arial, sans-serif; padding: 20px; }
+    .container { max-width: 620px; margin-top: 50px; background: rgba(255,255,255,.95); padding: 30px; border-radius: 12px; box-shadow: 0 10px 24px rgba(0,0,0,.15); }
+    .feedback { margin-top: 20px; font-size: 1.1em; }
+    .correct { color: green; }
+    .incorrect { color: red; }
+    .progress { margin-top: 20px; font-weight: bold; }
   </style>
 </head>
 <body>
+  <button class="global-back-btn" type="button" onclick="window.location.href='/home'">← Back</button>
   <div class="container">
     <h1 class="text-center mb-4">Spelling Accuracy Test</h1>
+    <p class="text-muted">Words are randomized each time.</p>
 
-    <div class="mb-3">
-      <button id="speakButton" class="btn btn-primary">Hear the Word</button>
-    </div>
-
-    <div class="mb-4">
-      <input type="text" id="userInput" class="form-control" placeholder="Spell the word" required>
-    </div>
+    <div class="mb-3"><button id="speakButton" class="btn btn-primary">Hear the Word</button></div>
+    <div class="mb-4"><input type="text" id="userInput" class="form-control" placeholder="Spell the word" required></div>
 
     <button id="submitBtn" class="btn btn-primary w-100">Submit</button>
-
     <div id="feedback" class="feedback mt-3"></div>
     <div id="progress" class="progress mt-3"></div>
-
-    <!-- Finish Test Button -->
     <button id="finishTestBtn" class="btn btn-info w-100 mt-3" style="display: none;">Finish Test</button>
   </div>
 
-  <!-- Bootstrap JS and dependencies -->
-  <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.min.js"></script>
-
-  <!-- JavaScript for handling the test -->
   <script>
-    const words = ["apple", "banana", "cat", "dog", "elephant", "flower", "giraffe", "house", "icecream", "jungle"];
+    const wordBank = ["apple", "banana", "elephant", "library", "mountain", "journey", "calendar", "pencil", "hospital", "butterfly", "language", "science", "friendship", "knowledge", "education", "adventure", "creative", "discipline", "discovery", "confidence"];
+    const TEST_LENGTH = 8;
+    let words = [];
     let currentWordIndex = 0;
     let correctCount = 0;
 
-    // Function to speak the word
+    function shuffle(items) {
+      const arr = [...items];
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      return arr;
+    }
+
     function speakWord(word) {
       const utterance = new SpeechSynthesisUtterance(word);
       window.speechSynthesis.speak(utterance);
     }
 
-    // Function to load the next word
     function loadNextWord() {
       if (currentWordIndex < words.length) {
-        document.getElementById("userInput").value = ""; // Clear input field
-        document.getElementById("feedback").innerHTML = ""; // Clear feedback
-        speakWord(words[currentWordIndex]); // Speak the word
+        document.getElementById("userInput").value = "";
+        document.getElementById("feedback").innerHTML = "";
+        speakWord(words[currentWordIndex]);
       } else {
         showFinalResults();
       }
     }
 
-    // Function to check spelling
     function checkSpelling() {
       const userInput = document.getElementById("userInput").value.trim().toLowerCase();
       const correctWord = words[currentWordIndex].toLowerCase();
       const feedbackDiv = document.getElementById("feedback");
 
+      if (!userInput) {
+        feedbackDiv.innerHTML = `<span class="incorrect">Please type your spelling before submitting.</span>`;
+        return;
+      }
+
       if (userInput === correctWord) {
         feedbackDiv.innerHTML = `<span class="correct">Correct! Well done!</span>`;
         correctCount++;
       } else {
-        feedbackDiv.innerHTML = `
-          <span class="incorrect">Incorrect. Your spelling: ${userInput}</span><br>
-          <span>Correct spelling: ${correctWord}</span>
-        `;
+        feedbackDiv.innerHTML = `<span class="incorrect">Incorrect. Your spelling: ${userInput}</span><br><span>Correct spelling: ${correctWord}</span>`;
       }
 
       currentWordIndex++;
       updateProgress();
-
-      if (currentWordIndex < words.length) {
-        setTimeout(loadNextWord, 2000); // Wait 2 seconds before showing the next word
-      } else {
-        showFinalResults();
-      }
+      setTimeout(loadNextWord, 1200);
     }
 
-    // Function to update progress
     function updateProgress() {
-      const progressDiv = document.getElementById("progress");
-      progressDiv.innerHTML = `Progress: ${currentWordIndex}/${words.length} words attempted.`;
+      document.getElementById("progress").innerHTML = `Progress: ${Math.min(currentWordIndex, words.length)}/${words.length} words attempted.`;
     }
 
-    // Function to show final results
     function showFinalResults() {
       const accuracy = (correctCount / words.length) * 100;
-      const feedbackDiv = document.getElementById("feedback");
-      feedbackDiv.innerHTML = `
-        <span class="feedback">Test complete! Your spelling accuracy: ${accuracy.toFixed(2)}%</span><br>
-        <span>You spelled ${correctCount} out of ${words.length} words correctly.</span>
-      `;
-
-      // Save the result in sessionStorage
+      document.getElementById("feedback").innerHTML = `<div class="alert alert-info text-start" role="alert"><h5 class="mb-2">Spelling Test Summary</h5><ul class="mb-1"><li><strong>Total Questions:</strong> ${words.length}</li><li><strong>Correct Answers:</strong> ${correctCount}</li><li><strong>Accuracy:</strong> ${accuracy.toFixed(2)}%</li></ul></div>`;
       sessionStorage.setItem('spelling_accuracy_score', accuracy.toFixed(2));
-
-      // Show Finish Test button
       document.getElementById('finishTestBtn').style.display = 'block';
+      document.getElementById('submitBtn').disabled = true;
     }
 
-    // Event listeners
     document.getElementById("speakButton").addEventListener("click", () => {
-      if (currentWordIndex < words.length) {
-        speakWord(words[currentWordIndex]);
-      }
+      if (currentWordIndex < words.length) speakWord(words[currentWordIndex]);
     });
-
     document.getElementById("submitBtn").addEventListener("click", checkSpelling);
+    document.getElementById('finishTestBtn').addEventListener('click', () => { window.location.href = "/dyslexia-prediction"; });
 
-    // Redirect to the form page after finishing the test
-    document.getElementById('finishTestBtn').addEventListener('click', function() {
-      // Redirect to the main form page (dyslexia_prediction.html)
-      window.location.href = "/src/main/webapp/dyslexia-prediction.html"; // Change this URL if your form page is named differently
+    document.addEventListener("DOMContentLoaded", () => {
+      words = shuffle(wordBank).slice(0, TEST_LENGTH);
+      updateProgress();
+      loadNextWord();
     });
-
-    // Load the first word when the page loads
-    document.addEventListener("DOMContentLoaded", loadNextWord);
   </script>
 </body>
 </html>
