@@ -59,9 +59,9 @@ def _clean_ocr_text(raw_text: str) -> str:
 
 
 def _classify_risk(probability: float) -> str:
-    if probability < 0.35:
+    if probability < 0.33:
         return "Low Risk"
-    if probability < 0.7:
+    if probability < 0.66:
         return "Moderate Risk"
     return "High Risk"
 
@@ -111,14 +111,18 @@ def _build_prediction_payload(prediction: float, feature_map: dict[str, float]) 
 
     table_rows, abnormal_observations = _build_feature_analysis(feature_map)
     abnormal_count = sum(1 for row in table_rows if row["abnormal"])
-    ratio = abnormal_count / max(1, len(table_rows))
-    feature_signal = float(np.clip(ratio * 0.9, 0.0, 1.0))
+    if table_rows:
+        severity_sum = 0.0
+        for row in table_rows:
+            if row["abnormal"]:
+                severity_sum += 1.0
+            elif "supports" in row["impact"].lower() or "within" in row["impact"].lower():
+                severity_sum += 0.15
+        feature_signal = float(np.clip(severity_sum / len(table_rows), 0.0, 1.0))
+    else:
+        feature_signal = 0.0
 
-    screening_probability = float(np.clip((0.65 * model_probability) + (0.35 * feature_signal), 0.0, 1.0))
-    if abnormal_count >= 4 and screening_probability < 0.7:
-        screening_probability = 0.7
-    elif abnormal_count >= 2 and screening_probability < 0.45:
-        screening_probability = 0.45
+    screening_probability = float(np.clip((0.8 * model_probability) + (0.2 * feature_signal), 0.0, 1.0))
 
     probability_percent = round(screening_probability * 100, 2)
     model_probability_percent = round(model_probability * 100, 2)

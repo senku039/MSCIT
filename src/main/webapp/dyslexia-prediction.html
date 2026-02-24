@@ -27,13 +27,42 @@
       min-height: 100vh;
       padding: 18px;
       background:
-        radial-gradient(circle at 15% 20%, rgba(37, 99, 235, 0.12), transparent 36%),
-        radial-gradient(circle at 88% 8%, rgba(20, 184, 166, 0.12), transparent 34%),
+        radial-gradient(circle at 12% 18%, rgba(37, 99, 235, 0.16), transparent 38%),
+        radial-gradient(circle at 90% 10%, rgba(20, 184, 166, 0.15), transparent 34%),
+        repeating-linear-gradient(45deg, rgba(148, 163, 184, 0.06) 0, rgba(148, 163, 184, 0.06) 2px, transparent 2px, transparent 12px),
         linear-gradient(180deg, var(--bg-a) 0%, var(--bg-b) 100%);
       color: var(--ink);
     }
 
-    .quest-wrap { max-width: 1100px; margin: 16px auto 32px; }
+
+    body::before,
+    body::after {
+      content: "";
+      position: fixed;
+      top: 120px;
+      width: 240px;
+      height: 76vh;
+      pointer-events: none;
+      z-index: 0;
+      border-radius: 24px;
+      opacity: .55;
+    }
+
+    body::before {
+      left: 10px;
+      background:
+        radial-gradient(circle at 18px 18px, rgba(37,99,235,.24) 3px, transparent 4px) 0 0/34px 34px,
+        linear-gradient(180deg, rgba(37,99,235,.08), rgba(20,184,166,.08));
+    }
+
+    body::after {
+      right: 10px;
+      background:
+        radial-gradient(circle at 18px 18px, rgba(20,184,166,.24) 3px, transparent 4px) 0 0/34px 34px,
+        linear-gradient(180deg, rgba(20,184,166,.08), rgba(37,99,235,.08));
+    }
+
+    .quest-wrap { position: relative; z-index: 2; max-width: 1100px; margin: 16px auto 32px; }
 
     .quest-header {
       text-align: center;
@@ -101,7 +130,7 @@
       top: 58px;
       background: url('https://cdn-icons-png.flaticon.com/512/3069/3069186.png') center/contain no-repeat;
       filter: drop-shadow(0 10px 16px rgba(15, 23, 42, 0.22));
-      transition: transform .7s cubic-bezier(.2,.9,.35,1), opacity .3s ease;
+      transition: transform .9s cubic-bezier(.2,.9,.35,1), opacity .3s ease;
       pointer-events: none;
       opacity: 0.95;
     }
@@ -213,6 +242,33 @@
     }
     .final-card::after { display: none; }
 
+
+    .goal-card {
+      width: 58%;
+      margin: 10px auto 0;
+      border: 1px solid #bfdbfe;
+      background: linear-gradient(120deg, rgba(239,246,255,.95), rgba(236,253,245,.95));
+      box-shadow: 0 12px 24px rgba(37,99,235,.12);
+    }
+
+    .goal-card::after {
+      display: none;
+    }
+
+    .goal-card .goal-heading {
+      font-size: 1.05rem;
+      font-weight: 800;
+      color: #1d4ed8;
+      margin-bottom: 8px;
+    }
+
+    .goal-card .goal-subtext {
+      color: #334155;
+      font-size: .88rem;
+      margin-bottom: 10px;
+    }
+
+
     .goal-title {
       display: flex;
       align-items: center;
@@ -267,7 +323,7 @@
 
     @media (max-width: 960px) {
       .road-line, .runner { display: none; }
-      .level-card, .final-card { width: 100%; margin: 0; border-radius: 16px; }
+      .level-card, .final-card, .goal-card { width: 100%; margin: 0; border-radius: 16px; }
       .level-card::after { display: none; }
     }
   </style>
@@ -309,14 +365,19 @@
         <div class="level-card final-card locked" data-input="response_time">
           <div class="goal-title">
             <span class="level-badge">Final Level</span>
-            <span class="finish-pill">🏁 Check Result</span>
+            <span class="finish-pill">🏁 Unlock Goal</span>
           </div>
-          <div class="level-title">Response Time + Predict</div>
+          <div class="level-title">Response Time Checkpoint</div>
           <input type="number" id="response_time" class="form-control" placeholder="Enter response time" disabled>
           <div class="d-flex flex-wrap gap-2">
-            <button class="btn btn-light text-dark" id="takeResponseTimeTest">Play Level</button>
-            <button id="submitBtn" class="btn btn-success flex-grow-1">Reach Goal & Predict</button>
+            <button class="btn btn-light text-dark w-100" id="takeResponseTimeTest">Play Level</button>
           </div>
+        </div>
+
+        <div class="level-card goal-card locked" id="goalCard">
+          <div class="goal-heading">🏆 Reach Goal & Predict</div>
+          <div class="goal-subtext">Complete all 7 levels to unlock your final prediction result.</div>
+          <button id="submitBtn" class="btn btn-success w-100">Reach Goal & Predict</button>
           <div id="result"></div>
         </div>
       </div>
@@ -336,16 +397,19 @@
       response_time: "/response_time_test.html"
     };
 
-    const RUNNER_POSITIONS = [
-      {x: 0, y: 90},
-      {x: -300, y: 185},
-      {x: -280, y: 315},
-      {x: 300, y: 410},
-      {x: 280, y: 540},
-      {x: 0, y: 665},
-      {x: 0, y: 760},
-      {x: 0, y: 820}
-    ];
+
+
+    function moveRunnerToCard(card) {
+      const runner = document.getElementById('runner');
+      const mapShell = document.querySelector('.map-shell');
+      if (!runner || !mapShell || !card) return;
+
+      const mapRect = mapShell.getBoundingClientRect();
+      const cardRect = card.getBoundingClientRect();
+      const targetX = cardRect.left + (cardRect.width / 2) - mapRect.left - 29;
+      const targetY = cardRect.top + (cardRect.height / 2) - mapRect.top - 29;
+      runner.style.transform = `translate(${Math.round(targetX)}px, ${Math.round(targetY)}px)`;
+    }
 
     function getCompletionState() {
       return LEVEL_KEYS.map((key) => Boolean(sessionStorage.getItem(`${key}_score`)));
@@ -387,10 +451,16 @@
       const progressEl = document.getElementById('progressPill');
       progressEl.textContent = `Progress: ${completedCount} / ${LEVEL_KEYS.length} levels completed`;
 
-      const runner = document.getElementById('runner');
-      const runnerStep = Math.min(completedCount, RUNNER_POSITIONS.length - 1);
-      const pos = RUNNER_POSITIONS[runnerStep];
-      runner.style.transform = `translate(${pos.x}px, ${pos.y}px)`;
+      const activeOrLastCompleted = cards.find((card) => card.classList.contains('active')) || cards[cards.length - 1];
+      moveRunnerToCard(activeOrLastCompleted);
+
+      const goalCard = document.getElementById('goalCard');
+      goalCard.classList.remove('active', 'completed', 'locked');
+      if (completedCount >= LEVEL_KEYS.length) {
+        goalCard.classList.add('active');
+      } else {
+        goalCard.classList.add('locked');
+      }
 
       const submitBtn = document.getElementById('submitBtn');
       submitBtn.disabled = completedCount < LEVEL_KEYS.length;
@@ -415,6 +485,8 @@
       document.getElementById('randomTip').textContent = tips[Math.floor(Math.random() * tips.length)];
       updateProgressUI();
     };
+
+    window.addEventListener('resize', updateProgressUI);
 
     document.getElementById('takeAttentionTest').addEventListener('click', () => goToLevel('attention'));
     document.getElementById('takeCognitiveTest').addEventListener('click', () => goToLevel('cognitive'));
