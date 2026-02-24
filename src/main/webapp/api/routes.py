@@ -6,8 +6,6 @@ import base64
 import json
 import logging
 import re
-import time
-from collections import defaultdict, deque
 from functools import wraps
 from pathlib import Path
 from typing import Any, Callable
@@ -17,18 +15,17 @@ import numpy as np
 import pytesseract
 from flask import Blueprint, current_app, jsonify, render_template, request, send_from_directory
 
-from src.main.webapp.utils.validators import (
-    cast_numeric_features,
-    validate_feature_payload,
-    validate_image_upload,
-    validate_json_payload,
+from src.main.webapp.api.schemas import (
+    SchemaValidationError,
+    parse_predict_request,
+    validate_handwriting_response,
+    validate_ocr_response,
+    validate_predict_response,
 )
+from src.main.webapp.utils.validators import validate_image_upload
 
 LOGGER = logging.getLogger(__name__)
 api_bp = Blueprint("api", __name__)
-_RATE_BUCKETS: dict[str, deque[float]] = defaultdict(deque)
-
-
 _ALLOWED_PAGE_FILES = {p.name for p in (Path(__file__).resolve().parent.parent).glob("*.html")}
 _ALLOWED_ASSET_EXTENSIONS = {".css", ".js", ".png", ".jpg", ".jpeg", ".gif", ".svg", ".webp", ".ico"}
 
@@ -263,18 +260,9 @@ def rate_limited(func: Callable[..., Any]) -> Callable[..., Any]:
             return current_app.make_default_options_response()
 
         client_id = _get_client_id()
-        now = time.time()
-        interval = 60
-        limit = int(current_app.config.get("RATE_LIMIT_PER_MINUTE", 60))
-        bucket = _RATE_BUCKETS[client_id]
-
-        while bucket and now - bucket[0] > interval:
-            bucket.popleft()
-
-        if len(bucket) >= limit:
+        rate_limiter = current_app.extensions["rate_limiter"]
+        if not rate_limiter.is_allowed(client_id):
             return jsonify({"error": "Rate limit exceeded"}), 429
-
-        bucket.append(now)
         return func(*args, **kwargs)
 
     return wrapper
@@ -282,7 +270,24 @@ def rate_limited(func: Callable[..., Any]) -> Callable[..., Any]:
 
 @api_bp.route("/", methods=["GET"])
 def health() -> Any:
-    return jsonify({"message": "Dyslexia Prediction API is running"})
+    return jsonify({"status": "ok", "service": "dyslexia-prediction-api"})
+
+
+@api_bp.route("/ready", methods=["GET"])
+def readiness() -> Any:
+    model_service = current_app.extensions["model_service"]
+    model_status = {
+        "dyslexia_model_loaded": model_service.dyslexia_model is not None,
+        "handwriting_model_loaded": model_service.handwriting_model is not None,
+    }
+    dependencies = {
+        "tesseract_configured": bool(getattr(pytesseract.pytesseract, "tesseract_cmd", "")),
+        "redis_enabled": bool(current_app.config.get("REDIS_URL", "")),
+    }
+    overall = "ready" if all(model_status.values()) else "degraded"
+    payload = {"status": overall, "models": model_status, "dependencies": dependencies}
+    code = 200 if overall == "ready" else 503
+    return jsonify(payload), code
 
 
 @api_bp.route("/home", methods=["GET"])
@@ -377,18 +382,16 @@ def handwriting_result_page() -> Any:
 @rate_limited
 def predict() -> Any:
     payload = request.get_json(silent=True)
-    payload_validation = validate_json_payload(payload)
-    if not payload_validation.ok:
-        return jsonify({"error": payload_validation.message}), 400
-
-    expected_features = current_app.config["EXPECTED_FEATURES"]
-    schema_validation = validate_feature_payload(payload, expected_features)
-    if not schema_validation.ok:
-        return jsonify({"error": schema_validation.message}), 400
 
     try:
-        feature_values = cast_numeric_features(payload, expected_features)
-        feature_map = {key: value for key, value in zip(expected_features, feature_values)}
+        feature_map = parse_predict_request(payload)
+    except SchemaValidationError as error:
+        return jsonify({"error": str(error)}), 400
+
+    expected_features = current_app.config["EXPECTED_FEATURES"]
+
+    try:
+        feature_values = [float(feature_map[feature]) for feature in expected_features]
         model_service = current_app.extensions["model_service"]
         prediction = model_service.predict_dyslexia(feature_values)
     except (TypeError, ValueError) as error:
@@ -402,8 +405,11 @@ def predict() -> Any:
         result_payload = {
             "prediction": 0.0,
             "probability_percent": 0.0,
+            "model_probability": 0.0,
+            "model_probability_percent": 0.0,
             "risk_level": "Indeterminate",
             "feature_analysis": [],
+            "abnormal_feature_count": 0,
             "observations": ["Model output was invalid; result is indeterminate."],
             "summary": "Prediction could not be interpreted safely.",
             "recommendations": ["Retry later and verify model health."],
@@ -412,7 +418,8 @@ def predict() -> Any:
         result_payload = _build_prediction_payload(prediction, feature_map)
 
     token = _encode_payload(result_payload)
-    return jsonify({**result_payload, "result_redirect": f"/prediction-result?data={token}"}), 200
+    response_payload = validate_predict_response({**result_payload, "result_redirect": f"/prediction-result?data={token}"})
+    return jsonify(response_payload), 200
 
 
 @api_bp.route("/handwriting-analysis", methods=["POST"])
@@ -463,7 +470,8 @@ def handwriting_analysis() -> Any:
         ],
     }
     token = _encode_payload(result_payload)
-    return jsonify({**result_payload, "result_redirect": f"/handwriting-result?data={token}"})
+    response_payload = validate_handwriting_response({**result_payload, "result_redirect": f"/handwriting-result?data={token}"})
+    return jsonify(response_payload)
 
 
 @api_bp.route("/upload", methods=["POST"])
@@ -536,7 +544,8 @@ def upload_ocr() -> Any:
             "original_text": extracted_text,
         }
         token = _encode_payload(result_payload)
-        return jsonify({**result_payload, "result_redirect": f"/ocr-result?data={token}"}), 200
+        response_payload = validate_ocr_response({**result_payload, "result_redirect": f"/ocr-result?data={token}"})
+        return jsonify(response_payload), 200
     except Exception:
         LOGGER.exception("Unhandled OCR upload failure")
         return jsonify({"error": "OCR processing unavailable."}), 500
