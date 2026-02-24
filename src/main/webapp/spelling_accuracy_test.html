@@ -4,10 +4,11 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Spelling Accuracy Test</title>
+    <link rel="stylesheet" href="/theme.css">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <style>
     body {
-      background: url("./IMAGES/kids.jpg") no-repeat center center/cover;
+      background: url("/IMAGES/kids.jpg") no-repeat center center/cover;
       font-family: Arial, sans-serif;
       padding: 20px;
     }
@@ -36,6 +37,7 @@
   </style>
 </head>
 <body>
+    <button class="global-back-btn" type="button" onclick="window.location.href='/home'">← Back</button>
   <div class="container">
     <h1 class="text-center mb-4">Spelling Accuracy Test</h1>
 
@@ -62,7 +64,7 @@
 
   <!-- JavaScript for handling the test -->
   <script>
-    const words = ["apple", "banana", "cat", "dog", "elephant", "flower", "giraffe", "house", "icecream", "jungle"];
+    const words = ["apple", "banana", "cat", "dog", "elephant"];
     let currentWordIndex = 0;
     let correctCount = 0;
 
@@ -120,8 +122,14 @@
       const accuracy = (correctCount / words.length) * 100;
       const feedbackDiv = document.getElementById("feedback");
       feedbackDiv.innerHTML = `
-        <span class="feedback">Test complete! Your spelling accuracy: ${accuracy.toFixed(2)}%</span><br>
-        <span>You spelled ${correctCount} out of ${words.length} words correctly.</span>
+        <div class="alert alert-info text-start" role="alert">
+          <h5 class="mb-2">Spelling Test Summary</h5>
+          <ul class="mb-1">
+            <li><strong>Total Questions:</strong> ${words.length}</li>
+            <li><strong>Correct Answers:</strong> ${correctCount}</li>
+            <li><strong>Accuracy:</strong> ${accuracy.toFixed(2)}%</li>
+          </ul>
+        </div>
       `;
 
       // Save the result in sessionStorage
@@ -143,7 +151,7 @@
     // Redirect to the form page after finishing the test
     document.getElementById('finishTestBtn').addEventListener('click', function() {
       // Redirect to the main form page (dyslexia_prediction.html)
-      window.location.href = "/src/main/webapp/dyslexia-prediction.html"; // Change this URL if your form page is named differently
+      window.location.href = "/dyslexia-prediction"; // Change this URL if your form page is named differently
     });
 
     // Load the first word when the page loads
