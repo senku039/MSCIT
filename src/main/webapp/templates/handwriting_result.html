@@ -4,20 +4,21 @@
   <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Handwriting Result</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <style>
-    body { min-height:100vh; background: linear-gradient(135deg, #ebfff6, #e6f2ff 60%, #f0e9ff); }
-    .panel { border-radius: 16px; border: 1px solid #cfe5ff; box-shadow: 0 12px 28px rgba(42, 88, 171, 0.16); }
+    body{min-height:100vh;background:linear-gradient(135deg,rgba(8,26,70,.9),rgba(22,124,145,.72)),url('https://images.unsplash.com/photo-1455390582262-044cdead277a?auto=format&fit=crop&w=1700&q=80') center/cover fixed}
+    .panel{border-radius:16px;border:1px solid #cfe3ff;box-shadow:0 14px 30px rgba(8,18,53,.28);background:rgba(255,255,255,.95)}
+    .badge-low{background:#198754}.badge-moderate{background:#fd7e14}.badge-high{background:#dc3545}
   </style>
 </head>
 <body>
 <div class="container py-4" style="max-width:980px;">
   <a class="btn btn-light border mb-3" href="/handwriting-analysis-page">← Back to Handwriting</a>
-  <div class="card panel mb-3"><div class="card-body"><h2>Handwriting Analysis Result</h2><p id="summary"></p><div class="d-flex flex-wrap gap-3 align-items-center"><span id="risk" class="badge fs-6"></span><strong id="prob"></strong></div></div></div>
+  <div class="card panel mb-3"><div class="card-body"><h2 class="fw-bold">Handwriting Analysis Result</h2><p id="summary" class="text-muted"></p><div class="d-flex flex-wrap gap-3 align-items-center"><span id="risk" class="badge fs-6"></span><strong id="prob"></strong></div></div></div>
   <div class="card panel"><div class="card-body"><h4>Recommendations</h4><ul id="recommendations" class="mb-0"></ul></div></div>
 </div>
 <script>
 function decodePayload(){const p=new URLSearchParams(window.location.search);const d=p.get('data');if(!d)return null;try{return JSON.parse(atob(d.replace(/-/g,'+').replace(/_/g,'/')));}catch{return null;}}
 const payload=decodePayload();
-if(!payload){document.body.innerHTML='<div class="container mt-5"><div class="alert alert-warning">No handwriting result data found.</div></div>';}else{document.getElementById('summary').textContent=payload.summary||'';document.getElementById('prob').textContent=`Probability Score: ${payload.probability_percent ?? 0}%`;const b=document.getElementById('risk');b.textContent=payload.risk_level||'';b.classList.add((payload.risk_level||'').toLowerCase().includes('low')?'bg-success':'bg-danger');(payload.recommendations||[]).forEach(i=>{const li=document.createElement('li');li.textContent=i;document.getElementById('recommendations').appendChild(li);});}
+if(!payload){document.body.innerHTML='<div class="container mt-5"><div class="alert alert-warning">No handwriting result data found.</div></div>';}else{document.getElementById('summary').textContent=payload.summary||'';document.getElementById('prob').textContent=`Probability Score: ${payload.probability_percent ?? 0}%`;const b=document.getElementById('risk');b.textContent=`${payload.risk_level||'Unknown'} Risk`;const r=(payload.risk_level||'').toLowerCase();b.classList.add(r.includes('high')?'badge-high':r.includes('moderate')?'badge-moderate':'badge-low');(payload.recommendations||[]).forEach(i=>{const li=document.createElement('li');li.textContent=i;document.getElementById('recommendations').appendChild(li);});}
 </script>
 </body>
 </html>

@@ -10,162 +10,98 @@
     <style>
         body { background: #f5f8ff; }
         .hero-section {
-            background: linear-gradient(rgba(7, 19, 61, 0.72), rgba(7, 19, 61, 0.72)),
-                        url('IMAGES/kids.jpg') center/cover;
-            color: white;
-            padding: 110px 0;
+            padding: 130px 0 90px;
+            color: #fff;
+            background:
+                linear-gradient(120deg, rgba(7, 18, 52, 0.82), rgba(58, 30, 126, 0.72)),
+                url('https://images.unsplash.com/photo-1509062522246-3755977927d7?auto=format&fit=crop&w=1800&q=80') center/cover;
         }
-        .feature-card {
-            transition: transform 0.25s ease, box-shadow 0.25s ease;
-            margin-bottom: 20px;
-            border-radius: 14px;
-            border: 1px solid #dce4ff;
-            cursor: pointer;
-        }
-        .feature-card:hover {
-            transform: translateY(-6px);
-            box-shadow: 0 14px 30px rgba(40, 67, 145, 0.15);
-        }
-        .feature-card.active {
-            border-color: #2f5ed9;
-            box-shadow: 0 16px 30px rgba(40, 67, 145, 0.22);
-        }
-        .stat-card {
-            border-left: 5px solid #2f5ed9;
-            background: #fff;
-            border-radius: 10px;
-        }
-        .info-panel {
-            background: #fff;
-            border: 1px solid #dce4ff;
-            border-radius: 12px;
-            padding: 20px;
-        }
-        .back-btn {
-            border-radius: 8px;
-            font-weight: 600;
-        }
+        .hero-chip { background: rgba(255,255,255,0.16); border: 1px solid rgba(255,255,255,0.35); border-radius: 999px; padding: 6px 14px; }
+        .feature-card { border-radius: 16px; border: 1px solid #dbe5ff; transition: .25s ease; }
+        .feature-card:hover { transform: translateY(-6px); box-shadow: 0 16px 32px rgba(18,37,94,.2); }
+        .feature-card.active { border-color: #4267ff; box-shadow: 0 14px 32px rgba(32,57,139,.24); }
+        .stat-card { border-left: 5px solid #486cff; border-radius: 12px; background: #fff; }
+        .info-panel { border: 1px solid #dbe5ff; border-radius: 14px; background: #fff; }
+        .section-title { color:#fff; font-weight:700; }
     </style>
 </head>
 <body>
-    <button class="global-back-btn" type="button" onclick="window.location.href='/home'">← Back</button>
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-        <div class="container">
-            <a class="navbar-brand" href="index.html">Dyslexia Awareness</a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto">
-                    <li class="nav-item"><a class="nav-link active" href="index.html">Home</a></li>
-                    <li class="nav-item"><a class="nav-link" href="dyslexia-prediction.html">Dyslexia Test</a></li>
-                    <li class="nav-item"><a class="nav-link" href="handwriting_analysis.html">Handwriting Analysis</a></li>
-                    <li class="nav-item"><a class="nav-link" href="ocr.html">OCR Tool</a></li>
-                </ul>
-            </div>
+<button class="global-back-btn" type="button" onclick="window.location.href='/home'">← Home</button>
+<nav class="navbar navbar-expand-lg navbar-dark">
+    <div class="container">
+        <a class="navbar-brand fw-bold" href="index.html">Dyslexia Awareness</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"><span class="navbar-toggler-icon"></span></button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav ms-auto">
+                <li class="nav-item"><a class="nav-link active" href="index.html">Home</a></li>
+                <li class="nav-item"><a class="nav-link" href="dyslexia-prediction.html">Dyslexia Test</a></li>
+                <li class="nav-item"><a class="nav-link" href="handwriting_analysis.html">Handwriting Analysis</a></li>
+                <li class="nav-item"><a class="nav-link" href="ocr.html">OCR Tool</a></li>
+            </ul>
         </div>
-    </nav>
+    </div>
+</nav>
 
-    <section class="hero-section text-center">
-        <div class="container">
-            <h1 class="display-4 mb-4">Understanding Dyslexia</h1>
-            <p class="lead mb-4">Empowering individuals with dyslexia through awareness, support, and innovative tools</p>
-            <div class="d-flex justify-content-center gap-2 flex-wrap">
-                <a href="#learn-more" class="btn btn-primary btn-lg">Learn More</a>
-                <a href="dyslexia-prediction.html" class="btn btn-outline-light btn-lg">Start Assessment</a>
-            </div>
+<section class="hero-section text-center">
+    <div class="container">
+        <span class="hero-chip">Interactive Learning Support</span>
+        <h1 class="display-4 fw-bold mt-3 mb-3">Smart Dyslexia Screening & Assistance</h1>
+        <p class="lead mb-4">Get structured insights from tests, handwriting checks, and OCR support with clear result pages.</p>
+        <div class="d-flex justify-content-center gap-2 flex-wrap">
+            <a href="dyslexia-prediction.html" class="btn btn-primary btn-lg">Start Screening</a>
+            <a href="ocr.html" class="btn btn-outline-light btn-lg">Open OCR Tool</a>
         </div>
-    </section>
+    </div>
+</section>
 
-    <section class="py-5 bg-light">
-        <div class="container">
-            <h2 class="text-center mb-5">Dyslexia: By the Numbers</h2>
-            <div class="row">
-                <div class="col-md-4 mb-4"><div class="stat-card p-4"><h3 class="text-primary">15-20%</h3><p class="mb-0">of the population shows signs of dyslexia</p></div></div>
-                <div class="col-md-4 mb-4"><div class="stat-card p-4"><h3 class="text-primary">1 in 5</h3><p class="mb-0">students has a language-based learning disability</p></div></div>
-                <div class="col-md-4 mb-4"><div class="stat-card p-4"><h3 class="text-primary">90%</h3><p class="mb-0">success rate with early intervention</p></div></div>
-            </div>
+<section class="py-5">
+    <div class="container app-panel p-4 p-md-5">
+        <h2 class="text-center mb-4" style="color:#1f2f65;">Dyslexia: By the Numbers</h2>
+        <div class="row g-3">
+            <div class="col-md-4"><div class="stat-card p-4 h-100"><h3 class="text-primary">15-20%</h3><p class="mb-0">of students may show reading-related dyslexia indicators.</p></div></div>
+            <div class="col-md-4"><div class="stat-card p-4 h-100"><h3 class="text-primary">1 in 5</h3><p class="mb-0">learners need additional language and phonics support.</p></div></div>
+            <div class="col-md-4"><div class="stat-card p-4 h-100"><h3 class="text-primary">90%</h3><p class="mb-0">improvement chance with early intervention planning.</p></div></div>
         </div>
-    </section>
+    </div>
+</section>
 
-    <section id="learn-more" class="py-5">
-        <div class="container">
-            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">
-                <h2 class="text-center flex-grow-1 m-0">Understanding Dyslexia Better</h2>
-                <button class="btn btn-outline-primary back-btn" onclick="window.location.href='/home'">← Back</button>
-            </div>
-
-            <div class="row">
-                <div class="col-md-4">
-                    <div class="card feature-card h-100" onclick="showInfo('what')" tabindex="0">
-                        <div class="card-body text-center">
-                            <i class="fas fa-brain fa-3x text-primary mb-3"></i>
-                            <h3 class="card-title">What is Dyslexia?</h3>
-                            <p class="card-text">Click to read detailed explanation and practical examples.</p>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="card feature-card h-100" onclick="showInfo('signs')" tabindex="0">
-                        <div class="card-body text-center">
-                            <i class="fas fa-list-check fa-3x text-primary mb-3"></i>
-                            <h3 class="card-title">Common Signs</h3>
-                            <p class="card-text">Click to view common signs grouped by age and learning stage.</p>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="card feature-card h-100" onclick="showInfo('support')" tabindex="0">
-                        <div class="card-body text-center">
-                            <i class="fas fa-hands-helping fa-3x text-primary mb-3"></i>
-                            <h3 class="card-title">Support Available</h3>
-                            <p class="card-text">Click to explore school, family, and technology support methods.</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="info-panel mt-3" id="infoPanel">
-                Select a card above to view more information.
-            </div>
+<section class="pb-5">
+    <div class="container app-panel p-4 p-md-5">
+        <h2 class="text-center mb-4" style="color:#1f2f65;">Explore & Understand</h2>
+        <div class="row g-3">
+            <div class="col-md-4"><div class="card feature-card h-100" onclick="showInfo('what')"><div class="card-body text-center"><i class="fas fa-brain fa-3x text-primary mb-3"></i><h4>What is Dyslexia?</h4><p>Learn core concepts in a practical way.</p></div></div></div>
+            <div class="col-md-4"><div class="card feature-card h-100" onclick="showInfo('signs')"><div class="card-body text-center"><i class="fas fa-list-check fa-3x text-primary mb-3"></i><h4>Common Signs</h4><p>Identify learning and reading patterns.</p></div></div></div>
+            <div class="col-md-4"><div class="card feature-card h-100" onclick="showInfo('support')"><div class="card-body text-center"><i class="fas fa-hands-helping fa-3x text-primary mb-3"></i><h4>Support Paths</h4><p>Use school, home and technology support.</p></div></div></div>
         </div>
-    </section>
+        <div class="info-panel mt-3 p-3" id="infoPanel">Select a card to view detailed information.</div>
+    </div>
+</section>
 
-    <section class="py-5 bg-light">
-        <div class="container">
-            <h2 class="text-center mb-5">Our Tools to Help</h2>
-            <div class="row">
-                <div class="col-md-4 mb-4"><div class="card feature-card h-100"><div class="card-body text-center"><i class="fas fa-clipboard-question fa-3x text-primary mb-3"></i><h3>Dyslexia Test</h3><p>Take our comprehensive screening test to identify potential signs of dyslexia.</p><a href="dyslexia-prediction.html" class="btn btn-primary">Try the Test</a></div></div></div>
-                <div class="col-md-4 mb-4"><div class="card feature-card h-100"><div class="card-body text-center"><i class="fas fa-pen-fancy fa-3x text-primary mb-3"></i><h3>Handwriting Analysis</h3><p>Upload handwriting samples for detailed analysis and personalized insights.</p><a href="handwriting_analysis.html" class="btn btn-primary">Analyze Handwriting</a></div></div></div>
-                <div class="col-md-4 mb-4"><div class="card feature-card h-100"><div class="card-body text-center"><i class="fas fa-file-text fa-3x text-primary mb-3"></i><h3>OCR Tool</h3><p>Convert text from images into editable text for accessibility and study support.</p><a href="ocr.html" class="btn btn-primary">Use OCR Tool</a></div></div></div>
-            </div>
+<section class="pb-5">
+    <div class="container app-panel p-4 p-md-5">
+        <h2 class="text-center mb-4" style="color:#1f2f65;">Use Our Tools</h2>
+        <div class="row g-3">
+            <div class="col-md-4"><div class="card feature-card h-100"><div class="card-body text-center"><i class="fas fa-clipboard-question fa-3x text-primary mb-3"></i><h4>Dyslexia Test</h4><p>Structured feature-based screening with clear explanations.</p><a href="dyslexia-prediction.html" class="btn btn-primary">Try Now</a></div></div></div>
+            <div class="col-md-4"><div class="card feature-card h-100"><div class="card-body text-center"><i class="fas fa-pen-fancy fa-3x text-primary mb-3"></i><h4>Handwriting Analysis</h4><p>Analyze handwriting quality and review recommendations.</p><a href="handwriting_analysis.html" class="btn btn-primary">Analyze</a></div></div></div>
+            <div class="col-md-4"><div class="card feature-card h-100"><div class="card-body text-center"><i class="fas fa-file-lines fa-3x text-primary mb-3"></i><h4>OCR Tool</h4><p>Extract, correct and simplify text from images.</p><a href="ocr.html" class="btn btn-primary">Use OCR</a></div></div></div>
         </div>
-    </section>
+    </div>
+</section>
 
-    <footer class="bg-dark text-white text-center py-4">
-        <div class="container">
-            <p>&copy; 2023 Dyslexia Awareness. All rights reserved.</p>
-            <p><a href="#" class="text-white">Privacy Policy</a> | <a href="#" class="text-white">Terms of Use</a></p>
-        </div>
-    </footer>
-
-    <script>
-        const infoContent = {
-            what: "Dyslexia is a neurodevelopmental learning difference that mainly affects decoding, spelling, and reading fluency. It is not related to intelligence, and early structured intervention can significantly improve outcomes.",
-            signs: "Common signs include reading slowly, mixing up letter sequences, spelling variability, and difficulty in phonological tasks. Symptoms can vary by age, language background, and education support.",
-            support: "Effective support includes multisensory teaching, individualized learning plans, assistive tools (text-to-speech, guided reading), and consistent family/school collaboration."
-        };
-
-        function showInfo(key) {
-            const panel = document.getElementById('infoPanel');
-            panel.textContent = infoContent[key] || 'Information unavailable.';
-
-            document.querySelectorAll('.feature-card').forEach((card) => card.classList.remove('active'));
-            const activeCard = Array.from(document.querySelectorAll('.feature-card')).find((card) => card.getAttribute('onclick')?.includes(`'${key}'`));
-            if (activeCard) activeCard.classList.add('active');
-        }
-    </script>
-    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.min.js"></script>
+<script>
+const infoContent={
+  what:"Dyslexia is a neurodevelopmental learning difference affecting decoding, spelling and reading fluency. It is not linked to intelligence.",
+  signs:"Typical indicators include slow reading, inconsistent spelling, difficulty mapping sounds to letters, and reduced phonemic awareness.",
+  support:"Best outcomes come from multisensory teaching, consistent guided practice, assistive tools, and family-school collaboration."
+};
+function showInfo(key){
+  document.getElementById('infoPanel').textContent=infoContent[key]||'Information unavailable.';
+  document.querySelectorAll('.feature-card').forEach(c=>c.classList.remove('active'));
+  const cards=[...document.querySelectorAll('.feature-card')];
+  const idx={what:0,signs:1,support:2}[key];
+  if(idx!==undefined&&cards[idx]) cards[idx].classList.add('active');
+}
+</script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
