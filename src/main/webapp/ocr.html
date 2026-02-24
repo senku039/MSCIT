@@ -242,6 +242,11 @@
             return;
           }
 
+          const redirectPath = data.result_redirect || "";
+          if (redirectPath) {
+            window.location.href = `http://127.0.0.1:5000${redirectPath}`;
+            return;
+          }
           originalTextEl.value = data.extracted_text || data.original_text || "";
           correctedTextEl.value = data.corrected_text || "";
           simplifiedTextEl.value = data.simplified_text || "";

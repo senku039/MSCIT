@@ -144,6 +144,10 @@
                     document.getElementById("result").innerText = "Error: " + data.error;
                     document.getElementById("result").style.color = "red";
                 } else {
+                    if (data.result_redirect) {
+                        window.location.href = `http://127.0.0.1:5000${data.result_redirect}`;
+                        return;
+                    }
                     document.getElementById("result").innerHTML = 
                         `<span class="badge bg-success">Prediction: ${data.predicted_class}</span>`;
                 }

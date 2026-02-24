@@ -156,18 +156,12 @@
             ? "High likelihood of dyslexia" 
             : "Low likelihood of dyslexia";
           const badgeClass = predictionScore >= 0.5 ? "bg-danger" : "bg-success";
-          document.getElementById('result').innerHTML = `
-            <div class="card shadow-sm">
-              <div class="card-body">
-                <h5 class="card-title mb-3">Prediction Summary</h5>
-                <p><span class="badge ${badgeClass}">${resultText}</span></p>
-                <ul class="mb-0">
-                  <li><strong>Prediction Score:</strong> ${predictionScore.toFixed(3)}</li>
-                  <li><strong>Attention:</strong> ${attention}</li>
-                  <li><strong>Cognitive:</strong> ${cognitive}</li>
-                </ul>
-              </div>
-            </div>`;
+          const redirectPath = data.result_redirect || '';
+          if (redirectPath) {
+            window.location.href = `http://127.0.0.1:5000${redirectPath}`;
+            return;
+          }
+          document.getElementById('result').innerHTML = `<div class="alert alert-info">${resultText} (${(predictionScore*100).toFixed(2)}%)</div>`;
         } else {
           document.getElementById('result').innerHTML = `<div class="alert alert-danger">❌ Error: ${data.error || 'No prediction returned'}</div>`;
         }
