@@ -4,104 +4,86 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Handwriting Analysis</title>
-    
-    <!-- Bootstrap 5 -->
+    <link rel="stylesheet" href="/theme.css">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-
     <style>
         body {
-            background-color: #f8f9fa;
             font-family: 'Poppins', sans-serif;
+            background:
+              linear-gradient(135deg, rgba(25, 47, 116, 0.8), rgba(73, 110, 212, 0.62)),
+              url('https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?auto=format&fit=crop&w=1800&q=80') center/cover fixed;
+            min-height: 100vh;
         }
-        .container {
-            max-width: 500px;
-            background: white;
-            padding: 30px;
-            border-radius: 10px;
-            box-shadow: 0px 0px 20px rgba(0, 0, 0, 0.1);
-            margin-top: 50px;
+        .analysis-card {
+            max-width: 760px;
+            margin: 90px auto 40px;
+            background: rgba(255, 255, 255, 0.93);
+            border: 1px solid #d8e3ff;
+            border-radius: 20px;
+            padding: 26px;
+            box-shadow: 0 18px 38px rgba(14, 36, 101, 0.28);
         }
-        h2 {
-            text-align: center;
-            color: #343a40;
-            font-weight: bold;
-        }
+        h2 { text-align: center; color: #213d86; font-weight: 700; }
+        .sub { text-align:center; color:#5d6b95; margin-bottom:18px; }
         .dropbox {
-            border: 2px dashed #007bff;
-            border-radius: 10px;
-            padding: 30px;
+            border: 2px dashed #2f61de;
+            border-radius: 14px;
+            padding: 34px;
             text-align: center;
-            font-size: 16px;
-            color: #007bff;
-            background-color: #f9f9f9;
+            font-size: 17px;
+            color: #2451c2;
+            background: #f2f6ff;
             transition: 0.3s;
             cursor: pointer;
         }
-        .dropbox:hover {
-            background-color: #e3f2fd;
-        }
-        input[type="file"] {
-            display: none;
-        }
+        .dropbox:hover { background-color: #e6eeff; transform: translateY(-2px); }
+        input[type="file"] { display: none; }
         #preview {
-            margin-top: 20px;
+            margin-top: 18px;
             width: 100%;
-            max-height: 250px;
+            max-height: 330px;
             display: none;
-            border-radius: 10px;
-            box-shadow: 0px 5px 10px rgba(0, 0, 0, 0.2);
+            border-radius: 14px;
+            box-shadow: 0 8px 18px rgba(0, 0, 0, 0.25);
+            object-fit: contain;
+            background:#f8faff;
         }
         .result {
             margin-top: 20px;
-            font-size: 18px;
-            font-weight: bold;
-            color: #28a745;
+            font-size: 16px;
+            color: #1f356f;
             text-align: center;
+            min-height: 24px;
         }
         .btn-upload {
             width: 100%;
-            font-size: 18px;
-            font-weight: bold;
-        }
-        .footer {
-            text-align: center;
-            margin-top: 20px;
-            font-size: 14px;
-            color: #6c757d;
+            font-size: 17px;
+            font-weight: 700;
+            border-radius: 12px;
         }
     </style>
 </head>
 <body>
+    <button class="global-back-btn" type="button" onclick="window.location.href='/home'">← Back</button>
 
-    <div class="container">
+    <div class="analysis-card">
         <h2>Handwriting Analysis</h2>
+        <p class="sub">Upload handwriting sample for risk screening and structured interpretation.</p>
 
-        <!-- Drag & Drop Box -->
-        <div class="dropbox" onclick="document.getElementById('fileInput').click()" 
-             ondragover="event.preventDefault()" 
+        <div class="dropbox" onclick="document.getElementById('fileInput').click()"
+             ondragover="event.preventDefault()"
              ondrop="handleDrop(event)">
-            Drag & Drop Image Here or Click to Upload
+            Drag & Drop Handwriting Image Here or Click to Upload
         </div>
 
-        <!-- File Input -->
         <input type="file" id="fileInput" accept="image/*" onchange="previewImage(event)">
-
-        <!-- Image Preview -->
         <img id="preview" alt="Image Preview">
 
-        <!-- Upload Button -->
         <button class="btn btn-primary btn-upload mt-3" onclick="uploadImage()">Analyze Handwriting</button>
-
-        <!-- Prediction Result -->
         <div id="result" class="result"></div>
-        
-        <!-- Footer -->
-        <div class="footer"></div>
     </div>
 
-    <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-
     <script>
         function previewImage(event) {
             let file = event.target.files[0];
@@ -125,12 +107,13 @@
         function uploadImage() {
             let fileInput = document.getElementById('fileInput');
             if (fileInput.files.length === 0) {
-                alert("Please select an image first!");
+                document.getElementById("result").innerText = "Please select an image first!";
                 return;
             }
 
             let formData = new FormData();
             formData.append("image", fileInput.files[0]);
+            document.getElementById("result").innerText = "Analyzing handwriting...";
 
             fetch("http://127.0.0.1:5000/handwriting-analysis", {
                 method: "POST",
@@ -140,19 +123,18 @@
             .then(data => {
                 if (data.error) {
                     document.getElementById("result").innerText = "Error: " + data.error;
-                    document.getElementById("result").style.color = "red";
                 } else {
-                    document.getElementById("result").innerHTML = 
-                        `<span class="badge bg-success">Prediction: ${data.predicted_class}</span>`;
+                    if (data.result_redirect) {
+                        window.location.href = `http://127.0.0.1:5000${data.result_redirect}`;
+                        return;
+                    }
+                    document.getElementById("result").innerHTML = `<span class="badge bg-success">Prediction: ${data.predicted_class}</span>`;
                 }
             })
-            .catch(error => {
-                console.error("Error:", error);
+            .catch(() => {
                 document.getElementById("result").innerText = "Failed to connect to the server!";
-                document.getElementById("result").style.color = "red";
             });
         }
     </script>
-
 </body>
 </html>
