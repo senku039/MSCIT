@@ -237,6 +237,28 @@ def prediction_result_page() -> Any:
     return render_template("prediction_result.html")
 
 
+
+
+@api_bp.route("/theme.css", methods=["GET"])
+def serve_theme_css():
+    webapp_dir = Path(__file__).resolve().parent.parent
+    return send_from_directory(webapp_dir, "theme.css")
+
+
+@api_bp.route("/IMAGES/<path:requested>", methods=["GET"])
+def serve_image_assets(requested: str):
+    webapp_dir = Path(__file__).resolve().parent.parent
+    image_dir = (webapp_dir / "IMAGES").resolve()
+    image_path = (image_dir / requested).resolve()
+
+    if not str(image_path).startswith(str(image_dir)):
+        return jsonify({"error": "Endpoint not found."}), 404
+
+    if image_path.suffix.lower() not in {".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg", ".ico"} or not image_path.is_file():
+        return jsonify({"error": "Endpoint not found."}), 404
+
+    return send_from_directory(image_dir, requested)
+
 @api_bp.route("/assets/<path:requested>", methods=["GET"])
 def serve_web_assets(requested: str):
     webapp_dir = Path(__file__).resolve().parent.parent
