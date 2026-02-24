@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import re
 import time
 from collections import defaultdict, deque
 from functools import wraps
@@ -23,6 +24,16 @@ from src.main.webapp.utils.validators import (
 LOGGER = logging.getLogger(__name__)
 api_bp = Blueprint("api", __name__)
 _RATE_BUCKETS: dict[str, deque[float]] = defaultdict(deque)
+
+
+def _clean_ocr_text(raw_text: str) -> str:
+    """Normalize OCR output with conservative cleanup."""
+    lines = [line.strip() for line in raw_text.splitlines()]
+    lines = [line for line in lines if line]
+    joined = "\n".join(lines)
+    joined = re.sub(r"[ 	]+", " ", joined)
+    joined = joined.replace("|", "I")
+    return joined.strip()
 
 
 def _get_client_id() -> str:
@@ -173,10 +184,22 @@ def upload_ocr() -> Any:
             return jsonify({"error": "Invalid image file."}), 400
 
         gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-        denoised = cv2.GaussianBlur(gray, (3, 3), 0)
+        upscale = cv2.resize(gray, None, fx=1.8, fy=1.8, interpolation=cv2.INTER_CUBIC)
+        denoised = cv2.bilateralFilter(upscale, 7, 50, 50)
+        thresholded = cv2.adaptiveThreshold(
+            denoised,
+            255,
+            cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
+            cv2.THRESH_BINARY,
+            31,
+            11,
+        )
 
-        extracted_text = pytesseract.image_to_string(denoised).strip()
-        corrected_text = " ".join(extracted_text.split())
+        tesseract_config = "--oem 3 --psm 6"
+        raw_text = pytesseract.image_to_string(thresholded, config=tesseract_config)
+        extracted_text = _clean_ocr_text(raw_text)
+        corrected_text = extracted_text.replace("\n", " ")
+        corrected_text = re.sub(r"\s+", " ", corrected_text).strip()
         simplified_text = corrected_text.lower()
 
         return jsonify(

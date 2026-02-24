@@ -70,3 +70,7 @@ gunicorn --bind 0.0.0.0:5000 src.main.webapp.wsgi:app
 ## Notes for model artifacts
 
 Model binaries (`.keras`, `.pkl`, `.h5`) should be stored outside Git (artifact store or Git LFS) for security, size control, and reproducibility.
+
+## OCR runtime dependency
+
+Install the native **Tesseract OCR engine** and ensure `tesseract` is available on your system PATH. `pytesseract` is only the Python wrapper.
