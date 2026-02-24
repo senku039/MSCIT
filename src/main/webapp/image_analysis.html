@@ -16,7 +16,7 @@
         linear-gradient(130deg, rgba(242,247,255,.86) 0%, rgba(232,241,255,.84) 44%, rgba(241,255,251,.84) 100%), url('https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?auto=format&fit=crop&w=1800&q=80') center/cover fixed;
     }
     .panel{
-      max-width:1120px;
+      max-width:1240px;
       margin:80px auto;
       background:rgba(255,255,255,.92);
       border:1px solid #cfdcff;
@@ -35,12 +35,12 @@
       font-weight:600;
       color:#1f3f96;
     }
-    #preview{display:none;width:100%;max-height:360px;object-fit:contain;border-radius:14px;background:#f5f8ff;border:1px solid #d9e3ff}
+    #preview{display:none;width:100%;max-height:460px;object-fit:contain;border-radius:14px;background:#f5f8ff;border:1px solid #d9e3ff}
     .subline{color:#4a5d8f}
   </style>
 </head>
 <body>
-  <button class="global-back-btn" onclick="window.location.href='/index.html'">← Back</button>
+  <button class="global-back-btn" onclick="window.location.href='index.html'">← Back</button>
   <div class="panel">
     <h2 class="fw-bold">Unified Image Analysis</h2>
     <p class="subline mb-3">Single upload, single report: handwriting risk + OCR readability with detailed recommendations.</p>
@@ -65,6 +65,23 @@
       reader.readAsDataURL(file);
     });
 
+    async function callImageAnalysis(formData) {
+      const endpoints = ['/image-analysis-upload', 'http://127.0.0.1:5000/image-analysis-upload'];
+
+      for (const endpoint of endpoints) {
+        try {
+          const response = await fetch(endpoint, { method: 'POST', body: formData });
+          const data = await response.json();
+          if (!response.ok || data.error) {
+            throw new Error(data.error || 'Processing failed.');
+          }
+          return { data, endpoint };
+        } catch (err) {
+          if (endpoint === endpoints[endpoints.length - 1]) throw err;
+        }
+      }
+    }
+
     analyzeBtn.addEventListener('click', async () => {
       const file = imageInput.files[0];
       if (!file) { status.textContent = 'Please choose an image first.'; return; }
@@ -75,13 +92,15 @@
       status.textContent = 'Running handwriting + OCR analysis...';
 
       try {
-        const response = await fetch('/image-analysis-upload', { method: 'POST', body: formData });
-        const data = await response.json();
-        if (!response.ok || data.error) { status.textContent = data.error || 'Processing failed.'; return; }
-        if (data.result_redirect) { window.location.href = data.result_redirect; return; }
+        const { data, endpoint } = await callImageAnalysis(formData);
+        if (data.result_redirect) {
+          const redirectBase = endpoint.startsWith('http') ? 'http://127.0.0.1:5000' : '';
+          window.location.href = `${redirectBase}${data.result_redirect}`;
+          return;
+        }
         status.textContent = 'Analysis complete.';
-      } catch (_e) {
-        status.textContent = 'Unable to call analysis API. Start the Flask backend and open this page via /image-analysis.';
+      } catch (e) {
+        status.textContent = `Unable to call analysis API. ${e.message} Start Flask backend on 127.0.0.1:5000.`;
       } finally {
         analyzeBtn.disabled = false;
       }

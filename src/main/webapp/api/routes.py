@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import base64
+from io import BytesIO
 import json
 import logging
 import re
@@ -10,9 +11,13 @@ from functools import wraps
 from pathlib import Path
 from typing import Any, Callable
 
-import cv2
+try:
+    import cv2
+except Exception:  # pragma: no cover - optional native dependency
+    cv2 = None
 import numpy as np
 import pytesseract
+from PIL import Image
 from flask import Blueprint, current_app, jsonify, render_template, request, send_from_directory
 
 from src.main.webapp.api.schemas import (
@@ -491,28 +496,34 @@ def handwriting_analysis() -> Any:
 
 
 def _run_ocr_pipeline(file_obj: Any) -> dict[str, Any]:
-    file_bytes = np.frombuffer(file_obj.read(), dtype=np.uint8)
+    raw_file = file_obj.read()
+    file_bytes = np.frombuffer(raw_file, dtype=np.uint8)
     if file_bytes.size == 0:
         raise ValueError("No file provided.")
 
-    image = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
-    if image is None:
-        raise ValueError("Invalid image file.")
-
-    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    upscale = cv2.resize(gray, None, fx=1.8, fy=1.8, interpolation=cv2.INTER_CUBIC)
-    denoised = cv2.bilateralFilter(upscale, 7, 50, 50)
-    thresholded = cv2.adaptiveThreshold(
-        denoised,
-        255,
-        cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
-        cv2.THRESH_BINARY,
-        31,
-        11,
-    )
-
     tesseract_config = "--oem 3 --psm 6"
-    raw_text = pytesseract.image_to_string(thresholded, config=tesseract_config)
+
+    if cv2 is not None:
+        image = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
+        if image is None:
+            raise ValueError("Invalid image file.")
+
+        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        upscale = cv2.resize(gray, None, fx=1.8, fy=1.8, interpolation=cv2.INTER_CUBIC)
+        denoised = cv2.bilateralFilter(upscale, 7, 50, 50)
+        thresholded = cv2.adaptiveThreshold(
+            denoised,
+            255,
+            cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
+            cv2.THRESH_BINARY,
+            31,
+            11,
+        )
+        raw_text = pytesseract.image_to_string(thresholded, config=tesseract_config)
+    else:
+        LOGGER.warning("OpenCV unavailable; using direct OCR fallback pipeline.")
+        pil_image = Image.open(BytesIO(raw_file)).convert("L")
+        raw_text = pytesseract.image_to_string(pil_image, config=tesseract_config)
     extracted_text = _clean_ocr_text(raw_text)
     corrected_text = _correct_ocr_text(extracted_text)
     simplified_text = _simplify_ocr_text(corrected_text)
