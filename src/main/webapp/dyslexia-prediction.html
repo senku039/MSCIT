@@ -9,82 +9,262 @@
   <style>
     body {
       font-family: Arial, sans-serif;
-      padding: 20px;
-      background:
-        linear-gradient(140deg, rgba(8, 24, 70, 0.7), rgba(64, 102, 196, 0.54)),
-        url('/IMAGES/kids.jpg') no-repeat center center/cover;
+      min-height: 100vh;
+      padding: 18px;
+      background: url('/IMAGES/kids.jpg') center/cover fixed;
+      color: #fff;
     }
-    .container {
-      max-width: 700px;
-      margin-top: 40px;
-      background: rgba(255, 255, 255, 0.94);
-      border-radius: 16px;
-      border: 1px solid #d5e1ff;
-      padding: 28px;
-      box-shadow: 0 16px 34px rgba(7, 19, 56, 0.24);
+
+    .quest-wrap { max-width: 1080px; margin: 16px auto 32px; }
+
+    .quest-header {
+      text-align: center;
+      padding: 14px;
+      border-radius: 18px;
+      border: 1px solid rgba(255,255,255,.55);
+      background: rgba(49, 34, 86, 0.34);
+      backdrop-filter: blur(4px);
+      margin-bottom: 10px;
     }
+
+    .quest-header h1 { color: #fff2d8; }
+
     .tip-box {
-      background: #f3f7ff;
-      border: 1px solid #d7e3ff;
-      border-radius: 10px;
-      padding: 10px 12px;
-      color: #2b3a64;
-      margin-bottom: 12px;
-      font-size: .95rem;
+      margin-top: 10px;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,.65);
+      background: rgba(255,255,255,.2);
+      color: #fffdf6;
+      padding: 9px 12px;
+      font-size: .94rem;
+    }
+
+    .map-shell {
+      position: relative;
+      padding: 18px 10px 14px;
+      border-radius: 20px;
+      /* removed heavy big background container look */
+      background: transparent;
+      border: none;
+      box-shadow: none;
+    }
+
+    .road-line {
+      position: absolute;
+      inset: 38px 0 56px;
+      width: 100%;
+      height: calc(100% - 94px);
+      z-index: 1;
+      pointer-events: none;
+    }
+
+    .runner {
+      position: absolute;
+      z-index: 3;
+      width: 54px;
+      height: 54px;
+      left: calc(50% - 27px);
+      top: 66px;
+      background: url('https://cdn-icons-png.flaticon.com/512/3940/3940417.png') center/contain no-repeat;
+      filter: drop-shadow(0 7px 12px rgba(0,0,0,.28));
+      animation: runRoad 16s ease-in-out infinite;
+      pointer-events: none;
+    }
+
+    @keyframes runRoad {
+      0% { transform: translate(0,0); }
+      14% { transform: translate(0,95px); }
+      28% { transform: translate(-300px,185px); }
+      42% { transform: translate(-280px,315px); }
+      56% { transform: translate(300px,410px); }
+      70% { transform: translate(280px,540px); }
+      84% { transform: translate(0,665px); }
+      100% { transform: translate(0,760px); }
+    }
+
+    .level-list {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+      padding: 6px 4px 0;
+    }
+
+    .level-card {
+      width: 46%;
+      position: relative;
+      padding: 14px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,.85);
+      box-shadow: 0 8px 18px rgba(48, 29, 74, .24);
+      transition: transform .2s ease;
+      color: #3a2a58;
+      background: linear-gradient(145deg, rgba(255, 246, 229, 0.98), rgba(255, 231, 191, 0.98));
+    }
+
+    .level-card:nth-child(odd) { margin-right: auto; }
+    .level-card:nth-child(even) { margin-left: auto; }
+    .level-card:hover { transform: translateY(-3px); }
+
+    .level-card::after {
+      content: "";
+      position: absolute;
+      top: 50%;
+      width: 80px;
+      height: 4px;
+      background: rgba(255, 245, 218, 0.96);
+      border-radius: 999px;
+      box-shadow: 0 0 8px rgba(255, 245, 218, 0.8);
+    }
+    .level-card:nth-child(odd)::after { right: -80px; }
+    .level-card:nth-child(even)::after { left: -80px; }
+
+    .level-badge {
+      display: inline-block;
+      margin-bottom: 7px;
+      border-radius: 999px;
+      padding: 4px 11px;
+      font-size: .76rem;
+      font-weight: 700;
+      color: #fff;
+      background: linear-gradient(95deg, #d46f9d, #f59a55);
+    }
+
+    .level-title { font-weight: 700; margin-bottom: 8px; color: #5a2f47; }
+
+    .level-card .form-control {
+      border-radius: 999px;
+      background: #ffffff;
+      color: #1f3562;
+      border: 1px solid #e9d5b8;
+      margin-bottom: 8px;
+    }
+
+    .final-card {
+      width: 84%;
+      margin: 8px auto 0;
+      background: linear-gradient(145deg, rgba(199, 249, 207, 0.97), rgba(243, 252, 215, 0.97));
+      border-color: rgba(255,255,255,.95);
+      box-shadow: 0 10px 22px rgba(52, 79, 45, 0.22);
+    }
+    .final-card::after { display: none; }
+
+    .goal-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    .finish-pill {
+      border-radius: 999px;
+      background: rgba(74, 152, 95, 0.2);
+      border: 1px solid rgba(74, 152, 95, 0.55);
+      color: #2f6243;
+      padding: 4px 10px;
+      font-size: .78rem;
+      font-weight: 700;
+    }
+
+    #result { margin-top: 10px; }
+
+    @media (max-width: 960px) {
+      .road-line, .runner { display: none; }
+      .level-card, .final-card { width: 100%; margin: 0; border-radius: 16px; }
+      .level-card::after { display: none; }
     }
   </style>
 </head>
 <body>
   <button class="global-back-btn" type="button" onclick="window.location.href='/home'">← Back</button>
-  <div class="container">
-    <h1 class="text-center mb-2">Dyslexia Prediction Test</h1>
-    <p class="text-center text-muted mb-3">Complete each mini-test. Question sets are randomized for better screening consistency.</p>
-    <div class="tip-box" id="randomTip"></div>
 
-    <div class="mb-4">
-      <label for="attention" class="form-label">Attention Span</label>
-      <input type="number" id="attention" class="form-control" placeholder="Enter attention span score" disabled>
-      <button class="btn btn-primary mt-2" id="takeAttentionTest">Take Attention Span Test</button>
+  <div class="quest-wrap">
+    <div class="quest-header">
+      <h1 class="mb-2">Dyslexia Roadmap Game</h1>
+      <p class="mb-1">Move level by level on the roadmap and unlock your final prediction checkpoint.</p>
+      <div class="tip-box" id="randomTip"></div>
     </div>
 
-    <div class="mb-4">
-      <label for="cognitive" class="form-label">Cognitive Score</label>
-      <input type="number" id="cognitive" class="form-control" placeholder="Enter cognitive score" disabled>
-      <button class="btn btn-primary mt-2" id="takeCognitiveTest">Take Cognitive Test</button>
-    </div>
+    <div class="map-shell">
+      <svg class="road-line" viewBox="0 0 1000 1200" preserveAspectRatio="none" aria-hidden="true">
+        <defs>
+          <linearGradient id="curveRoad" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#fff4d8"/>
+            <stop offset="100%" stop-color="#ffd9bf"/>
+          </linearGradient>
+        </defs>
+        <path d="M500 20
+                 V150
+                 Q500 185 465 185
+                 H230
+                 Q195 185 195 220
+                 V315
+                 Q195 350 230 350
+                 H770
+                 Q805 350 805 385
+                 V480
+                 Q805 515 770 515
+                 H230
+                 Q195 515 195 550
+                 V645
+                 Q195 680 230 680
+                 H770
+                 Q805 680 805 715
+                 V810
+                 Q805 845 770 845
+                 H500
+                 V1060"
+              fill="none" stroke="url(#curveRoad)" stroke-width="18" stroke-linecap="round" stroke-linejoin="round" opacity="0.95"/>
+        <path d="M500 20
+                 V150
+                 Q500 185 465 185
+                 H230
+                 Q195 185 195 220
+                 V315
+                 Q195 350 230 350
+                 H770
+                 Q805 350 805 385
+                 V480
+                 Q805 515 770 515
+                 H230
+                 Q195 515 195 550
+                 V645
+                 Q195 680 230 680
+                 H770
+                 Q805 680 805 715
+                 V810
+                 Q805 845 770 845
+                 H500
+                 V1060"
+              fill="none" stroke="#fff8ea" stroke-width="4" stroke-dasharray="12 14" stroke-linecap="round" stroke-linejoin="round" opacity="0.9"/>
+      </svg>
+      <div class="runner" aria-hidden="true"></div>
 
-    <div class="mb-4">
-      <label for="reading_speed" class="form-label">Reading Speed</label>
-      <input type="number" id="reading_speed" class="form-control" placeholder="Enter reading speed" disabled>
-      <button class="btn btn-primary mt-2" id="takeReadingSpeedTest">Take Reading Speed Test</button>
-    </div>
+      <div class="level-list">
+        <div class="level-card"><span class="level-badge">Level 1</span><div class="level-title">Attention Span</div><input type="number" id="attention" class="form-control" placeholder="Enter attention span score" disabled><button class="btn btn-primary w-100" id="takeAttentionTest">Play Level</button></div>
+        <div class="level-card"><span class="level-badge">Level 2</span><div class="level-title">Cognitive Score</div><input type="number" id="cognitive" class="form-control" placeholder="Enter cognitive score" disabled><button class="btn btn-primary w-100" id="takeCognitiveTest">Play Level</button></div>
+        <div class="level-card"><span class="level-badge">Level 3</span><div class="level-title">Reading Speed</div><input type="number" id="reading_speed" class="form-control" placeholder="Enter reading speed" disabled><button class="btn btn-primary w-100" id="takeReadingSpeedTest">Play Level</button></div>
+        <div class="level-card"><span class="level-badge">Level 4</span><div class="level-title">Spelling Accuracy</div><input type="number" id="spelling_accuracy" class="form-control" placeholder="Enter spelling accuracy" disabled><button class="btn btn-primary w-100" id="takeSpellingAccuracyTest">Play Level</button></div>
+        <div class="level-card"><span class="level-badge">Level 5</span><div class="level-title">Writing Errors</div><input type="number" id="writing_errors" class="form-control" placeholder="Enter writing errors" disabled><button class="btn btn-primary w-100" id="takeWritingErrorsTest">Play Level</button></div>
+        <div class="level-card"><span class="level-badge">Level 6</span><div class="level-title">Phonemic Awareness Errors</div><input type="number" id="phonemic_errors" class="form-control" placeholder="Enter phonemic awareness errors" disabled><button class="btn btn-primary w-100" id="takePhonemicErrorsTest">Play Level</button></div>
 
-    <div class="mb-4">
-      <label for="spelling_accuracy" class="form-label">Spelling Accuracy</label>
-      <input type="number" id="spelling_accuracy" class="form-control" placeholder="Enter spelling accuracy" disabled>
-      <button class="btn btn-primary mt-2" id="takeSpellingAccuracyTest">Take Spelling Accuracy Test</button>
+        <div class="level-card final-card">
+          <div class="goal-title">
+            <span class="level-badge">Final Level</span>
+            <span class="finish-pill">🏁 Check Result</span>
+          </div>
+          <div class="level-title">Response Time + Predict</div>
+          <input type="number" id="response_time" class="form-control" placeholder="Enter response time" disabled>
+          <div class="d-flex flex-wrap gap-2">
+            <button class="btn btn-light text-dark" id="takeResponseTimeTest">Play Level</button>
+            <button id="submitBtn" class="btn btn-success flex-grow-1">Reach Goal & Predict</button>
+          </div>
+          <div id="result"></div>
+        </div>
+      </div>
     </div>
-
-    <div class="mb-4">
-      <label for="writing_errors" class="form-label">Writing Errors</label>
-      <input type="number" id="writing_errors" class="form-control" placeholder="Enter writing errors" disabled>
-      <button class="btn btn-primary mt-2" id="takeWritingErrorsTest">Take Writing Errors Test</button>
-    </div>
-
-    <div class="mb-4">
-      <label for="phonemic_errors" class="form-label">Phonemic Awareness Errors</label>
-      <input type="number" id="phonemic_errors" class="form-control" placeholder="Enter phonemic awareness errors" disabled>
-      <button class="btn btn-primary mt-2" id="takePhonemicErrorsTest">Take Phonemic Awareness Test</button>
-    </div>
-
-    <div class="mb-4">
-      <label for="response_time" class="form-label">Response Time</label>
-      <input type="number" id="response_time" class="form-control" placeholder="Enter response time" disabled>
-      <button class="btn btn-primary mt-2" id="takeResponseTimeTest">Take Response Time Test</button>
-    </div>
-
-    <button id="submitBtn" class="btn btn-success w-100">Submit & Predict</button>
-    <div id="result" class="mt-4"></div>
   </div>
 
   <script>
@@ -96,9 +276,9 @@
       });
 
       const tips = [
-        "Tip: Use a quiet environment for better concentration during tests.",
-        "Tip: Complete all tests in one session for more consistent results.",
-        "Tip: Randomized questions reduce memorization bias in scoring."
+        "Tip: Follow the roadmap from Level 1 to the final checkpoint.",
+        "Tip: Randomized mini-levels improve screening quality.",
+        "Tip: Complete all levels in one session for best consistency."
       ];
       document.getElementById('randomTip').textContent = tips[Math.floor(Math.random() * tips.length)];
     };
@@ -140,13 +320,13 @@
             window.location.href = `http://127.0.0.1:5000${redirectPath}`;
             return;
           }
-          document.getElementById('result').innerHTML = `<div class="alert alert-info">${resultText} (${(predictionScore*100).toFixed(2)}%)</div>`;
+          document.getElementById('result').innerHTML = `<div class="alert alert-info mt-2">${resultText} (${(predictionScore*100).toFixed(2)}%)</div>`;
         } else {
-          document.getElementById('result').innerHTML = `<div class="alert alert-danger">❌ Error: ${data.error || 'No prediction returned'}</div>`;
+          document.getElementById('result').innerHTML = `<div class="alert alert-danger mt-2">❌ Error: ${data.error || 'No prediction returned'}</div>`;
         }
       })
       .catch(error => {
-        document.getElementById('result').innerHTML = `<div class="alert alert-danger">❌ Error: ${error.message}</div>`;
+        document.getElementById('result').innerHTML = `<div class="alert alert-danger mt-2">❌ Error: ${error.message}</div>`;
       });
     });
   </script>
