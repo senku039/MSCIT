@@ -35,7 +35,7 @@
   </style>
 </head>
 <body>
-    <button class="global-back-btn" type="button" onclick="window.history.back()">← Back</button>
+    <button class="global-back-btn" type="button" onclick="window.location.href='index.html'">← Back</button>
   <div class="container">
     <h1 class="text-center mb-4">Reading Speed Test</h1>
     <video id="webcam" autoplay></video>
@@ -111,7 +111,7 @@
     });
 
     document.getElementById('finishTestBtn').addEventListener('click', function() {
-      window.location.href = "/src/main/webapp/dyslexia-prediction.html";
+      window.location.href = "dyslexia-prediction.html";
     });
   </script>
 </body>

@@ -38,7 +38,7 @@
   </style>
 </head>
 <body>
-    <button class="global-back-btn" type="button" onclick="window.history.back()">← Back</button>
+    <button class="global-back-btn" type="button" onclick="window.location.href='index.html'">← Back</button>
   <div class="container">
     <h1 class="text-center mb-4">Writing Errors Test</h1>
     <div class="card shadow">
@@ -70,12 +70,7 @@
       "I like to play with my dog.",
       "The sun is very bright.",
       "We went to the park.",
-      "She has a red ball.",
-      "He eats an apple.",
-      "The bird can fly.",
-      "My mom is very kind.",
-      "I see a big tree.",
-      "The fish swims in the water."
+      "She has a red ball."
     ];
     let currentSentenceIndex = 0;
     let correctCount = 0;
@@ -146,10 +141,15 @@
       const accuracy = (correctCount / sentences.length) * 100;
       const feedbackDiv = document.getElementById("feedback");
       feedbackDiv.innerHTML = `
-        <span class="feedback">Test complete!</span><br>
-        <span>Your writing accuracy: ${accuracy.toFixed(2)}%</span><br>
-        <span>Total errors: ${totalErrors}</span><br>
-        <span>You wrote ${correctCount} out of ${sentences.length} sentences correctly.</span>
+        <div class="alert alert-info text-start" role="alert">
+          <h5 class="mb-2">Writing Test Summary</h5>
+          <ul class="mb-1">
+            <li><strong>Total Questions:</strong> ${sentences.length}</li>
+            <li><strong>Correct Sentences:</strong> ${correctCount}</li>
+            <li><strong>Total Errors:</strong> ${totalErrors}</li>
+            <li><strong>Accuracy:</strong> ${accuracy.toFixed(2)}%</li>
+          </ul>
+        </div>
       `;
 
       document.getElementById("speakButton").disabled = true;
@@ -180,7 +180,7 @@
 
     // Finish Test Button click event
     document.getElementById('finishTestBtn').addEventListener('click', function () {
-      window.location.href = "/src/main/webapp/dyslexia-prediction.html"; // Redirect to prediction page
+      window.location.href = "dyslexia-prediction.html"; // Redirect to prediction page
     });
   </script>
 </body>
