@@ -46,7 +46,7 @@ Set these before production deployment:
 - `FLASK_ENV=production`
 - `SECRET_KEY=<long-random-value>`
 - `API_TOKENS=<comma-separated-token-list>`
-- `CORS_ORIGINS=https://your-frontend.example`
+- `CORS_ORIGINS=http://localhost:3000,http://127.0.0.1:3000` (local dev example)
 - `RATE_LIMIT_PER_MINUTE=60`
 - `MAX_CONTENT_LENGTH=2097152`
 - `DYSLEXIA_MODEL_PATH=/secure/models/dyslexia_reg_model.pkl`

@@ -27,7 +27,12 @@ def create_app() -> Flask:
         format="%(asctime)s %(levelname)s %(name)s - %(message)s",
     )
 
-    CORS(app, resources={r"/*": {"origins": app.config["CORS_ORIGINS"]}})
+    CORS(
+        app,
+        resources={r"/*": {"origins": app.config["CORS_ORIGINS"]}},
+        methods=["GET", "POST", "OPTIONS"],
+        allow_headers=["Content-Type", "Authorization"],
+    )
 
     model_service = ModelService(app.config)
     try:

@@ -8,7 +8,9 @@ from collections import defaultdict, deque
 from functools import wraps
 from typing import Any, Callable
 
+import cv2
 import numpy as np
+import pytesseract
 from flask import Blueprint, current_app, jsonify, request
 
 from src.main.webapp.utils.validators import (
@@ -30,6 +32,9 @@ def _get_client_id() -> str:
 def require_auth(func: Callable[..., Any]) -> Callable[..., Any]:
     @wraps(func)
     def wrapper(*args: Any, **kwargs: Any):
+        if request.method == "OPTIONS":
+            return current_app.make_default_options_response()
+
         tokens = current_app.config.get("API_TOKENS", set())
         if not tokens:
             return func(*args, **kwargs)
@@ -46,6 +51,9 @@ def require_auth(func: Callable[..., Any]) -> Callable[..., Any]:
 def rate_limited(func: Callable[..., Any]) -> Callable[..., Any]:
     @wraps(func)
     def wrapper(*args: Any, **kwargs: Any):
+        if request.method == "OPTIONS":
+            return current_app.make_default_options_response()
+
         client_id = _get_client_id()
         now = time.time()
         interval = 60
@@ -136,3 +144,43 @@ def handwriting_analysis() -> Any:
             "threshold": current_app.config["HANDWRITING_THRESHOLD"],
         }
     )
+
+
+@api_bp.route("/upload", methods=["POST"])
+@require_auth
+@rate_limited
+def upload_ocr() -> Any:
+    """Extract text from uploaded image and return normalized variants."""
+    if "file" not in request.files:
+        return jsonify({"error": "No file provided."}), 400
+
+    file_obj = request.files["file"]
+    if not file_obj.filename:
+        return jsonify({"error": "No file provided."}), 400
+
+    try:
+        file_bytes = np.frombuffer(file_obj.read(), dtype=np.uint8)
+        if file_bytes.size == 0:
+            return jsonify({"error": "No file provided."}), 400
+
+        image = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
+        if image is None:
+            return jsonify({"error": "Invalid image file."}), 400
+
+        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        denoised = cv2.GaussianBlur(gray, (3, 3), 0)
+
+        extracted_text = pytesseract.image_to_string(denoised).strip()
+        corrected_text = " ".join(extracted_text.split())
+        simplified_text = corrected_text.lower()
+
+        return jsonify(
+            {
+                "extracted_text": extracted_text,
+                "corrected_text": corrected_text,
+                "simplified_text": simplified_text,
+            }
+        ), 200
+    except Exception:
+        LOGGER.exception("Unhandled OCR upload failure")
+        return jsonify({"error": "OCR processing unavailable."}), 500
