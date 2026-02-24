@@ -8,7 +8,7 @@ This repository hosts the Dyslexia Early Detection System, a multi-modal assessm
 
 ## Features
 
-- Cognitive tests for reading speed, spelling accuracy, phonemic awareness, response time, and attention.
+- Cognitive tests for reading speed, spelling accuracy, phonemic awareness, response time, and rapid naming (RAN).
 - Handwriting analysis using a TensorFlow/Keras model.
 - Eye-tracking experiment support.
 - Unified image-analysis flow that runs OCR + handwriting screening from one uploaded photo.
@@ -89,3 +89,9 @@ Install the native **Tesseract OCR engine** and ensure `tesseract` is available 
 ## Reading speed reliability
 
 Reading-speed scoring now enforces basic reliability checks: minimum plausible reading time, minimum focus time, and a quick comprehension question before persisting score.
+
+
+## Test design updates
+
+- Replaced the earlier attention-span mini task in the level flow with a **Rapid Naming** test, which is generally more specific to reading/dyslexia risk than generic attention metrics.
+- Reduced writing-errors prompts from 8 to 5 items to lower fatigue while preserving signal quality.
