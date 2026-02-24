@@ -123,18 +123,48 @@
     }
 
     .runner {
+      font-size: 42px;
       position: absolute;
       z-index: 4;
       width: 58px;
       height: 58px;
       left: calc(50% - 29px);
       top: 58px;
-      background: url('https://cdn-icons-png.flaticon.com/512/3069/3069186.png') center/contain no-repeat;
+      background: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       filter: drop-shadow(0 10px 16px rgba(15, 23, 42, 0.22));
       transition: transform .9s cubic-bezier(.2,.9,.35,1), opacity .3s ease;
       pointer-events: none;
       opacity: 0.95;
     }
+
+
+    .runner::before {
+      content: "🐭";
+      filter: drop-shadow(0 3px 4px rgba(0,0,0,.18));
+    }
+
+    .side-mascot {
+      position: fixed;
+      z-index: 1;
+      font-size: 52px;
+      opacity: .88;
+      top: 46%;
+      pointer-events: none;
+      animation: floaty 2.8s ease-in-out infinite;
+      filter: drop-shadow(0 8px 12px rgba(15,23,42,.2));
+    }
+
+    .side-mascot.left { left: 18px; }
+    .side-mascot.right { right: 18px; }
+
+    @keyframes floaty {
+      0%,100% { transform: translateY(0); }
+      50% { transform: translateY(-8px); }
+    }
+    .side-mascot.left { animation-delay: .3s; }
 
     .level-list {
       position: relative;
@@ -336,13 +366,16 @@
     #result { margin-top: 10px; }
 
     @media (max-width: 960px) {
-      .road-line, .runner { display: none; }
+      .road-line, .runner {
+      font-size: 42px; display: none; }
       .level-card, .final-card, .goal-card { width: 100%; margin: 0; border-radius: 16px; }
       .level-card::after { display: none; }
     }
   </style>
 </head>
 <body>
+  <div class="side-mascot left" aria-hidden="true">🐹</div>
+  <div class="side-mascot right" aria-hidden="true">🐭</div>
   <button class="global-back-btn" type="button" onclick="window.location.href='/home'">← Back</button>
 
   <div class="quest-wrap">
@@ -494,7 +527,7 @@
       const tips = [
         "Tip: You can unlock only one next level at a time.",
         "Tip: Complete all seven levels for the most reliable screen.",
-        "Tip: The duck follows your real progress automatically."
+        "Tip: Follow the guide character as you complete each level."
       ];
       document.getElementById('randomTip').textContent = tips[Math.floor(Math.random() * tips.length)];
       updateProgressUI();
