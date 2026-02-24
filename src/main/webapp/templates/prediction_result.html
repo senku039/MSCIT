@@ -46,7 +46,7 @@
         <p id="summary" class="mb-2"></p>
         <div class="d-flex flex-wrap gap-3 align-items-center">
           <span id="riskBadge" class="badge fs-6"></span>
-          <strong id="probability"></strong>
+          <strong id="probability"></strong><span id="modelProbability" class="text-muted"></span>
         </div>
       </div>
     </div>
@@ -83,7 +83,8 @@
       document.body.innerHTML = '<div class="container mt-5"><div class="alert alert-warning">No result data found. Run the prediction test first.</div></div>';
     } else {
       document.getElementById('summary').textContent = payload.summary || '';
-      document.getElementById('probability').textContent = `Probability Score: ${payload.probability_percent ?? 0}%`;
+      document.getElementById('probability').textContent = `Screening Probability: ${payload.probability_percent ?? 0}%`;
+      document.getElementById('modelProbability').textContent = `Model Output: ${payload.model_probability_percent ?? payload.probability_percent ?? 0}%`; 
       const badge = document.getElementById('riskBadge');
       badge.textContent = payload.risk_level || 'Unknown';
       const r = (payload.risk_level || '').toLowerCase();

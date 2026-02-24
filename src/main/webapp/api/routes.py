@@ -9,6 +9,7 @@ import re
 import time
 from collections import defaultdict, deque
 from functools import wraps
+from pathlib import Path
 from typing import Any, Callable
 
 import cv2
@@ -26,6 +27,9 @@ from src.main.webapp.utils.validators import (
 LOGGER = logging.getLogger(__name__)
 api_bp = Blueprint("api", __name__)
 _RATE_BUCKETS: dict[str, deque[float]] = defaultdict(deque)
+
+
+_ALLOWED_PAGE_FILES = {p.name for p in (Path(__file__).resolve().parent.parent).glob("*.html")}
 
 _FEATURE_RULES: dict[str, dict[str, Any]] = {
     "Attention_Span": {"low": 40, "high": 100, "direction": "higher_better", "display": "Attention Span"},
@@ -102,16 +106,29 @@ def _build_feature_analysis(feature_map: dict[str, float]) -> tuple[list[dict[st
 
 
 def _build_prediction_payload(prediction: float, feature_map: dict[str, float]) -> dict[str, Any]:
-    probability = float(np.clip(prediction, 0.0, 1.0))
-    probability_percent = round(probability * 100, 2)
-    risk_level = _classify_risk(probability)
+    model_probability = float(np.clip(prediction, 0.0, 1.0))
 
     table_rows, abnormal_observations = _build_feature_analysis(feature_map)
-    summary = (
-        "Multiple indicators are outside expected ranges and suggest elevated screening risk."
-        if risk_level != "Low Risk"
-        else "Most indicators are in expected ranges; screening risk appears low."
-    )
+    abnormal_count = sum(1 for row in table_rows if row["abnormal"])
+    ratio = abnormal_count / max(1, len(table_rows))
+    feature_signal = float(np.clip(ratio * 0.9, 0.0, 1.0))
+
+    screening_probability = float(np.clip((0.65 * model_probability) + (0.35 * feature_signal), 0.0, 1.0))
+    if abnormal_count >= 4 and screening_probability < 0.7:
+        screening_probability = 0.7
+    elif abnormal_count >= 2 and screening_probability < 0.45:
+        screening_probability = 0.45
+
+    probability_percent = round(screening_probability * 100, 2)
+    model_probability_percent = round(model_probability * 100, 2)
+    risk_level = _classify_risk(screening_probability)
+
+    if abnormal_count >= 4:
+        summary = "Several indicators are outside expected ranges, suggesting high screening risk."
+    elif abnormal_count >= 2:
+        summary = "Some indicators are outside expected ranges, suggesting moderate screening risk."
+    else:
+        summary = "Most indicators are within expected ranges; screening risk appears low."
 
     recommendations = [
         "Use this as a screening signal, not a clinical diagnosis.",
@@ -120,16 +137,17 @@ def _build_prediction_payload(prediction: float, feature_map: dict[str, float]) 
     ]
 
     return {
-        "prediction": probability,
+        "prediction": screening_probability,
         "probability_percent": probability_percent,
+        "model_probability": model_probability,
+        "model_probability_percent": model_probability_percent,
         "risk_level": risk_level,
         "feature_analysis": table_rows,
+        "abnormal_feature_count": abnormal_count,
         "observations": abnormal_observations or ["No major abnormal indicators were detected."],
         "summary": summary,
         "recommendations": recommendations,
     }
-
-
 def _encode_payload(payload: dict[str, Any]) -> str:
     raw = json.dumps(payload, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
     return base64.urlsafe_b64encode(raw).decode("utf-8")
@@ -216,6 +234,22 @@ def handwriting_analysis_page() -> Any:
 @api_bp.route("/prediction-result", methods=["GET"])
 def prediction_result_page() -> Any:
     return render_template("prediction_result.html")
+
+
+@api_bp.route("/<string:page>.html", methods=["GET"])
+def compatibility_html_route(page: str):
+    filename = f"{page}.html"
+    if filename not in _ALLOWED_PAGE_FILES:
+        return jsonify({"error": "Endpoint not found."}), 404
+    return _serve_webapp_page(filename)
+
+
+@api_bp.route("/src/main/webapp/<path:requested>", methods=["GET"])
+def compatibility_legacy_path(requested: str):
+    filename = Path(requested).name
+    if filename not in _ALLOWED_PAGE_FILES:
+        return jsonify({"error": "Endpoint not found."}), 404
+    return _serve_webapp_page(filename)
 
 
 @api_bp.route("/ocr-result", methods=["GET"])

@@ -21,7 +21,7 @@
     body {
       margin: 0;
       font-family: "Segoe UI", Arial, sans-serif;
-      background: radial-gradient(circle at top right, #e4ebff, var(--bg));
+      background: linear-gradient(145deg, rgba(15,34,88,0.72), rgba(37,77,177,0.6)), url('https://images.unsplash.com/photo-1455390582262-044cdead277a?auto=format&fit=crop&w=1800&q=80') center/cover fixed;
       color: var(--text);
     }
 
@@ -140,10 +140,10 @@
   </style>
 </head>
 <body>
-    <button class="global-back-btn" type="button" onclick="window.location.href='index.html'">← Back</button>
+    <button class="global-back-btn" type="button" onclick="window.location.href='/home'">← Back</button>
   <div class="container">
     <div class="toolbar">
-      <a href="index.html" class="back-btn">← Back to Home</a>
+      <a href="/home" class="back-btn">← Back to Home</a>
       <button class="btn" onclick="readAloud()">🔊 Read Corrected Text</button>
     </div>
 
