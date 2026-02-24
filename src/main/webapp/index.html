@@ -20,7 +20,29 @@
         .feature-card { border-radius: 16px; border: 1px solid #dbe5ff; transition: .25s ease; }
         .feature-card:hover { transform: translateY(-6px); box-shadow: 0 16px 32px rgba(18,37,94,.2); }
         .feature-card.active { border-color: #4267ff; box-shadow: 0 14px 32px rgba(32,57,139,.24); }
-        .stat-card { border-left: 5px solid #486cff; border-radius: 12px; background: #fff; }
+        .stats-panel {
+            position: relative;
+            overflow: hidden;
+            border-radius: 22px;
+            background: linear-gradient(135deg, rgba(31, 111, 235, 0.14), rgba(121, 79, 255, 0.1), rgba(18, 199, 192, 0.12));
+        }
+        .stats-panel::before,
+        .stats-panel::after {
+            content: "";
+            position: absolute;
+            border-radius: 999px;
+            z-index: 0;
+            filter: blur(2px);
+        }
+        .stats-panel::before { width: 260px; height: 260px; right: -90px; top: -100px; background: rgba(73, 122, 255, 0.22); }
+        .stats-panel::after { width: 220px; height: 220px; left: -70px; bottom: -95px; background: rgba(20, 184, 166, 0.22); }
+        .stats-panel > * { position: relative; z-index: 1; }
+        .stat-card { border-radius: 14px; color: #fff; border: none; box-shadow: 0 14px 26px rgba(28, 47, 118, 0.16); }
+        .stat-card h3 { color: #fff !important; font-weight: 800; margin-bottom: .4rem; }
+        .stat-card p { margin: 0; color: rgba(255,255,255,.94); }
+        .stat-blue { background: linear-gradient(140deg, #245fe7, #4f8bff); }
+        .stat-purple { background: linear-gradient(140deg, #6941d8, #8b5cf6); }
+        .stat-teal { background: linear-gradient(140deg, #0d9488, #22c1b5); }
         .info-panel { border: 1px solid #dbe5ff; border-radius: 14px; background: #fff; }
         .section-title { color:#fff; font-weight:700; }
     </style>
@@ -55,12 +77,12 @@
 </section>
 
 <section class="py-5">
-    <div class="container app-panel p-4 p-md-5">
+    <div class="container app-panel stats-panel p-4 p-md-5">
         <h2 class="text-center mb-4" style="color:#1f2f65;">Dyslexia: By the Numbers</h2>
         <div class="row g-3">
-            <div class="col-md-4"><div class="stat-card p-4 h-100"><h3 class="text-primary">15-20%</h3><p class="mb-0">of students may show reading-related dyslexia indicators.</p></div></div>
-            <div class="col-md-4"><div class="stat-card p-4 h-100"><h3 class="text-primary">1 in 5</h3><p class="mb-0">learners need additional language and phonics support.</p></div></div>
-            <div class="col-md-4"><div class="stat-card p-4 h-100"><h3 class="text-primary">90%</h3><p class="mb-0">improvement chance with early intervention planning.</p></div></div>
+            <div class="col-md-4"><div class="stat-card stat-blue p-4 h-100"><h3>15-20%</h3><p>of students may show reading-related dyslexia indicators.</p></div></div>
+            <div class="col-md-4"><div class="stat-card stat-purple p-4 h-100"><h3>1 in 5</h3><p>learners need additional language and phonics support.</p></div></div>
+            <div class="col-md-4"><div class="stat-card stat-teal p-4 h-100"><h3>90%</h3><p>improvement chance with early intervention planning.</p></div></div>
         </div>
     </div>
 </section>
