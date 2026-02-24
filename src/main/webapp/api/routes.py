@@ -1,0 +1,358 @@
+"""API routes for prediction, handwriting analysis, OCR, and result views."""
+
+from __future__ import annotations
+
+import base64
+import json
+import logging
+import re
+import time
+from collections import defaultdict, deque
+from functools import wraps
+from typing import Any, Callable
+
+import cv2
+import numpy as np
+import pytesseract
+from flask import Blueprint, current_app, jsonify, render_template, request
+
+from src.main.webapp.utils.validators import (
+    cast_numeric_features,
+    validate_feature_payload,
+    validate_image_upload,
+    validate_json_payload,
+)
+
+LOGGER = logging.getLogger(__name__)
+api_bp = Blueprint("api", __name__)
+_RATE_BUCKETS: dict[str, deque[float]] = defaultdict(deque)
+
+_FEATURE_RULES: dict[str, dict[str, Any]] = {
+    "Attention_Span": {"low": 40, "high": 100, "direction": "higher_better", "display": "Attention Span"},
+    "Cognitive_Score": {"low": 40, "high": 100, "direction": "higher_better", "display": "Cognitive Score"},
+    "Reading_Speed": {"low": 70, "high": 220, "direction": "higher_better", "display": "Reading Speed"},
+    "Spelling_Accuracy": {"low": 60, "high": 100, "direction": "higher_better", "display": "Spelling Accuracy"},
+    "Writing_Errors": {"low": 0, "high": 5, "direction": "lower_better", "display": "Writing Errors"},
+    "Phonemic_Awareness_Errors": {
+        "low": 0,
+        "high": 5,
+        "direction": "lower_better",
+        "display": "Phonemic Awareness Errors",
+    },
+    "Response_Time": {"low": 0.2, "high": 2.0, "direction": "lower_better", "display": "Response Time"},
+}
+
+
+def _clean_ocr_text(raw_text: str) -> str:
+    """Normalize OCR output with conservative cleanup."""
+    lines = [line.strip() for line in raw_text.splitlines()]
+    lines = [line for line in lines if line]
+    joined = "\n".join(lines)
+    joined = re.sub(r"[ \t]+", " ", joined)
+    joined = joined.replace("|", "I")
+    return joined.strip()
+
+
+def _classify_risk(probability: float) -> str:
+    if probability < 0.35:
+        return "Low Risk"
+    if probability < 0.7:
+        return "Moderate Risk"
+    return "High Risk"
+
+
+def _build_feature_analysis(feature_map: dict[str, float]) -> tuple[list[dict[str, Any]], list[str]]:
+    rows: list[dict[str, Any]] = []
+    abnormal_observations: list[str] = []
+
+    for key, value in feature_map.items():
+        rule = _FEATURE_RULES.get(key)
+        if not rule:
+            continue
+
+        low = rule["low"]
+        high = rule["high"]
+        direction = rule["direction"]
+        display = rule["display"]
+
+        if direction == "higher_better":
+            is_abnormal = value < low
+            impact = "Increases risk" if is_abnormal else "Supports lower risk"
+            status = "Below expected" if is_abnormal else "Within expected"
+        else:
+            is_abnormal = value > high
+            impact = "Increases risk" if is_abnormal else "Within expected"
+            status = "Above expected" if is_abnormal else "Within expected"
+
+        rows.append(
+            {
+                "feature": display,
+                "value": round(value, 3),
+                "expected_range": f"{low} - {high}",
+                "status": status,
+                "impact": impact,
+                "abnormal": is_abnormal,
+            }
+        )
+
+        if is_abnormal:
+            abnormal_observations.append(f"{display} is {status.lower()} ({value:.3f}).")
+
+    return rows, abnormal_observations
+
+
+def _build_prediction_payload(prediction: float, feature_map: dict[str, float]) -> dict[str, Any]:
+    probability = float(np.clip(prediction, 0.0, 1.0))
+    probability_percent = round(probability * 100, 2)
+    risk_level = _classify_risk(probability)
+
+    table_rows, abnormal_observations = _build_feature_analysis(feature_map)
+    summary = (
+        "Multiple indicators are outside expected ranges and suggest elevated screening risk."
+        if risk_level != "Low Risk"
+        else "Most indicators are in expected ranges; screening risk appears low."
+    )
+
+    recommendations = [
+        "Use this as a screening signal, not a clinical diagnosis.",
+        "Review flagged features with an educator/specialist.",
+        "If moderate/high risk, schedule a formal dyslexia assessment.",
+    ]
+
+    return {
+        "prediction": probability,
+        "probability_percent": probability_percent,
+        "risk_level": risk_level,
+        "feature_analysis": table_rows,
+        "observations": abnormal_observations or ["No major abnormal indicators were detected."],
+        "summary": summary,
+        "recommendations": recommendations,
+    }
+
+
+def _encode_payload(payload: dict[str, Any]) -> str:
+    raw = json.dumps(payload, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
+    return base64.urlsafe_b64encode(raw).decode("utf-8")
+
+
+def _get_client_id() -> str:
+    return request.headers.get("X-Forwarded-For", request.remote_addr or "unknown").split(",")[0].strip()
+
+
+def require_auth(func: Callable[..., Any]) -> Callable[..., Any]:
+    @wraps(func)
+    def wrapper(*args: Any, **kwargs: Any):
+        if request.method == "OPTIONS":
+            return current_app.make_default_options_response()
+
+        tokens = current_app.config.get("API_TOKENS", set())
+        if not tokens:
+            return func(*args, **kwargs)
+
+        auth_header = request.headers.get("Authorization", "")
+        token = auth_header.removeprefix("Bearer ").strip()
+        if token not in tokens:
+            return jsonify({"error": "Unauthorized"}), 401
+        return func(*args, **kwargs)
+
+    return wrapper
+
+
+def rate_limited(func: Callable[..., Any]) -> Callable[..., Any]:
+    @wraps(func)
+    def wrapper(*args: Any, **kwargs: Any):
+        if request.method == "OPTIONS":
+            return current_app.make_default_options_response()
+
+        client_id = _get_client_id()
+        now = time.time()
+        interval = 60
+        limit = int(current_app.config.get("RATE_LIMIT_PER_MINUTE", 60))
+        bucket = _RATE_BUCKETS[client_id]
+
+        while bucket and now - bucket[0] > interval:
+            bucket.popleft()
+
+        if len(bucket) >= limit:
+            return jsonify({"error": "Rate limit exceeded"}), 429
+
+        bucket.append(now)
+        return func(*args, **kwargs)
+
+    return wrapper
+
+
+@api_bp.route("/", methods=["GET"])
+def health() -> Any:
+    return jsonify({"message": "Dyslexia Prediction API is running"})
+
+
+@api_bp.route("/prediction-result", methods=["GET"])
+def prediction_result_page() -> Any:
+    return render_template("prediction_result.html")
+
+
+@api_bp.route("/ocr-result", methods=["GET"])
+def ocr_result_page() -> Any:
+    return render_template("ocr_result.html")
+
+
+@api_bp.route("/handwriting-result", methods=["GET"])
+def handwriting_result_page() -> Any:
+    return render_template("handwriting_result.html")
+
+
+@api_bp.route("/predict", methods=["POST"])
+@require_auth
+@rate_limited
+def predict() -> Any:
+    payload = request.get_json(silent=True)
+    payload_validation = validate_json_payload(payload)
+    if not payload_validation.ok:
+        return jsonify({"error": payload_validation.message}), 400
+
+    expected_features = current_app.config["EXPECTED_FEATURES"]
+    schema_validation = validate_feature_payload(payload, expected_features)
+    if not schema_validation.ok:
+        return jsonify({"error": schema_validation.message}), 400
+
+    try:
+        feature_values = cast_numeric_features(payload, expected_features)
+        feature_map = {key: value for key, value in zip(expected_features, feature_values)}
+        model_service = current_app.extensions["model_service"]
+        prediction = model_service.predict_dyslexia(feature_values)
+    except (TypeError, ValueError) as error:
+        return jsonify({"error": str(error)}), 400
+    except Exception:
+        LOGGER.exception("Unhandled dyslexia prediction failure")
+        return jsonify({"error": "Prediction service unavailable."}), 500
+
+    if not np.isfinite(prediction):
+        LOGGER.warning("Model returned non-finite score; returning safe fallback.")
+        result_payload = {
+            "prediction": 0.0,
+            "probability_percent": 0.0,
+            "risk_level": "Indeterminate",
+            "feature_analysis": [],
+            "observations": ["Model output was invalid; result is indeterminate."],
+            "summary": "Prediction could not be interpreted safely.",
+            "recommendations": ["Retry later and verify model health."],
+        }
+    else:
+        result_payload = _build_prediction_payload(prediction, feature_map)
+
+    token = _encode_payload(result_payload)
+    return jsonify({**result_payload, "result_redirect": f"/prediction-result?data={token}"}), 200
+
+
+@api_bp.route("/handwriting-analysis", methods=["POST"])
+@require_auth
+@rate_limited
+def handwriting_analysis() -> Any:
+    if "image" not in request.files:
+        return jsonify({"error": "No image file provided."}), 400
+
+    image_file = request.files["image"]
+    validation = validate_image_upload(
+        image_file=image_file,
+        allowed_extensions=current_app.config["ALLOWED_IMAGE_EXTENSIONS"],
+        allowed_mime_types=current_app.config["ALLOWED_IMAGE_MIME_TYPES"],
+    )
+
+    if not validation.ok:
+        return jsonify({"error": validation.message}), 400
+
+    image_bytes = image_file.read()
+    if not image_bytes:
+        return jsonify({"error": "Uploaded file is empty."}), 400
+
+    try:
+        model_service = current_app.extensions["model_service"]
+        predicted_prob, predicted_class = model_service.predict_handwriting(image_bytes)
+    except Exception:
+        LOGGER.exception("Unhandled handwriting prediction failure")
+        return jsonify({"error": "Handwriting analysis unavailable."}), 500
+
+    probability_percent = round(predicted_prob * 100, 2)
+    risk_level = "Low Risk" if predicted_class == "Non_Dyslexic" else "Moderate/High Risk"
+    result_payload = {
+        "predicted_probability": predicted_prob,
+        "probability_percent": probability_percent,
+        "predicted_class": predicted_class,
+        "risk_level": risk_level,
+        "summary": "Model detected handwriting characteristics requiring follow-up." if predicted_class == "Dyslexic" else "No major handwriting risk markers detected.",
+        "recommendations": [
+            "Use as supportive screening output only.",
+            "Combine with cognitive and reading assessments.",
+            "Seek specialist review for high-risk outcomes.",
+        ],
+    }
+    token = _encode_payload(result_payload)
+    return jsonify({**result_payload, "result_redirect": f"/handwriting-result?data={token}"})
+
+
+@api_bp.route("/upload", methods=["POST"])
+@require_auth
+@rate_limited
+def upload_ocr() -> Any:
+    """Extract text from uploaded image and return normalized variants."""
+    file_obj = request.files.get("file") or request.files.get("image")
+    if file_obj is None or not file_obj.filename:
+        return jsonify({"error": "No file provided."}), 400
+
+    validation = validate_image_upload(
+        image_file=file_obj,
+        allowed_extensions=current_app.config["ALLOWED_IMAGE_EXTENSIONS"],
+        allowed_mime_types=current_app.config["ALLOWED_IMAGE_MIME_TYPES"],
+    )
+    if not validation.ok:
+        return jsonify({"error": validation.message}), 400
+
+    try:
+        file_bytes = np.frombuffer(file_obj.read(), dtype=np.uint8)
+        if file_bytes.size == 0:
+            return jsonify({"error": "No file provided."}), 400
+
+        image = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
+        if image is None:
+            return jsonify({"error": "Invalid image file."}), 400
+
+        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        upscale = cv2.resize(gray, None, fx=1.8, fy=1.8, interpolation=cv2.INTER_CUBIC)
+        denoised = cv2.bilateralFilter(upscale, 7, 50, 50)
+        thresholded = cv2.adaptiveThreshold(
+            denoised,
+            255,
+            cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
+            cv2.THRESH_BINARY,
+            31,
+            11,
+        )
+
+        tesseract_config = "--oem 3 --psm 6"
+        raw_text = pytesseract.image_to_string(thresholded, config=tesseract_config)
+        extracted_text = _clean_ocr_text(raw_text)
+        corrected_text = extracted_text.replace("\n", " ")
+        corrected_text = re.sub(r"\s+", " ", corrected_text).strip()
+        simplified_text = corrected_text.lower()
+
+        result_payload = {
+            "extracted_text": extracted_text,
+            "corrected_text": corrected_text,
+            "simplified_text": simplified_text,
+            "summary": "OCR completed successfully. Review corrected text before reuse.",
+            "observations": [
+                "Handwritten/low-light samples may reduce OCR quality.",
+                "Use corrected text for better readability.",
+            ],
+            "recommendations": [
+                "Capture clear, well-lit images.",
+                "Keep text horizontal and avoid shadows.",
+            ],
+            "original_text": extracted_text,
+        }
+        token = _encode_payload(result_payload)
+        return jsonify({**result_payload, "result_redirect": f"/ocr-result?data={token}"}), 200
+    except Exception:
+        LOGGER.exception("Unhandled OCR upload failure")
+        return jsonify({"error": "OCR processing unavailable."}), 500
