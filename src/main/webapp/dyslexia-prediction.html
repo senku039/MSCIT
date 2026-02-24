@@ -123,13 +123,17 @@
     }
 
     .runner {
+      font-size: 42px;
       position: absolute;
       z-index: 4;
       width: 58px;
       height: 58px;
       left: calc(50% - 29px);
       top: 58px;
-      background: url('https://cdn-icons-png.flaticon.com/512/3069/3069186.png') center/contain no-repeat;
+      background: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       filter: drop-shadow(0 10px 16px rgba(15, 23, 42, 0.22));
       transition: transform .9s cubic-bezier(.2,.9,.35,1), opacity .3s ease;
       pointer-events: none;
