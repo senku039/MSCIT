@@ -21,8 +21,8 @@
 
   <div class="row g-3">
     <div class="col-md-4"><div class="card panel h-100"><div class="card-body"><h5>Extracted Text</h5><pre id="extracted" class="p-3"></pre></div></div></div>
-    <div class="col-md-4"><div class="card panel h-100"><div class="card-body"><h5>Corrected Text</h5><pre id="corrected" class="p-3"></pre></div></div></div>
-    <div class="col-md-4"><div class="card panel h-100"><div class="card-body"><h5>Simplified Text</h5><pre id="simplified" class="p-3"></pre></div></div></div>
+    <div class="col-md-4"><div class="card panel h-100"><div class="card-body"><h5>Corrected Text (cleaned)</h5><pre id="corrected" class="p-3"></pre></div></div></div>
+    <div class="col-md-4"><div class="card panel h-100"><div class="card-body"><h5>Simplified Text (compact)</h5><pre id="simplified" class="p-3"></pre></div></div></div>
   </div>
   <div class="row g-3 mt-1">
     <div class="col-md-6"><div class="card panel"><div class="card-body"><h4>Key Observations</h4><ul id="observations" class="mb-0"></ul></div></div></div>
@@ -41,7 +41,17 @@ if(!payload){document.body.innerHTML='<div class="container mt-5"><div class="al
   document.getElementById('simplified').textContent=simplified;
 
   const m1=textMetrics(extracted), m2=textMetrics(corrected), m3=textMetrics(simplified);
-  const rows=[['Extracted words',m1.words],['Corrected words',m2.words],['Simplified words',m3.words],['Extracted lines',m1.lines],['Character count',m1.chars],['Compression (simplified/extracted)',`${m1.words?Math.round((m3.words/m1.words)*100):0}%`]];
+  const rows=[
+    ['Extracted words',m1.words],
+    ['Corrected words',m2.words],
+    ['Simplified words',m3.words],
+    ['Extracted lines',m1.lines],
+    ['Character count',m1.chars],
+    ['OCR quality score', `${payload.ocr_quality_score ?? 'N/A'}%`],
+    ['Noise characters removed', payload.noise_characters ?? 0],
+    ['Underscore artifacts', payload.underscore_artifacts ?? 0],
+    ['Compression (simplified/extracted)',`${m1.words?Math.round((m3.words/m1.words)*100):0}%`]
+  ];
   const body=document.getElementById('metricsBody');
   rows.forEach(([k,v])=>{const tr=document.createElement('tr');tr.innerHTML=`<td>${k}</td><td>${v}</td>`;body.appendChild(tr);});
 

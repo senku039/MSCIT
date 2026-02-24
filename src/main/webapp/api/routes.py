@@ -58,6 +58,75 @@ def _clean_ocr_text(raw_text: str) -> str:
     return joined.strip()
 
 
+def _correct_ocr_text(text: str) -> str:
+    """Apply lightweight OCR corrections without external NLP dependencies."""
+    if not text:
+        return ""
+
+    corrected = text
+    for old, new in {"_": " ", "|": "I", "0": "o"}.items():
+        corrected = corrected.replace(old, new)
+
+    corrected = re.sub(r"[^\x20-\x7E\n]", " ", corrected)
+    corrected = re.sub(r"\s+", " ", corrected).strip()
+
+    token_fixes = {
+        "w0n't": "won't",
+        "y0u": "you",
+        "th1s": "this",
+        "1": "I",
+    }
+    tokens = []
+    for token in corrected.split(" "):
+        lowered = token.lower()
+        fixed = token_fixes.get(lowered, token)
+        if token[:1].isupper() and fixed and fixed.islower():
+            fixed = fixed.capitalize()
+        tokens.append(fixed)
+
+    corrected = " ".join(tokens)
+    corrected = re.sub(r"\s+([,.;:!?])", r"\1", corrected)
+    return corrected
+
+
+def _simplify_ocr_text(text: str) -> str:
+    """Build a simplified text view with reduced punctuation/noise."""
+    if not text:
+        return ""
+
+    simplified = text.lower()
+    simplified = re.sub(r"[^a-z0-9\s]", " ", simplified)
+    simplified = re.sub(r"\s+", " ", simplified).strip()
+
+    stop_words = {
+        "the", "a", "an", "and", "or", "to", "of", "for", "in", "on", "is", "are",
+        "was", "were", "be", "as", "at", "it", "that", "this",
+    }
+    filtered = [w for w in simplified.split(" ") if w and w not in stop_words]
+    return " ".join(filtered)
+
+
+def _ocr_quality_metrics(raw_text: str, corrected_text: str) -> dict[str, Any]:
+    """Generate simple quality indicators for OCR result interpretation."""
+    raw_chars = len(raw_text)
+    noise_chars = len(re.findall(r"[^\x20-\x7E\n]", raw_text))
+    underscore_count = raw_text.count("_")
+    correction_delta = abs(len(corrected_text) - len(raw_text))
+
+    quality_score = 100.0
+    if raw_chars:
+        quality_score -= (noise_chars / raw_chars) * 55
+        quality_score -= (underscore_count / raw_chars) * 35
+        quality_score -= min(correction_delta / raw_chars, 1.0) * 10
+    quality_score = float(np.clip(quality_score, 0.0, 100.0))
+
+    return {
+        "quality_score": round(quality_score, 2),
+        "noise_characters": noise_chars,
+        "underscore_artifacts": underscore_count,
+    }
+
+
 def _classify_risk(probability: float) -> str:
     if probability < 0.33:
         return "Low Risk"
@@ -438,22 +507,31 @@ def upload_ocr() -> Any:
         tesseract_config = "--oem 3 --psm 6"
         raw_text = pytesseract.image_to_string(thresholded, config=tesseract_config)
         extracted_text = _clean_ocr_text(raw_text)
-        corrected_text = extracted_text.replace("\n", " ")
-        corrected_text = re.sub(r"\s+", " ", corrected_text).strip()
-        simplified_text = corrected_text.lower()
+        corrected_text = _correct_ocr_text(extracted_text)
+        simplified_text = _simplify_ocr_text(corrected_text)
+        quality = _ocr_quality_metrics(extracted_text, corrected_text)
+
+        observations = [
+            "Handwritten/low-light samples may reduce OCR quality.",
+            "Corrected text applies lightweight symbol and spacing cleanup.",
+            "Simplified text removes punctuation and common stop words for easier scanning.",
+        ]
+        if quality["quality_score"] < 60:
+            observations.append("OCR quality is low; recapture with better lighting for higher accuracy.")
 
         result_payload = {
             "extracted_text": extracted_text,
             "corrected_text": corrected_text,
             "simplified_text": simplified_text,
-            "summary": "OCR completed successfully. Review corrected text before reuse.",
-            "observations": [
-                "Handwritten/low-light samples may reduce OCR quality.",
-                "Use corrected text for better readability.",
-            ],
+            "summary": f"OCR completed successfully. Estimated quality: {quality['quality_score']}%.",
+            "ocr_quality_score": quality["quality_score"],
+            "noise_characters": quality["noise_characters"],
+            "underscore_artifacts": quality["underscore_artifacts"],
+            "observations": observations,
             "recommendations": [
                 "Capture clear, well-lit images.",
                 "Keep text horizontal and avoid shadows.",
+                "Prefer high-contrast dark text on a plain background.",
             ],
             "original_text": extracted_text,
         }
