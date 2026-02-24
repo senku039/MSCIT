@@ -24,3 +24,5 @@ uploads/
 *.h5
 *.pkl
 src/main/webapp/final_model/
+# Prevent large native installers from being committed
+*.exe
