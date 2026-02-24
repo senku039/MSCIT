@@ -141,31 +141,6 @@
     }
 
 
-    .runner::before {
-      content: "🐭";
-      filter: drop-shadow(0 3px 4px rgba(0,0,0,.18));
-    }
-
-    .side-mascot {
-      position: fixed;
-      z-index: 1;
-      font-size: 52px;
-      opacity: .88;
-      top: 46%;
-      pointer-events: none;
-      animation: floaty 2.8s ease-in-out infinite;
-      filter: drop-shadow(0 8px 12px rgba(15,23,42,.2));
-    }
-
-    .side-mascot.left { left: 18px; }
-    .side-mascot.right { right: 18px; }
-
-    @keyframes floaty {
-      0%,100% { transform: translateY(0); }
-      50% { transform: translateY(-8px); }
-    }
-    .side-mascot.left { animation-delay: .3s; }
-
     .level-list {
       position: relative;
       z-index: 2;
@@ -527,7 +502,7 @@
       const tips = [
         "Tip: You can unlock only one next level at a time.",
         "Tip: Complete all seven levels for the most reliable screen.",
-        "Tip: Follow the guide character as you complete each level."
+        "Tip: Follow the bird guide as you complete each level."
       ];
       document.getElementById('randomTip').textContent = tips[Math.floor(Math.random() * tips.length)];
       updateProgressUI();

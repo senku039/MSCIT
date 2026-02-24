@@ -383,6 +383,11 @@ def image_analysis_result_page() -> Any:
     return render_template("image_analysis_result.html")
 
 
+@api_bp.route("/ocr-text-details", methods=["GET"])
+def ocr_text_details_page() -> Any:
+    return render_template("ocr_text_details.html")
+
+
 @api_bp.route("/handwriting-result", methods=["GET"])
 def handwriting_result_page() -> Any:
     return render_template("handwriting_result.html")
