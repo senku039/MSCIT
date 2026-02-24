@@ -4,57 +4,111 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Response Time Test</title>
+  <link rel="stylesheet" href="/theme.css">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <style>
-    body { font-family: Arial, sans-serif; background-color: #f8f9fa; padding: 20px; }
-    .container { max-width: 600px; margin-top: 50px; }
+    body {
+      font-family: Arial, sans-serif;
+      min-height: 100vh;
+      color: #fff;
+      background:
+        linear-gradient(140deg, rgba(8, 24, 84, 0.78), rgba(52, 31, 115, 0.74)),
+        url('https://images.unsplash.com/photo-1484480974693-6ca0a78fb36b?auto=format&fit=crop&w=1700&q=80') center/cover fixed;
+      padding: 20px;
+    }
+    .test-card {
+      max-width: 680px;
+      margin: 100px auto;
+      background: rgba(9, 20, 61, 0.78);
+      border: 1px solid rgba(201, 216, 255, 0.35);
+      border-radius: 16px;
+      padding: 28px;
+      text-align: center;
+      box-shadow: 0 18px 36px rgba(1, 10, 34, 0.34);
+    }
+    #result { font-size: 1.05rem; margin-top: 1rem; min-height: 2rem; }
+    #reactionBtn { min-width: 180px; }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h1 class="text-center mb-4">Response Time Test</h1>
-    <button id="startBtn" class="btn btn-primary">Start Test</button>
-    <button id="reactionBtn" class="btn btn-danger" style="display: none;">Click Now!</button>
-
-    <div id="result" class="mt-4 text-center" style="font-size: 1.5em;"></div>
+  <button class="global-back-btn" type="button" onclick="window.location.href='/home'">← Back</button>
+  <div class="test-card">
+    <h1 class="mb-3">Response Time Test</h1>
+    <p class="text-light">Complete 3 rounds and we will use your average response time.</p>
+    <div class="alert alert-info py-2" id="roundInfo">Round 1 of 3</div>
+    <button id="startBtn" class="btn btn-primary">Start Round</button>
+    <button id="reactionBtn" class="btn btn-danger" style="display: none;">Wait...</button>
+    <div id="result"></div>
+    <button id="finishTestBtn" class="btn btn-success mt-3" style="display:none;">Finish Test</button>
   </div>
 
-  <!-- Bootstrap JS and dependencies -->
-  <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.min.js"></script>
-
-  <!-- JavaScript for handling the test -->
   <script>
-    let startTime, endTime, timeout;
+    const TOTAL_ROUNDS = 3;
+    let currentRound = 1;
+    let startTime = 0;
+    let timeout = null;
+    let ready = false;
+    const times = [];
 
-    // Start the test
+    function updateRound() {
+      document.getElementById('roundInfo').textContent = `Round ${currentRound} of ${TOTAL_ROUNDS}`;
+    }
+
     document.getElementById('startBtn').addEventListener('click', function() {
-      document.getElementById('result').innerText = ""; // Clear previous result
-      document.getElementById('reactionBtn').style.display = "none"; // Hide reaction button
+      const startBtn = document.getElementById('startBtn');
+      const reactionBtn = document.getElementById('reactionBtn');
+      const result = document.getElementById('result');
 
-      // Random delay between 2 to 7 seconds
-      let randomTime = Math.random() * 5000 + 2000;
+      clearTimeout(timeout);
+      ready = false;
+      result.innerText = 'Get ready...';
+      reactionBtn.style.display = 'none';
+      startBtn.disabled = true;
+
+      const randomTime = Math.random() * 2200 + 1200;
       timeout = setTimeout(() => {
-        startTime = new Date().getTime(); // Record start time
-        document.getElementById('reactionBtn').style.display = "inline-block"; // Show reaction button
-        document.getElementById('reactionBtn').classList.remove("btn-danger");
-        document.getElementById('reactionBtn').classList.add("btn-success");
-        document.getElementById('reactionBtn').innerText = "Click Now!";
+        startTime = Date.now();
+        ready = true;
+        reactionBtn.style.display = 'inline-block';
+        reactionBtn.classList.remove('btn-danger');
+        reactionBtn.classList.add('btn-success');
+        reactionBtn.innerText = 'Click Now!';
       }, randomTime);
     });
 
-    // Handle reaction button click
     document.getElementById('reactionBtn').addEventListener('click', function() {
-      endTime = new Date().getTime(); // Record end time
-      let reactionTime = (endTime - startTime) / 1000; // Calculate response time in seconds
-      document.getElementById('result').innerText = `Your response time: ${reactionTime.toFixed(3)} seconds`;
+      if (!ready) return;
+      ready = false;
 
-      // Save the result in sessionStorage
-      sessionStorage.setItem('response_time_score', reactionTime.toFixed(3)); // 🔑 Key matches form's expected key
+      const t = Math.max((Date.now() - startTime) / 1000, 0.05);
+      times.push(t);
 
-      // Redirect back to the main form
-      window.location.href = "dyslexia-prediction.html"; // 🎯 Redirect to the main form
+      const reactionBtn = document.getElementById('reactionBtn');
+      const startBtn = document.getElementById('startBtn');
+      reactionBtn.style.display = 'none';
+      startBtn.disabled = false;
+
+      document.getElementById('result').innerText = `Round ${currentRound}: ${t.toFixed(3)} seconds`;
+
+      currentRound += 1;
+      if (currentRound <= TOTAL_ROUNDS) {
+        updateRound();
+        startBtn.textContent = 'Start Next Round';
+      } else {
+        const avg = times.reduce((a, b) => a + b, 0) / times.length;
+        sessionStorage.setItem('response_time_score', avg.toFixed(3));
+        document.getElementById('roundInfo').textContent = 'Completed';
+        document.getElementById('result').innerHTML = `<div class="alert alert-success">Average response time: <strong>${avg.toFixed(3)} sec</strong><br><small>Lower is better.</small></div>`;
+        startBtn.style.display = 'none';
+        document.getElementById('finishTestBtn').style.display = 'inline-block';
+      }
     });
+
+    document.getElementById('finishTestBtn').addEventListener('click', function() {
+      window.location.href = '/dyslexia-prediction';
+    });
+
+    updateRound();
   </script>
 </body>
 </html>
