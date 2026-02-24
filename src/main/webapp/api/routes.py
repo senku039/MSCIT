@@ -30,6 +30,7 @@ _RATE_BUCKETS: dict[str, deque[float]] = defaultdict(deque)
 
 
 _ALLOWED_PAGE_FILES = {p.name for p in (Path(__file__).resolve().parent.parent).glob("*.html")}
+_ALLOWED_ASSET_EXTENSIONS = {".css", ".js", ".png", ".jpg", ".jpeg", ".gif", ".svg", ".webp", ".ico"}
 
 _FEATURE_RULES: dict[str, dict[str, Any]] = {
     "Attention_Span": {"low": 40, "high": 100, "direction": "higher_better", "display": "Attention Span"},
@@ -234,6 +235,20 @@ def handwriting_analysis_page() -> Any:
 @api_bp.route("/prediction-result", methods=["GET"])
 def prediction_result_page() -> Any:
     return render_template("prediction_result.html")
+
+
+@api_bp.route("/assets/<path:requested>", methods=["GET"])
+def serve_web_assets(requested: str):
+    webapp_dir = Path(__file__).resolve().parent.parent
+    asset_path = (webapp_dir / requested).resolve()
+
+    if not str(asset_path).startswith(str(webapp_dir.resolve())):
+        return jsonify({"error": "Endpoint not found."}), 404
+
+    if asset_path.suffix.lower() not in _ALLOWED_ASSET_EXTENSIONS or not asset_path.is_file():
+        return jsonify({"error": "Endpoint not found."}), 404
+
+    return send_from_directory(webapp_dir, requested)
 
 
 @api_bp.route("/<string:page>.html", methods=["GET"])

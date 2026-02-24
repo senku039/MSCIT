@@ -13,6 +13,12 @@
 <div class="container py-4" style="max-width:1050px;">
   <a class="btn btn-light border mb-3" href="/ocr-tool">← Back to OCR</a>
   <div class="card panel mb-3"><div class="card-body"><h2 class="fw-bold">OCR Result Dashboard</h2><p id="summary" class="mb-0 text-muted"></p></div></div>
+
+  <div class="card panel mb-3"><div class="card-body">
+    <h4 class="mb-3">Structured OCR Analysis</h4>
+    <div class="table-responsive"><table class="table table-bordered"><thead class="table-primary"><tr><th>Metric</th><th>Value</th></tr></thead><tbody id="metricsBody"></tbody></table></div>
+  </div></div>
+
   <div class="row g-3">
     <div class="col-md-4"><div class="card panel h-100"><div class="card-body"><h5>Extracted Text</h5><pre id="extracted" class="p-3"></pre></div></div></div>
     <div class="col-md-4"><div class="card panel h-100"><div class="card-body"><h5>Corrected Text</h5><pre id="corrected" class="p-3"></pre></div></div></div>
@@ -25,8 +31,23 @@
 </div>
 <script>
 function decodePayload(){const p=new URLSearchParams(window.location.search);const d=p.get('data');if(!d)return null;try{return JSON.parse(atob(d.replace(/-/g,'+').replace(/_/g,'/')));}catch{return null;}}
+function textMetrics(text){const trimmed=(text||'').trim();if(!trimmed)return {chars:0,words:0,lines:0};return {chars:trimmed.length,words:trimmed.split(/\s+/).filter(Boolean).length,lines:trimmed.split(/\n+/).filter(Boolean).length};}
 const payload=decodePayload();
-if(!payload){document.body.innerHTML='<div class="container mt-5"><div class="alert alert-warning">No OCR data found.</div></div>';}else{document.getElementById('summary').textContent=payload.summary||'';document.getElementById('extracted').textContent=payload.extracted_text||'';document.getElementById('corrected').textContent=payload.corrected_text||'';document.getElementById('simplified').textContent=payload.simplified_text||'';(payload.observations||[]).forEach(i=>{const li=document.createElement('li');li.textContent=i;document.getElementById('observations').appendChild(li);});(payload.recommendations||[]).forEach(i=>{const li=document.createElement('li');li.textContent=i;document.getElementById('recommendations').appendChild(li);});}
+if(!payload){document.body.innerHTML='<div class="container mt-5"><div class="alert alert-warning">No OCR data found.</div></div>';}else{
+  const extracted=payload.extracted_text||'';const corrected=payload.corrected_text||'';const simplified=payload.simplified_text||'';
+  document.getElementById('summary').textContent=payload.summary||'';
+  document.getElementById('extracted').textContent=extracted;
+  document.getElementById('corrected').textContent=corrected;
+  document.getElementById('simplified').textContent=simplified;
+
+  const m1=textMetrics(extracted), m2=textMetrics(corrected), m3=textMetrics(simplified);
+  const rows=[['Extracted words',m1.words],['Corrected words',m2.words],['Simplified words',m3.words],['Extracted lines',m1.lines],['Character count',m1.chars],['Compression (simplified/extracted)',`${m1.words?Math.round((m3.words/m1.words)*100):0}%`]];
+  const body=document.getElementById('metricsBody');
+  rows.forEach(([k,v])=>{const tr=document.createElement('tr');tr.innerHTML=`<td>${k}</td><td>${v}</td>`;body.appendChild(tr);});
+
+  (payload.observations||[]).forEach(i=>{const li=document.createElement('li');li.textContent=i;document.getElementById('observations').appendChild(li);});
+  (payload.recommendations||[]).forEach(i=>{const li=document.createElement('li');li.textContent=i;document.getElementById('recommendations').appendChild(li);});
+}
 </script>
 </body>
 </html>

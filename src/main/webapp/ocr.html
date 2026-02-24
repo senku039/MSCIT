@@ -3,84 +3,41 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>OCR Image Upload</title>
-    <link rel="stylesheet" href="theme.css">
+  <title>OCR Tool</title>
+  <link rel="stylesheet" href="/assets/theme.css">
   <style>
     :root {
-      --bg: #f4f7ff;
-      --card: #ffffff;
-      --primary: #3257d7;
-      --secondary: #5d73c8;
-      --text: #1c2440;
-      --muted: #66708f;
-      --border: #d6dcf3;
+      --surface: #ffffff;
+      --surface-soft: #f5f8ff;
+      --text: #1d2442;
+      --muted: #5b6a91;
+      --border: #c8d6ff;
+      --brand: #3d62e8;
+      --brand-dark: #2c4ebc;
     }
-
-    * { box-sizing: border-box; }
-
     body {
       margin: 0;
-      font-family: "Segoe UI", Arial, sans-serif;
-      background: linear-gradient(145deg, rgba(15,34,88,0.72), rgba(37,77,177,0.6)), url('https://images.unsplash.com/photo-1455390582262-044cdead277a?auto=format&fit=crop&w=1800&q=80') center/cover fixed;
+      min-height: 100vh;
+      font-family: "Segoe UI", Tahoma, sans-serif;
       color: var(--text);
+      background:
+        linear-gradient(145deg, rgba(15, 31, 84, 0.72), rgba(41, 75, 165, 0.68)),
+        url('https://images.unsplash.com/photo-1456324463128-7ff6903988d8?auto=format&fit=crop&w=1600&q=80') center/cover fixed;
     }
-
-    .container {
-      max-width: 980px;
-      margin: 0 auto;
-      padding: 28px 18px 40px;
-    }
-
-    .toolbar {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 12px;
-      margin-bottom: 14px;
-      flex-wrap: wrap;
-    }
-
-    .back-btn {
-      border: 1px solid var(--border);
-      background: #fff;
-      color: var(--text);
-      padding: 8px 14px;
-      border-radius: 10px;
-      text-decoration: none;
-      font-weight: 600;
-    }
-
-    .back-btn:hover { background: #eef2ff; }
-
+    .container { max-width: 980px; margin: 0 auto; padding: 28px 16px 40px; }
+    .toolbar { display: flex; justify-content: space-between; gap: 12px; align-items: center; margin-bottom: 16px; }
     .card {
-      background: var(--card);
+      background: rgba(255, 255, 255, 0.95);
       border: 1px solid var(--border);
       border-radius: 16px;
-      box-shadow: 0 10px 26px rgba(39, 63, 145, 0.12);
       padding: 18px;
-      margin-bottom: 18px;
+      box-shadow: 0 14px 30px rgba(11, 23, 65, 0.24);
+      margin-bottom: 16px;
     }
-
-    h1, h3 { margin: 8px 0 12px; }
     .subtitle { color: var(--muted); margin-top: 0; }
-
-    .uploader {
-      display: grid;
-      gap: 10px;
-      justify-items: center;
-    }
-
-    input[type="file"] {
-      border: 1px dashed var(--border);
-      border-radius: 10px;
-      background: #fff;
-      padding: 10px;
-      width: min(100%, 420px);
-    }
-
     .btn {
       border: none;
-      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      background: linear-gradient(95deg, var(--brand), #6b4be8);
       color: #fff;
       padding: 10px 20px;
       border-radius: 12px;
@@ -88,101 +45,44 @@
       font-size: 15px;
       font-weight: 600;
     }
-
-    .btn:disabled { opacity: 0.65; cursor: not-allowed; }
-
-    #imagePreview {
-      width: min(100%, 720px);
-      border-radius: 14px;
-      border: 1px solid var(--border);
-      max-height: 380px;
-      object-fit: contain;
-      display: none;
-      background: #f8faff;
-    }
-
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-      gap: 12px;
-      margin: 10px 0 16px;
-    }
-
-    .mini-card {
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 10px 12px;
-      background: #f9fbff;
-      cursor: pointer;
-    }
-
-    .mini-card h4 { margin: 4px 0; }
+    .btn:hover { background: linear-gradient(95deg, var(--brand-dark), #5536d8); }
+    .btn:disabled { opacity: .7; cursor: not-allowed; }
+    #imagePreview { width: min(100%, 720px); border-radius: 14px; border: 1px solid var(--border); max-height: 360px; object-fit: contain; display: none; background: #f8faff; margin: 8px 0; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin: 10px 0 16px; }
+    .mini-card { border: 1px solid var(--border); border-radius: 12px; padding: 10px 12px; background: #f9fbff; cursor: pointer; }
     .mini-card p { margin: 0; color: var(--muted); font-size: 14px; }
-
-    textarea {
-      width: 100%;
-      min-height: 115px;
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 10px;
-      margin-bottom: 14px;
-      font-size: 15px;
-      line-height: 1.5;
-      resize: vertical;
-    }
-
-    .status {
-      min-height: 22px;
-      color: var(--muted);
-      margin: 0;
-      font-size: 14px;
-    }
+    .status { min-height: 22px; color: var(--muted); margin: 8px 0 0; font-size: 14px; }
   </style>
 </head>
 <body>
-    <button class="global-back-btn" type="button" onclick="window.location.href='/home'">← Back</button>
+  <button class="global-back-btn" type="button" onclick="window.location.href='/home'">← Back</button>
   <div class="container">
     <div class="toolbar">
-      <a href="/home" class="back-btn">← Back to Home</a>
-      <button class="btn" onclick="readAloud()">🔊 Read Corrected Text</button>
+      <a href="/home" class="btn" style="text-decoration:none;display:inline-block;">← Back to Home</a>
     </div>
 
     <section class="card">
       <h1>OCR Tool for Text Accessibility</h1>
-      <p class="subtitle">Upload printed or handwritten text. The tool extracts text, normalizes it, and gives a simplified version for easier reading.</p>
+      <p class="subtitle">Upload printed or handwritten text. Results now open on a dedicated output page with structured formatting.</p>
 
       <div class="grid">
         <div class="mini-card" onclick="showTip('Use good lighting and avoid shadows for better OCR.')">
-          <h4>💡 Better Image Quality</h4>
-          <p>Clear photos improve recognition accuracy.</p>
+          <h4>💡 Better Image Quality</h4><p>Clear photos improve recognition accuracy.</p>
         </div>
         <div class="mini-card" onclick="showTip('Try keeping the page straight and include only the text area.')">
-          <h4>📐 Keep It Straight</h4>
-          <p>Skewed photos reduce OCR confidence.</p>
+          <h4>📐 Keep It Straight</h4><p>Skewed photos reduce OCR confidence.</p>
         </div>
-        <div class="mini-card" onclick="showTip('For handwritten notes, write with darker pen and larger letters.')">
-          <h4>✍ Handwriting Tip</h4>
-          <p>Darker strokes are easier to recognize.</p>
+        <div class="mini-card" onclick="showTip('For handwritten notes, use darker ink and larger letters.')">
+          <h4>✍ Handwriting Tip</h4><p>Darker strokes are easier to recognize.</p>
         </div>
       </div>
 
-      <form id="uploadForm" class="uploader" enctype="multipart/form-data">
+      <form id="uploadForm" enctype="multipart/form-data">
         <input type="file" id="imageInput" accept="image/*" required />
         <img id="imagePreview" alt="Image preview" />
         <button id="uploadBtn" class="btn" type="submit">Upload &amp; Process</button>
         <p id="statusText" class="status"></p>
       </form>
-    </section>
-
-    <section class="card">
-      <h3>Extracted Text (Original)</h3>
-      <textarea id="originalText" readonly></textarea>
-
-      <h3>Corrected Text</h3>
-      <textarea id="correctedText" readonly></textarea>
-
-      <h3>Simplified Text</h3>
-      <textarea id="simplifiedText" readonly></textarea>
     </section>
   </div>
 
@@ -193,13 +93,7 @@
     const uploadBtn = document.getElementById("uploadBtn");
     const statusText = document.getElementById("statusText");
 
-    const originalTextEl = document.getElementById("originalText");
-    const correctedTextEl = document.getElementById("correctedText");
-    const simplifiedTextEl = document.getElementById("simplifiedText");
-
-    function showTip(message) {
-      statusText.textContent = message;
-    }
+    function showTip(message) { statusText.textContent = message; }
 
     imageInput.addEventListener("change", function (event) {
       const file = event.target.files[0];
@@ -226,15 +120,11 @@
 
       const formData = new FormData();
       formData.append("image", file);
-
       uploadBtn.disabled = true;
       uploadBtn.textContent = "Processing...";
       showTip("Running OCR, please wait...");
 
-      fetch("http://127.0.0.1:5000/upload", {
-        method: "POST",
-        body: formData,
-      })
+      fetch("http://127.0.0.1:5000/upload", { method: "POST", body: formData })
         .then((response) => response.json())
         .then((data) => {
           if (data.error) {
@@ -247,29 +137,14 @@
             window.location.href = `http://127.0.0.1:5000${redirectPath}`;
             return;
           }
-          originalTextEl.value = data.extracted_text || data.original_text || "";
-          correctedTextEl.value = data.corrected_text || "";
-          simplifiedTextEl.value = data.simplified_text || "";
-          showTip("OCR completed successfully.");
+          showTip("OCR completed. Open the result page to view structured output.");
         })
-        .catch(() => {
-          showTip("Something went wrong while calling OCR API.");
-        })
+        .catch(() => showTip("Something went wrong while calling OCR API."))
         .finally(() => {
           uploadBtn.disabled = false;
           uploadBtn.textContent = "Upload & Process";
         });
     });
-
-    function readAloud() {
-      const text = correctedTextEl.value.trim();
-      if (!text) {
-        showTip("No corrected text available to read aloud.");
-        return;
-      }
-      const utterance = new SpeechSynthesisUtterance(text);
-      window.speechSynthesis.speak(utterance);
-    }
   </script>
 </body>
 </html>
