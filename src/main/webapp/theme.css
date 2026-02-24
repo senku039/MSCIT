@@ -1,0 +1,60 @@
+:root {
+  --brand: #2957d4;
+  --brand-dark: #1d3f9c;
+  --text: #1e243f;
+  --muted: #6e7896;
+  --surface: #ffffff;
+  --surface-soft: #f5f8ff;
+  --border: #d8e0fb;
+}
+
+body {
+  color: var(--text);
+  background: linear-gradient(180deg, #eef3ff 0%, #f8faff 100%);
+}
+
+.card,
+.container,
+.stat-card,
+.info-panel {
+  border-radius: 14px;
+}
+
+.btn-primary {
+  background-color: var(--brand);
+  border-color: var(--brand);
+}
+
+.btn-primary:hover,
+.btn-primary:focus {
+  background-color: var(--brand-dark);
+  border-color: var(--brand-dark);
+}
+
+.global-back-btn {
+  position: fixed;
+  left: 16px;
+  top: 16px;
+  z-index: 2000;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  border-radius: 999px;
+  padding: 8px 14px;
+  font-weight: 600;
+  box-shadow: 0 8px 20px rgba(24, 41, 104, 0.18);
+}
+
+.global-back-btn:hover {
+  background: var(--surface-soft);
+}
+
+.interactive-tile {
+  cursor: pointer;
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.interactive-tile:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 26px rgba(31, 55, 125, 0.16);
+}
