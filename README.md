@@ -11,10 +11,11 @@ This repository hosts the Dyslexia Early Detection System, a multi-modal assessm
 - Cognitive tests for reading speed, spelling accuracy, phonemic awareness, response time, and attention.
 - Handwriting analysis using a TensorFlow/Keras model.
 - Eye-tracking experiment support.
-- OCR helper application for readability workflows.
+- Unified image-analysis flow that runs OCR + handwriting screening from one uploaded photo.
 - API endpoints:
   - `POST /predict`
   - `POST /handwriting-analysis`
+  - `POST /image-analysis-upload`
 
 ## Secure backend layout
 
@@ -83,3 +84,8 @@ Install the native **Tesseract OCR engine** and ensure `tesseract` is available 
 - Readiness probe endpoint: `GET /ready` (returns `200` when models are loaded, else `503`).
 - Legacy OCR standalone app now proxies to the main Flask application entrypoint for consistency.
 - Large native installers are excluded from Git; keep them in external artifact storage.
+
+
+## Reading speed reliability
+
+Reading-speed scoring now enforces basic reliability checks: minimum plausible reading time, minimum focus time, and a quick comprehension question before persisting score.
