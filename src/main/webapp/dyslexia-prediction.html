@@ -370,12 +370,12 @@
             <stop offset="100%" stop-color="#94a3b8"/>
           </linearGradient>
         </defs>
-        <path d="M500 20 V150 Q500 185 465 185 H230 Q195 185 195 220 V315 Q195 350 230 350 H770 Q805 350 805 385 V480 Q805 515 770 515 H230 Q195 515 195 550 V645 Q195 680 230 680 H770 Q805 680 805 715 V810 Q805 845 770 845 H500 V1060"
+        <path id="roadPath" d="M500 20 V150 Q500 185 465 185 H230 Q195 185 195 220 V315 Q195 350 230 350 H770 Q805 350 805 385 V480 Q805 515 770 515 H230 Q195 515 195 550 V645 Q195 680 230 680 H770 Q805 680 805 715 V810 Q805 845 770 845 H500 V1060"
               fill="none" stroke="url(#curveRoad)" stroke-width="18" stroke-linecap="round" stroke-linejoin="round" opacity="0.95"/>
         <path d="M500 20 V150 Q500 185 465 185 H230 Q195 185 195 220 V315 Q195 350 230 350 H770 Q805 350 805 385 V480 Q805 515 770 515 H230 Q195 515 195 550 V645 Q195 680 230 680 H770 Q805 680 805 715 V810 Q805 845 770 845 H500 V1060"
               fill="none" stroke="#f8fafc" stroke-width="4" stroke-dasharray="12 14" stroke-linecap="round" stroke-linejoin="round" opacity="0.95"/>
       </svg>
-      <div class="runner" aria-hidden="true" id="runner" title="Roadmap bird">🐦</div>
+      <div class="runner" aria-hidden="true" id="runner" title="Roadmap hen">🐔</div>
 
       <div class="level-list">
         <div class="level-card active" data-input="reading_speed"><span class="level-badge">Level 1</span><div class="level-title">Reading Speed <span class="priority-chip">High Priority</span></div><input type="number" id="reading_speed" class="form-control" placeholder="Enter reading speed" disabled><button class="btn btn-primary w-100" id="takeReadingSpeedTest">Play Level</button></div>
@@ -425,12 +425,32 @@
     function moveRunnerToCard(card) {
       const runner = document.getElementById('runner');
       const mapShell = document.querySelector('.map-shell');
-      if (!runner || !mapShell || !card) return;
+      const roadPath = document.getElementById('roadPath');
+      if (!runner || !mapShell || !card || !roadPath) return;
 
       const mapRect = mapShell.getBoundingClientRect();
       const cardRect = card.getBoundingClientRect();
-      const targetX = cardRect.left + (cardRect.width / 2) - mapRect.left - 31;
-      const targetY = cardRect.top + (cardRect.height / 2) - mapRect.top - 31;
+      const targetCardX = cardRect.left + (cardRect.width / 2) - mapRect.left;
+      const targetCardY = cardRect.top + (cardRect.height / 2) - mapRect.top;
+
+      const pathLength = roadPath.getTotalLength();
+      let bestPoint = roadPath.getPointAtLength(0);
+      let bestDistance = Number.POSITIVE_INFINITY;
+      const samples = 320;
+
+      for (let i = 0; i <= samples; i++) {
+        const point = roadPath.getPointAtLength((i / samples) * pathLength);
+        const dx = point.x - targetCardX;
+        const dy = point.y - targetCardY;
+        const distance = (dx * dx) + (dy * dy);
+        if (distance < bestDistance) {
+          bestDistance = distance;
+          bestPoint = point;
+        }
+      }
+
+      const targetX = bestPoint.x - 31;
+      const targetY = bestPoint.y - 31;
       runner.style.transform = `translate(${Math.round(targetX)}px, ${Math.round(targetY)}px)`;
     }
 
