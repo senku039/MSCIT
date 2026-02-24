@@ -376,12 +376,17 @@ def handwriting_analysis() -> Any:
 
     probability_percent = round(predicted_prob * 100, 2)
     risk_level = "Low Risk" if predicted_class == "Non_Dyslexic" else "Moderate/High Risk"
+    summary = (
+        "Model detected handwriting characteristics requiring follow-up."
+        if predicted_class == "Dyslexic"
+        else "No major handwriting risk markers detected."
+    )
     result_payload = {
         "predicted_probability": predicted_prob,
         "probability_percent": probability_percent,
         "predicted_class": predicted_class,
         "risk_level": risk_level,
-        "summary": "Model detected handwriting characteristics requiring follow-up." if predicted_class == "Dyslexic" else "No major handwriting risk markers detected.",
+        "summary": summary,
         "recommendations": [
             "Use as supportive screening output only.",
             "Combine with cognitive and reading assessments.",

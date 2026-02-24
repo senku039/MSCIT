@@ -101,5 +101,10 @@ class ModelService:
         prediction = self.handwriting_model.predict(image_tensor, verbose=0)
         probability = float(np.clip(prediction.reshape(-1)[0], 0.0, 1.0))
 
-        label = "Non_Dyslexic" if probability >= threshold else "Dyslexic"
+        score_means_dyslexic = bool(self._cfg("HANDWRITING_SCORE_MEANS_DYSLEXIC", True))
+        if score_means_dyslexic:
+            label = "Dyslexic" if probability >= threshold else "Non_Dyslexic"
+        else:
+            label = "Non_Dyslexic" if probability >= threshold else "Dyslexic"
+
         return probability, label

@@ -38,6 +38,9 @@ class BaseConfig:
 
     HANDWRITING_IMAGE_SIZE = (128, 128)
     HANDWRITING_THRESHOLD = float(os.getenv("HANDWRITING_THRESHOLD", "0.5"))
+    # Most binary handwriting models output dyslexic-class probability.
+    # Set to false only if your model output is non-dyslexic probability.
+    HANDWRITING_SCORE_MEANS_DYSLEXIC = os.getenv("HANDWRITING_SCORE_MEANS_DYSLEXIC", "true").lower() == "true"
 
     EXPECTED_FEATURES = [
         "Reading_Speed",

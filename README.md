@@ -52,6 +52,7 @@ Set these before production deployment:
 - `DYSLEXIA_MODEL_PATH=/secure/models/dyslexia_reg_model.pkl`
 - `HANDWRITING_MODEL_PATH=/secure/models/final_model.keras`
 - `HANDWRITING_THRESHOLD=0.5`
+- `HANDWRITING_SCORE_MEANS_DYSLEXIC=true`
 
 ## Running (development)
 
