@@ -19,7 +19,7 @@
   <button class="global-back-btn" type="button" onclick="window.location.href='/home'">← Back</button>
   <div class="container">
     <h1 class="text-center mb-4">Writing Errors Test</h1>
-    <p class="text-muted text-center">Sentences are randomized each session.</p>
+    <p class="text-muted text-center">Sentences are randomized each session. (Reduced to 5 prompts for fatigue control and better consistency.)</p>
     <div class="card shadow-sm"><div class="card-body">
       <p class="lead">Listen to the sentence and type it below:</p>
       <div class="mb-3"><button id="speakButton" class="btn btn-primary">Hear the Sentence</button></div>
@@ -46,7 +46,7 @@
       "I organized my notebook to prepare for tomorrow's lesson.",
       "Every student should read instructions carefully before writing."
     ];
-    const TEST_LENGTH = 8;
+    const TEST_LENGTH = 5;
     let sentences = [];
     let currentSentenceIndex = 0;
     let totalErrors = 0;

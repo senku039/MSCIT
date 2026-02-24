@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Image Analysis Result</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body{min-height:100vh;background:linear-gradient(145deg,rgba(13,30,89,.9),rgba(59,92,183,.85));}
+    .wrap{max-width:1100px;margin:24px auto}.panel{background:rgba(255,255,255,.95);border:1px solid #d7e3ff;border-radius:16px;box-shadow:0 14px 30px rgba(6,15,45,.25)}
+    pre{white-space:pre-wrap;background:#f5f8ff;border-radius:10px;border:1px solid #dce7ff;padding:12px}
+  </style>
+</head>
+<body>
+<div class="wrap container">
+  <a class="btn btn-light border mb-3" href="/image-analysis">← Back to Image Analysis</a>
+  <div class="panel p-4 mb-3"><h2 class="fw-bold">Combined Analysis Result</h2><p id="overall" class="mb-0 text-muted"></p></div>
+
+  <div class="row g-3">
+    <div class="col-md-6"><div class="panel p-4 h-100"><h4>Handwriting Conclusion</h4><p id="hSummary"></p><p><strong>Risk:</strong> <span id="hRisk"></span></p><p><strong>Probability:</strong> <span id="hProb"></span></p><ul id="hReco"></ul></div></div>
+    <div class="col-md-6"><div class="panel p-4 h-100"><h4>OCR Conclusion</h4><p id="oSummary"></p><p><strong>Quality:</strong> <span id="oQuality"></span></p><ul id="oObs"></ul></div></div>
+  </div>
+
+  <div class="panel p-4 mt-3">
+    <h4>OCR Text Details</h4>
+    <div class="row g-3">
+      <div class="col-md-4"><h6>Extracted</h6><pre id="oExtracted"></pre></div>
+      <div class="col-md-4"><h6>Corrected</h6><pre id="oCorrected"></pre></div>
+      <div class="col-md-4"><h6>Simplified</h6><pre id="oSimplified"></pre></div>
+    </div>
+  </div>
+</div>
+<script>
+function decodePayload(){const p=new URLSearchParams(window.location.search);const d=p.get('data');if(!d)return null;try{return JSON.parse(atob(d.replace(/-/g,'+').replace(/_/g,'/')));}catch{return null;}}
+const payload=decodePayload();
+if(!payload){document.body.innerHTML='<div class="container mt-5"><div class="alert alert-warning">No image-analysis data found.</div></div>';}else{
+  document.getElementById('overall').textContent=payload.overall_summary||'';
+  const h=payload.handwriting||{}, o=payload.ocr||{};
+  document.getElementById('hSummary').textContent=h.summary||'';
+  document.getElementById('hRisk').textContent=h.risk_level||'N/A';
+  document.getElementById('hProb').textContent=`${h.probability_percent ?? 0}%`;
+  (h.recommendations||[]).forEach(i=>{const li=document.createElement('li');li.textContent=i;document.getElementById('hReco').appendChild(li);});
+
+  document.getElementById('oSummary').textContent=o.summary||'';
+  document.getElementById('oQuality').textContent=`${o.ocr_quality_score ?? 'N/A'}%`;
+  (o.observations||[]).forEach(i=>{const li=document.createElement('li');li.textContent=i;document.getElementById('oObs').appendChild(li);});
+  document.getElementById('oExtracted').textContent=o.extracted_text||'';
+  document.getElementById('oCorrected').textContent=o.corrected_text||'';
+  document.getElementById('oSimplified').textContent=o.simplified_text||'';
+}
+</script>
+</body>
+</html>
