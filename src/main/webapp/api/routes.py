@@ -14,7 +14,7 @@ from typing import Any, Callable
 import cv2
 import numpy as np
 import pytesseract
-from flask import Blueprint, current_app, jsonify, render_template, request
+from flask import Blueprint, current_app, jsonify, render_template, request, send_from_directory
 
 from src.main.webapp.utils.validators import (
     cast_numeric_features,
@@ -135,6 +135,12 @@ def _encode_payload(payload: dict[str, Any]) -> str:
     return base64.urlsafe_b64encode(raw).decode("utf-8")
 
 
+
+
+def _serve_webapp_page(filename: str):
+    webapp_dir = Path(__file__).resolve().parent.parent
+    return send_from_directory(webapp_dir, filename)
+
 def _get_client_id() -> str:
     return request.headers.get("X-Forwarded-For", request.remote_addr or "unknown").split(",")[0].strip()
 
@@ -185,6 +191,26 @@ def rate_limited(func: Callable[..., Any]) -> Callable[..., Any]:
 @api_bp.route("/", methods=["GET"])
 def health() -> Any:
     return jsonify({"message": "Dyslexia Prediction API is running"})
+
+
+@api_bp.route("/home", methods=["GET"])
+def home_page() -> Any:
+    return _serve_webapp_page("index.html")
+
+
+@api_bp.route("/dyslexia-prediction", methods=["GET"])
+def dyslexia_prediction_page() -> Any:
+    return _serve_webapp_page("dyslexia-prediction.html")
+
+
+@api_bp.route("/ocr-tool", methods=["GET"])
+def ocr_tool_page() -> Any:
+    return _serve_webapp_page("ocr.html")
+
+
+@api_bp.route("/handwriting-analysis-page", methods=["GET"])
+def handwriting_analysis_page() -> Any:
+    return _serve_webapp_page("handwriting_analysis.html")
 
 
 @api_bp.route("/prediction-result", methods=["GET"])

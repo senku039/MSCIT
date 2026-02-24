@@ -1,12 +1,23 @@
 <!DOCTYPE html>
-<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Handwriting Result</title><link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet"></head>
-<body class="bg-light"><div class="container py-4" style="max-width:980px;">
-<a class="btn btn-outline-secondary mb-3" href="/src/main/webapp/handwriting_analysis.html">← Back to Handwriting</a>
-<div class="card mb-3"><div class="card-body"><h2>Handwriting Analysis Result</h2><p id="summary"></p><div class="d-flex gap-2 align-items-center"><span id="risk" class="badge fs-6"></span><strong id="prob"></strong></div></div></div>
-<div class="card"><div class="card-body"><h4>Recommendations</h4><ul id="recommendations"></ul></div></div>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Handwriting Result</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body { min-height:100vh; background: linear-gradient(135deg, #ebfff6, #e6f2ff 60%, #f0e9ff); }
+    .panel { border-radius: 16px; border: 1px solid #cfe5ff; box-shadow: 0 12px 28px rgba(42, 88, 171, 0.16); }
+  </style>
+</head>
+<body>
+<div class="container py-4" style="max-width:980px;">
+  <a class="btn btn-light border mb-3" href="/handwriting-analysis-page">← Back to Handwriting</a>
+  <div class="card panel mb-3"><div class="card-body"><h2>Handwriting Analysis Result</h2><p id="summary"></p><div class="d-flex flex-wrap gap-3 align-items-center"><span id="risk" class="badge fs-6"></span><strong id="prob"></strong></div></div></div>
+  <div class="card panel"><div class="card-body"><h4>Recommendations</h4><ul id="recommendations" class="mb-0"></ul></div></div>
 </div>
 <script>
 function decodePayload(){const p=new URLSearchParams(window.location.search);const d=p.get('data');if(!d)return null;try{return JSON.parse(atob(d.replace(/-/g,'+').replace(/_/g,'/')));}catch{return null;}}
 const payload=decodePayload();
-if(!payload){document.body.innerHTML='<div class="container mt-5"><div class="alert alert-warning">No handwriting result data found.</div></div>';}else{document.getElementById('summary').textContent=payload.summary||'';document.getElementById('prob').textContent=`Probability: ${payload.probability_percent ?? 0}%`;const b=document.getElementById('risk');b.textContent=payload.risk_level||'';b.classList.add((payload.risk_level||'').toLowerCase().includes('low')?'bg-success':'bg-danger');(payload.recommendations||[]).forEach(i=>{const li=document.createElement('li');li.textContent=i;document.getElementById('recommendations').appendChild(li);});}
-</script></body></html>
+if(!payload){document.body.innerHTML='<div class="container mt-5"><div class="alert alert-warning">No handwriting result data found.</div></div>';}else{document.getElementById('summary').textContent=payload.summary||'';document.getElementById('prob').textContent=`Probability Score: ${payload.probability_percent ?? 0}%`;const b=document.getElementById('risk');b.textContent=payload.risk_level||'';b.classList.add((payload.risk_level||'').toLowerCase().includes('low')?'bg-success':'bg-danger');(payload.recommendations||[]).forEach(i=>{const li=document.createElement('li');li.textContent=i;document.getElementById('recommendations').appendChild(li);});}
+</script>
+</body>
+</html>
