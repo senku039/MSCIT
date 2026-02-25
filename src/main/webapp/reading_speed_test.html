@@ -71,6 +71,11 @@
     let selectedPassage;
     let startTime, endTime, focusTime = 0, tracking = false, videoStream, stopPressed = false;
     let pendingMetrics = null;
+    let faceDetector = null;
+    let faceTrackTimer = null;
+    let faceVisibleSeconds = 0;
+    let eyeMovementScore = 0;
+    let lastFaceCenter = null;
 
     function randomPick(items){return items[Math.floor(Math.random()*items.length)];}
 
@@ -92,18 +97,63 @@
       document.getElementById("submitAnswerBtn").style.display = "inline-block";
     }
 
+
+    function stopFaceTracking() {
+      if (faceTrackTimer) {
+        clearInterval(faceTrackTimer);
+        faceTrackTimer = null;
+      }
+      lastFaceCenter = null;
+    }
+
+    async function setupFaceTracking(video) {
+      if (!('FaceDetector' in window)) return false;
+      try {
+        faceDetector = new window.FaceDetector({ fastMode: true, maxDetectedFaces: 1 });
+      } catch (_error) {
+        return false;
+      }
+
+      stopFaceTracking();
+      faceTrackTimer = setInterval(async () => {
+        if (!tracking || !faceDetector || video.readyState < 2) return;
+        try {
+          const faces = await faceDetector.detect(video);
+          if (!faces.length) return;
+
+          faceVisibleSeconds += 1;
+          const box = faces[0].boundingBox;
+          const cx = box.x + (box.width / 2);
+          const cy = box.y + (box.height / 2);
+
+          if (lastFaceCenter) {
+            const dx = Math.abs(cx - lastFaceCenter.x);
+            const dy = Math.abs(cy - lastFaceCenter.y);
+            eyeMovementScore += Math.min(dx + dy, 40);
+          }
+          lastFaceCenter = { x: cx, y: cy };
+        } catch (_error) {
+          // ignore intermittent detection errors
+        }
+      }, 1000);
+      return true;
+    }
+
     async function startWebcam() {
       const video = document.getElementById('webcam');
       const cameraStatus = document.getElementById('cameraStatus');
       cameraStatus.style.display = 'none';
       cameraStatus.textContent = '';
+      faceVisibleSeconds = 0;
+      eyeMovementScore = 0;
+      stopFaceTracking();
 
       const mediaSupported = Boolean(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
       if (!mediaSupported) {
         tracking = true;
         trackFocusTime();
         cameraStatus.style.display = 'block';
-        cameraStatus.textContent = 'Camera API is unavailable in this browser. Continuing test without camera tracking.';
+        cameraStatus.textContent = 'Camera API is unavailable in this browser. Continuing test without camera/face tracking.';
         return;
       }
 
@@ -113,10 +163,22 @@
         video.style.display = 'block';
         tracking = true;
         trackFocusTime();
+
+        const faceTrackingEnabled = await setupFaceTracking(video);
+        if (faceTrackingEnabled) {
+          cameraStatus.style.display = 'block';
+          cameraStatus.className = 'alert alert-success py-2 mt-2';
+          cameraStatus.textContent = 'Camera active. Face/eye movement proxy tracking is enabled.';
+        } else {
+          cameraStatus.style.display = 'block';
+          cameraStatus.className = 'alert alert-warning py-2 mt-2';
+          cameraStatus.textContent = 'Camera active. Browser does not support built-in face detection; using focus-time fallback.';
+        }
       } catch (_error) {
         tracking = true;
         trackFocusTime();
         cameraStatus.style.display = 'block';
+        cameraStatus.className = 'alert alert-warning py-2 mt-2';
         cameraStatus.textContent = 'Camera access blocked/denied. Test will continue without camera tracking.';
       }
     }
@@ -125,6 +187,7 @@
       if (videoStream) videoStream.getTracks().forEach(track => track.stop());
       document.getElementById('webcam').style.display = 'none';
       tracking = false;
+      stopFaceTracking();
     }
 
     function trackFocusTime() {
@@ -140,6 +203,7 @@
       document.getElementById('stopBtn').style.display = 'block';
       document.getElementById('stopBtn').disabled = false;
       document.getElementById('result').innerText = '';
+      document.getElementById('cameraStatus').className = 'alert alert-warning py-2 mt-2';
       stopPressed = false;
       startWebcam();
     });
@@ -154,7 +218,7 @@
       const wordCount = document.getElementById('textToRead').innerText.trim().split(/\s+/).filter(Boolean).length;
       const minExpectedSeconds = (wordCount / MAX_VALID_WPM) * 60;
       stopWebcam();
-      pendingMetrics = { elapsedSeconds, wordCount, minExpectedSeconds, focusTime };
+      pendingMetrics = { elapsedSeconds, wordCount, minExpectedSeconds, focusTime, faceVisibleSeconds, eyeMovementScore };
       renderQuestion();
       document.getElementById('result').innerText = 'Answer the quick comprehension question to validate the score.';
     });
@@ -171,24 +235,27 @@
 
       const rawWpm = (pendingMetrics.wordCount / pendingMetrics.elapsedSeconds) * 60;
       const suspiciousFast = pendingMetrics.elapsedSeconds < pendingMetrics.minExpectedSeconds;
-      const lowFocus = pendingMetrics.focusTime < MIN_VALID_FOCUS_SECONDS;
+      const reliableFocus = Math.max(pendingMetrics.focusTime, pendingMetrics.faceVisibleSeconds);
+      const lowFocus = reliableFocus < MIN_VALID_FOCUS_SECONDS;
 
       if (!correct || suspiciousFast || lowFocus) {
         const reasons = [];
         if (!correct) reasons.push('comprehension answer mismatch');
         if (suspiciousFast) reasons.push('unrealistically short reading time');
-        if (lowFocus) reasons.push('insufficient focus time');
+        if (lowFocus) reasons.push('insufficient focus/face-presence time');
         document.getElementById('result').innerText = `Result rejected for reliability (${reasons.join(', ')}). Please retake the test.`;
         sessionStorage.removeItem('reading_speed_score');
         sessionStorage.setItem('reading_speed_reliability', 'invalid');
       } else {
         const wordsPerMinute = Math.min(rawWpm, MAX_VALID_WPM);
-        document.getElementById('result').innerText = `Validated reading speed: ${wordsPerMinute.toFixed(2)} WPM | Focus Time: ${pendingMetrics.focusTime} sec`;
+        document.getElementById('result').innerText = `Validated reading speed: ${wordsPerMinute.toFixed(2)} WPM | Focus: ${pendingMetrics.focusTime}s | Face Presence: ${pendingMetrics.faceVisibleSeconds}s | Eye Movement Index: ${pendingMetrics.eyeMovementScore.toFixed(1)}`;
         sessionStorage.setItem('reading_speed_score', wordsPerMinute.toFixed(2));
         sessionStorage.setItem('reading_speed_reliability', 'valid');
       }
 
       sessionStorage.setItem('focus_time', pendingMetrics.focusTime);
+      sessionStorage.setItem('face_presence_time', pendingMetrics.faceVisibleSeconds);
+      sessionStorage.setItem('eye_movement_index', pendingMetrics.eyeMovementScore.toFixed(2));
       document.getElementById('finishTestBtn').style.display = 'block';
       document.getElementById('submitAnswerBtn').disabled = true;
     });

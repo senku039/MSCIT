@@ -200,12 +200,15 @@ def _build_prediction_payload(prediction: float, feature_map: dict[str, float]) 
     model_probability_percent = round(model_probability * 100, 2)
     risk_level = _classify_risk(screening_probability)
 
-    if abnormal_count >= 4:
-        summary = "Several indicators are outside expected ranges, suggesting high screening risk."
-    elif abnormal_count >= 2:
-        summary = "Some indicators are outside expected ranges, suggesting moderate screening risk."
+    if risk_level == "High Risk":
+        summary = "Screening suggests high dyslexia risk. Multiple indicators need specialist review."
+    elif risk_level == "Moderate Risk":
+        summary = "Screening suggests moderate dyslexia risk. A follow-up assessment is recommended."
     else:
-        summary = "Most indicators are within expected ranges; screening risk appears low."
+        summary = "Screening suggests low dyslexia risk. Continue monitoring learning progress."
+
+    if abnormal_count:
+        summary += f" ({abnormal_count} feature{'s' if abnormal_count != 1 else ''} flagged outside expected range.)"
 
     recommendations = [
         "Use this as a screening signal, not a clinical diagnosis.",
