@@ -20,7 +20,7 @@
   <button class="global-back-btn" type="button" onclick="window.location.href='index.html'">← Back</button>
   <div class="container">
     <h1 class="text-center mb-4">Writing Errors Test</h1>
-    <p class="text-muted text-center">Sentences are randomized each session. (5 prompts for fatigue control and better consistency.)</p>
+    <p class="text-muted text-center">Sentences are randomized each session. (3 prompts to reduce fatigue and complete faster.)</p>
     <div class="card shadow-sm"><div class="card-body">
       <p class="lead">Listen to the sentence and type it below:</p>
       <div class="mb-3"><button id="speakButton" class="btn btn-primary">Hear the Sentence</button></div>
@@ -48,7 +48,7 @@
       "I organized my notebook to prepare for tomorrow's lesson.",
       "Every student should read instructions carefully before writing."
     ];
-    const TEST_LENGTH = 5;
+    const TEST_LENGTH = 3;
     let sentences = [];
     let currentSentenceIndex = 0;
     let totalErrors = 0;
@@ -72,19 +72,62 @@
     function calculateErrorDetails(input, original) {
       const typed = normalizeTokens(input);
       const expected = normalizeTokens(original);
-      const details = [];
-      let errors = 0;
-      const maxLen = Math.max(typed.length, expected.length);
 
-      for (let i = 0; i < maxLen; i++) {
-        const t = typed[i] ?? '(missing)';
-        const e = expected[i] ?? '(extra)';
-        if (t !== e) {
-          errors += 1;
-          details.push({ position: i + 1, expected: e, typed: t });
+      const m = expected.length;
+      const n = typed.length;
+      const dp = Array.from({ length: m + 1 }, () => Array(n + 1).fill(0));
+      const move = Array.from({ length: m + 1 }, () => Array(n + 1).fill(null));
+
+      for (let i = 0; i <= m; i++) {
+        dp[i][0] = i;
+        if (i > 0) move[i][0] = 'del';
+      }
+      for (let j = 0; j <= n; j++) {
+        dp[0][j] = j;
+        if (j > 0) move[0][j] = 'ins';
+      }
+
+      for (let i = 1; i <= m; i++) {
+        for (let j = 1; j <= n; j++) {
+          if (expected[i - 1] === typed[j - 1]) {
+            dp[i][j] = dp[i - 1][j - 1];
+            move[i][j] = 'ok';
+            continue;
+          }
+
+          const sub = dp[i - 1][j - 1] + 1;
+          const del = dp[i - 1][j] + 1;
+          const ins = dp[i][j - 1] + 1;
+          const best = Math.min(sub, del, ins);
+          dp[i][j] = best;
+          move[i][j] = best === sub ? 'sub' : (best === del ? 'del' : 'ins');
         }
       }
-      return { errors, details };
+
+      const details = [];
+      let i = m;
+      let j = n;
+
+      while (i > 0 || j > 0) {
+        const op = move[i][j];
+        if (op === 'ok') {
+          i -= 1;
+          j -= 1;
+        } else if (op === 'sub') {
+          details.push({ position: i, expected: expected[i - 1], typed: typed[j - 1] });
+          i -= 1;
+          j -= 1;
+        } else if (op === 'del') {
+          details.push({ position: i, expected: expected[i - 1], typed: '(missing)' });
+          i -= 1;
+        } else { // ins
+          details.push({ position: i + 1, expected: '(extra)', typed: typed[j - 1] });
+          j -= 1;
+        }
+      }
+
+      details.reverse();
+      return { errors: dp[m][n], details };
     }
 
     function updateProgress() { document.getElementById('progress').textContent = `Progress: ${Math.min(currentSentenceIndex, sentences.length)}/${sentences.length}`; }

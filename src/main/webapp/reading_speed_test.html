@@ -18,7 +18,8 @@
   <div class="container">
     <h1 class="text-center mb-3">Reading Speed Test</h1>
     <p class="text-muted">To prevent false high scores, the test validates minimum reading time and a quick comprehension check.</p>
-    <video id="webcam" autoplay></video>
+    <video id="webcam" autoplay playsinline muted></video>
+    <div id="cameraStatus" class="alert alert-warning py-2 mt-2" style="display:none;"></div>
     <div class="mb-3">
       <p>Read the following text naturally:</p>
       <div id="textToRead"></div>
@@ -93,13 +94,31 @@
 
     async function startWebcam() {
       const video = document.getElementById('webcam');
+      const cameraStatus = document.getElementById('cameraStatus');
+      cameraStatus.style.display = 'none';
+      cameraStatus.textContent = '';
+
+      const mediaSupported = Boolean(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
+      if (!mediaSupported) {
+        tracking = true;
+        trackFocusTime();
+        cameraStatus.style.display = 'block';
+        cameraStatus.textContent = 'Camera API is unavailable in this browser. Continuing test without camera tracking.';
+        return;
+      }
+
       try {
-        videoStream = await navigator.mediaDevices.getUserMedia({ video: true });
+        videoStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
         video.srcObject = videoStream;
         video.style.display = 'block';
-      } catch (_error) {}
-      tracking = true;
-      trackFocusTime();
+        tracking = true;
+        trackFocusTime();
+      } catch (_error) {
+        tracking = true;
+        trackFocusTime();
+        cameraStatus.style.display = 'block';
+        cameraStatus.textContent = 'Camera access blocked/denied. Test will continue without camera tracking.';
+      }
     }
 
     function stopWebcam() {
