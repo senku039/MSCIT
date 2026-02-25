@@ -8,46 +8,107 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <style>
     body { background: url('/IMAGES/kids.jpg') no-repeat center center/cover; font-family: Arial, sans-serif; padding: 20px; }
-    .container { max-width: 660px; margin-top: 50px; background: rgba(255,255,255,.95); padding: 30px; border-radius: 12px; box-shadow: 0 10px 24px rgba(0,0,0,.18); }
-    #textToRead { height: 240px; overflow-y: auto; border: 1px solid #ccd6f3; border-radius: 10px; padding: 14px; margin-bottom: 20px; background: #f8fbff; }
-    video { width: 100%; max-height: 260px; display: none; border-radius: 10px; }
+    .container { max-width: 920px; margin-top: 50px; background: rgba(255,255,255,.95); padding: 30px; border-radius: 12px; box-shadow: 0 10px 24px rgba(0,0,0,.18); }
+    #textToRead { height: 220px; overflow-y: auto; border: 1px solid #ccd6f3; border-radius: 10px; padding: 14px; margin-bottom: 18px; background: #f8fbff; }
+    video { width: 100%; max-height: 220px; display: none; border-radius: 10px; }
   </style>
 </head>
 <body>
-  <button class="global-back-btn" type="button" onclick="window.location.href='/home'">← Back</button>
+  <button class="global-back-btn" type="button" onclick="window.location.href='index.html'">← Back</button>
   <div class="container">
-    <h1 class="text-center mb-4">Reading Speed Test</h1>
-    <p class="text-muted">A random reading passage is shown each session.</p>
-    <video id="webcam" autoplay></video>
-    <div class="mb-4">
-      <p>Read the following text as fast as you can:</p>
+    <h1 class="text-center mb-3">Reading Speed Test</h1>
+    <p class="text-muted">To prevent false high scores, the test validates minimum reading time and a quick comprehension check.</p>
+    <video id="webcam" autoplay playsinline muted></video>
+    <div id="cameraStatus" class="alert alert-warning py-2 mt-2" style="display:none;"></div>
+    <div class="mb-3">
+      <p>Read the following text naturally:</p>
       <div id="textToRead"></div>
+    </div>
+
+    <div id="questionBlock" class="alert alert-light border" style="display:none;">
+      <div id="questionText" class="fw-semibold mb-2"></div>
+      <div id="questionOptions"></div>
+      <button id="submitAnswerBtn" class="btn btn-outline-primary btn-sm mt-2" style="display:none;">Submit Answer</button>
     </div>
 
     <button id="startBtn" class="btn btn-primary w-100">Start Reading</button>
     <button id="stopBtn" class="btn btn-danger w-100 mt-3" style="display: none;">Stop Reading</button>
-    <div id="result" class="mt-4 text-center" style="font-size: 1.2em;"></div>
+    <div id="result" class="mt-4 text-center" style="font-size: 1.08em;"></div>
     <button id="finishTestBtn" class="btn btn-info w-100 mt-3" style="display: none;">Finish Test</button>
   </div>
 
   <script>
     const passages = [
-      "Maya loves visiting the library after school. She picks a new book every week and reads with her grandmother in the evening. Reading together helps her learn new words and understand stories better.",
-      "Arjun planted tomato seeds in a small garden behind his house. Every morning he watered the plants and checked for new leaves. After a few weeks, tiny green tomatoes appeared.",
-      "The school science club built a small weather station. Students measured temperature, wind, and rainfall each day. They compared the data and learned how weather changes over time.",
-      "On Sunday, Aisha and her brother cleaned their room. They sorted books, folded clothes, and arranged toys on shelves. Their room looked bright, neat, and easy to study in."
+      {
+        text: "Maya loves visiting the library after school. She picks a new book every week and reads with her grandmother in the evening. Reading together helps her learn new words and understand stories better.",
+        question: "Who reads with Maya in the evening?",
+        options: ["Her teacher", "Her grandmother", "Her brother"],
+        answer: "Her grandmother"
+      },
+      {
+        text: "Arjun planted tomato seeds in a small garden behind his house. Every morning he watered the plants and checked for new leaves. After a few weeks, tiny green tomatoes appeared.",
+        question: "What did Arjun plant?",
+        options: ["Tomato seeds", "Rice seeds", "Rose flowers"],
+        answer: "Tomato seeds"
+      },
+      {
+        text: "The school science club built a small weather station. Students measured temperature, wind, and rainfall each day. They compared the data and learned how weather changes over time.",
+        question: "What did students measure daily?",
+        options: ["Only temperature", "Temperature, wind and rainfall", "Only rainfall"],
+        answer: "Temperature, wind and rainfall"
+      },
+      {
+        text: "On Sunday, Aisha and her brother cleaned their room. They sorted books, folded clothes, and arranged toys on shelves. Their room looked bright, neat, and easy to study in.",
+        question: "What did they arrange on shelves?",
+        options: ["Shoes", "Toys", "Food"],
+        answer: "Toys"
+      }
     ];
 
+    const MAX_VALID_WPM = 420;
+    const MIN_VALID_FOCUS_SECONDS = 5;
+
+    let selectedPassage;
     let startTime, endTime, focusTime = 0, tracking = false, videoStream, stopPressed = false;
+    let pendingMetrics = null;
 
-    function shuffle(items){const arr=[...items];for(let i=arr.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[arr[i],arr[j]]=[arr[j],arr[i]];}return arr;}
+    function randomPick(items){return items[Math.floor(Math.random()*items.length)];}
 
-    function loadPassage() { document.getElementById('textToRead').innerText = shuffle(passages)[0]; }
+    function loadPassage() {
+      selectedPassage = randomPick(passages);
+      document.getElementById('textToRead').innerText = selectedPassage.text;
+    }
+
+    function renderQuestion() {
+      const block = document.getElementById('questionBlock');
+      block.style.display = 'block';
+      document.getElementById('questionText').textContent = selectedPassage.question;
+      const optionsHost = document.getElementById('questionOptions');
+      optionsHost.innerHTML = '';
+      selectedPassage.options.forEach((opt, i) => {
+        const id = `opt_${i}`;
+        optionsHost.innerHTML += `<div class="form-check"><input class="form-check-input" type="radio" name="answer" id="${id}" value="${opt}"><label class="form-check-label" for="${id}">${opt}</label></div>`;
+      });
+      document.getElementById("submitAnswerBtn").style.display = "inline-block";
+    }
 
     async function startWebcam() {
       const video = document.getElementById('webcam');
+      const cameraStatus = document.getElementById('cameraStatus');
+      cameraStatus.style.display = 'none';
+      cameraStatus.textContent = '';
+
+      const mediaSupported = Boolean(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
+      if (!mediaSupported) {
+        tracking = true;
+        trackFocusTime();
+        cameraStatus.style.display = 'block';
+        cameraStatus.textContent = 'Camera API is unavailable in this browser. Continuing test without camera tracking.';
+        return;
+      }
+
       try {
-        videoStream = await navigator.mediaDevices.getUserMedia({ video: true });
+        videoStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
         video.srcObject = videoStream;
         video.style.display = 'block';
         tracking = true;
@@ -55,6 +116,8 @@
       } catch (_error) {
         tracking = true;
         trackFocusTime();
+        cameraStatus.style.display = 'block';
+        cameraStatus.textContent = 'Camera access blocked/denied. Test will continue without camera tracking.';
       }
     }
 
@@ -76,6 +139,7 @@
       document.getElementById('startBtn').style.display = 'none';
       document.getElementById('stopBtn').style.display = 'block';
       document.getElementById('stopBtn').disabled = false;
+      document.getElementById('result').innerText = '';
       stopPressed = false;
       startWebcam();
     });
@@ -86,15 +150,47 @@
       document.getElementById('stopBtn').disabled = true;
 
       endTime = Date.now();
-      const timeTaken = Math.max((endTime - startTime) / 1000, 1);
-      const wordCount = document.getElementById('textToRead').innerText.split(/\s+/).length;
-      const wordsPerMinute = (wordCount / timeTaken) * 60;
+      const elapsedSeconds = Math.max((endTime - startTime) / 1000, 1);
+      const wordCount = document.getElementById('textToRead').innerText.trim().split(/\s+/).filter(Boolean).length;
+      const minExpectedSeconds = (wordCount / MAX_VALID_WPM) * 60;
       stopWebcam();
+      pendingMetrics = { elapsedSeconds, wordCount, minExpectedSeconds, focusTime };
+      renderQuestion();
+      document.getElementById('result').innerText = 'Answer the quick comprehension question to validate the score.';
+    });
 
-      document.getElementById('result').innerText = `Your reading speed: ${wordsPerMinute.toFixed(2)} WPM | Focus Time: ${focusTime} seconds`;
-      sessionStorage.setItem('reading_speed_score', wordsPerMinute.toFixed(2));
-      sessionStorage.setItem('focus_time', focusTime);
+    document.getElementById('submitAnswerBtn').addEventListener('click', function() {
+      if (!pendingMetrics) return;
+      const chosen = document.querySelector('input[name="answer"]:checked');
+      if (!chosen) {
+        document.getElementById('result').innerText = 'Please pick an answer to finish validation.';
+        return;
+      }
+      const selected = chosen.value;
+      const correct = selected === selectedPassage.answer;
+
+      const rawWpm = (pendingMetrics.wordCount / pendingMetrics.elapsedSeconds) * 60;
+      const suspiciousFast = pendingMetrics.elapsedSeconds < pendingMetrics.minExpectedSeconds;
+      const lowFocus = pendingMetrics.focusTime < MIN_VALID_FOCUS_SECONDS;
+
+      if (!correct || suspiciousFast || lowFocus) {
+        const reasons = [];
+        if (!correct) reasons.push('comprehension answer mismatch');
+        if (suspiciousFast) reasons.push('unrealistically short reading time');
+        if (lowFocus) reasons.push('insufficient focus time');
+        document.getElementById('result').innerText = `Result rejected for reliability (${reasons.join(', ')}). Please retake the test.`;
+        sessionStorage.removeItem('reading_speed_score');
+        sessionStorage.setItem('reading_speed_reliability', 'invalid');
+      } else {
+        const wordsPerMinute = Math.min(rawWpm, MAX_VALID_WPM);
+        document.getElementById('result').innerText = `Validated reading speed: ${wordsPerMinute.toFixed(2)} WPM | Focus Time: ${pendingMetrics.focusTime} sec`;
+        sessionStorage.setItem('reading_speed_score', wordsPerMinute.toFixed(2));
+        sessionStorage.setItem('reading_speed_reliability', 'valid');
+      }
+
+      sessionStorage.setItem('focus_time', pendingMetrics.focusTime);
       document.getElementById('finishTestBtn').style.display = 'block';
+      document.getElementById('submitAnswerBtn').disabled = true;
     });
 
     document.getElementById('finishTestBtn').addEventListener('click', function() {
