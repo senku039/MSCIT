@@ -1,34 +1,27 @@
-"""API routes for prediction, handwriting analysis, OCR, and result views."""
+"""API routes for prediction, handwriting analysis, and result views."""
 
 from __future__ import annotations
 
 import base64
 import json
 import logging
-import re
-import time
-from collections import defaultdict, deque
 from functools import wraps
 from pathlib import Path
 from typing import Any, Callable
 
-import cv2
 import numpy as np
-import pytesseract
 from flask import Blueprint, current_app, jsonify, render_template, request, send_from_directory
 
-from src.main.webapp.utils.validators import (
-    cast_numeric_features,
-    validate_feature_payload,
-    validate_image_upload,
-    validate_json_payload,
+from src.main.webapp.api.schemas import (
+    SchemaValidationError,
+    parse_predict_request,
+    validate_handwriting_response,
+    validate_predict_response,
 )
+from src.main.webapp.utils.validators import validate_image_upload
 
 LOGGER = logging.getLogger(__name__)
 api_bp = Blueprint("api", __name__)
-_RATE_BUCKETS: dict[str, deque[float]] = defaultdict(deque)
-
-
 _ALLOWED_PAGE_FILES = {p.name for p in (Path(__file__).resolve().parent.parent).glob("*.html")}
 _ALLOWED_ASSET_EXTENSIONS = {".css", ".js", ".png", ".jpg", ".jpeg", ".gif", ".svg", ".webp", ".ico"}
 
@@ -46,85 +39,6 @@ _FEATURE_RULES: dict[str, dict[str, Any]] = {
     },
     "Response_Time": {"low": 0.2, "high": 2.0, "direction": "lower_better", "display": "Response Time"},
 }
-
-
-def _clean_ocr_text(raw_text: str) -> str:
-    """Normalize OCR output with conservative cleanup."""
-    lines = [line.strip() for line in raw_text.splitlines()]
-    lines = [line for line in lines if line]
-    joined = "\n".join(lines)
-    joined = re.sub(r"[ \t]+", " ", joined)
-    joined = joined.replace("|", "I")
-    return joined.strip()
-
-
-def _correct_ocr_text(text: str) -> str:
-    """Apply lightweight OCR corrections without external NLP dependencies."""
-    if not text:
-        return ""
-
-    corrected = text
-    for old, new in {"_": " ", "|": "I", "0": "o"}.items():
-        corrected = corrected.replace(old, new)
-
-    corrected = re.sub(r"[^\x20-\x7E\n]", " ", corrected)
-    corrected = re.sub(r"\s+", " ", corrected).strip()
-
-    token_fixes = {
-        "w0n't": "won't",
-        "y0u": "you",
-        "th1s": "this",
-        "1": "I",
-    }
-    tokens = []
-    for token in corrected.split(" "):
-        lowered = token.lower()
-        fixed = token_fixes.get(lowered, token)
-        if token[:1].isupper() and fixed and fixed.islower():
-            fixed = fixed.capitalize()
-        tokens.append(fixed)
-
-    corrected = " ".join(tokens)
-    corrected = re.sub(r"\s+([,.;:!?])", r"\1", corrected)
-    return corrected
-
-
-def _simplify_ocr_text(text: str) -> str:
-    """Build a simplified text view with reduced punctuation/noise."""
-    if not text:
-        return ""
-
-    simplified = text.lower()
-    simplified = re.sub(r"[^a-z0-9\s]", " ", simplified)
-    simplified = re.sub(r"\s+", " ", simplified).strip()
-
-    stop_words = {
-        "the", "a", "an", "and", "or", "to", "of", "for", "in", "on", "is", "are",
-        "was", "were", "be", "as", "at", "it", "that", "this",
-    }
-    filtered = [w for w in simplified.split(" ") if w and w not in stop_words]
-    return " ".join(filtered)
-
-
-def _ocr_quality_metrics(raw_text: str, corrected_text: str) -> dict[str, Any]:
-    """Generate simple quality indicators for OCR result interpretation."""
-    raw_chars = len(raw_text)
-    noise_chars = len(re.findall(r"[^\x20-\x7E\n]", raw_text))
-    underscore_count = raw_text.count("_")
-    correction_delta = abs(len(corrected_text) - len(raw_text))
-
-    quality_score = 100.0
-    if raw_chars:
-        quality_score -= (noise_chars / raw_chars) * 55
-        quality_score -= (underscore_count / raw_chars) * 35
-        quality_score -= min(correction_delta / raw_chars, 1.0) * 10
-    quality_score = float(np.clip(quality_score, 0.0, 100.0))
-
-    return {
-        "quality_score": round(quality_score, 2),
-        "noise_characters": noise_chars,
-        "underscore_artifacts": underscore_count,
-    }
 
 
 def _classify_risk(probability: float) -> str:
@@ -197,12 +111,15 @@ def _build_prediction_payload(prediction: float, feature_map: dict[str, float]) 
     model_probability_percent = round(model_probability * 100, 2)
     risk_level = _classify_risk(screening_probability)
 
-    if abnormal_count >= 4:
-        summary = "Several indicators are outside expected ranges, suggesting high screening risk."
-    elif abnormal_count >= 2:
-        summary = "Some indicators are outside expected ranges, suggesting moderate screening risk."
+    if risk_level == "High Risk":
+        summary = "Screening suggests high dyslexia risk. Multiple indicators need specialist review."
+    elif risk_level == "Moderate Risk":
+        summary = "Screening suggests moderate dyslexia risk. A follow-up assessment is recommended."
     else:
-        summary = "Most indicators are within expected ranges; screening risk appears low."
+        summary = "Screening suggests low dyslexia risk. Continue monitoring learning progress."
+
+    if abnormal_count:
+        summary += f" ({abnormal_count} feature{'s' if abnormal_count != 1 else ''} flagged outside expected range.)"
 
     recommendations = [
         "Use this as a screening signal, not a clinical diagnosis.",
@@ -263,18 +180,9 @@ def rate_limited(func: Callable[..., Any]) -> Callable[..., Any]:
             return current_app.make_default_options_response()
 
         client_id = _get_client_id()
-        now = time.time()
-        interval = 60
-        limit = int(current_app.config.get("RATE_LIMIT_PER_MINUTE", 60))
-        bucket = _RATE_BUCKETS[client_id]
-
-        while bucket and now - bucket[0] > interval:
-            bucket.popleft()
-
-        if len(bucket) >= limit:
+        rate_limiter = current_app.extensions["rate_limiter"]
+        if not rate_limiter.is_allowed(client_id):
             return jsonify({"error": "Rate limit exceeded"}), 429
-
-        bucket.append(now)
         return func(*args, **kwargs)
 
     return wrapper
@@ -282,7 +190,21 @@ def rate_limited(func: Callable[..., Any]) -> Callable[..., Any]:
 
 @api_bp.route("/", methods=["GET"])
 def health() -> Any:
-    return jsonify({"message": "Dyslexia Prediction API is running"})
+    return jsonify({"status": "ok", "service": "dyslexia-prediction-api"})
+
+
+@api_bp.route("/ready", methods=["GET"])
+def readiness() -> Any:
+    model_service = current_app.extensions["model_service"]
+    model_status = {
+        "dyslexia_model_loaded": model_service.dyslexia_model is not None,
+        "handwriting_model_loaded": model_service.handwriting_model is not None,
+    }
+    dependencies = {"redis_enabled": bool(current_app.config.get("REDIS_URL", ""))}
+    overall = "ready" if all(model_status.values()) else "degraded"
+    payload = {"status": overall, "models": model_status, "dependencies": dependencies}
+    code = 200 if overall == "ready" else 503
+    return jsonify(payload), code
 
 
 @api_bp.route("/home", methods=["GET"])
@@ -293,11 +215,6 @@ def home_page() -> Any:
 @api_bp.route("/dyslexia-prediction", methods=["GET"])
 def dyslexia_prediction_page() -> Any:
     return _serve_webapp_page("dyslexia-prediction.html")
-
-
-@api_bp.route("/ocr-tool", methods=["GET"])
-def ocr_tool_page() -> Any:
-    return _serve_webapp_page("ocr.html")
 
 
 @api_bp.route("/handwriting-analysis-page", methods=["GET"])
@@ -362,11 +279,6 @@ def compatibility_legacy_path(requested: str):
     return _serve_webapp_page(filename)
 
 
-@api_bp.route("/ocr-result", methods=["GET"])
-def ocr_result_page() -> Any:
-    return render_template("ocr_result.html")
-
-
 @api_bp.route("/handwriting-result", methods=["GET"])
 def handwriting_result_page() -> Any:
     return render_template("handwriting_result.html")
@@ -377,18 +289,16 @@ def handwriting_result_page() -> Any:
 @rate_limited
 def predict() -> Any:
     payload = request.get_json(silent=True)
-    payload_validation = validate_json_payload(payload)
-    if not payload_validation.ok:
-        return jsonify({"error": payload_validation.message}), 400
-
-    expected_features = current_app.config["EXPECTED_FEATURES"]
-    schema_validation = validate_feature_payload(payload, expected_features)
-    if not schema_validation.ok:
-        return jsonify({"error": schema_validation.message}), 400
 
     try:
-        feature_values = cast_numeric_features(payload, expected_features)
-        feature_map = {key: value for key, value in zip(expected_features, feature_values)}
+        feature_map = parse_predict_request(payload)
+    except SchemaValidationError as error:
+        return jsonify({"error": str(error)}), 400
+
+    expected_features = current_app.config["EXPECTED_FEATURES"]
+
+    try:
+        feature_values = [float(feature_map[feature]) for feature in expected_features]
         model_service = current_app.extensions["model_service"]
         prediction = model_service.predict_dyslexia(feature_values)
     except (TypeError, ValueError) as error:
@@ -402,8 +312,11 @@ def predict() -> Any:
         result_payload = {
             "prediction": 0.0,
             "probability_percent": 0.0,
+            "model_probability": 0.0,
+            "model_probability_percent": 0.0,
             "risk_level": "Indeterminate",
             "feature_analysis": [],
+            "abnormal_feature_count": 0,
             "observations": ["Model output was invalid; result is indeterminate."],
             "summary": "Prediction could not be interpreted safely.",
             "recommendations": ["Retry later and verify model health."],
@@ -412,7 +325,8 @@ def predict() -> Any:
         result_payload = _build_prediction_payload(prediction, feature_map)
 
     token = _encode_payload(result_payload)
-    return jsonify({**result_payload, "result_redirect": f"/prediction-result?data={token}"}), 200
+    response_payload = validate_predict_response({**result_payload, "result_redirect": f"/prediction-result?data={token}"})
+    return jsonify(response_payload), 200
 
 
 @api_bp.route("/handwriting-analysis", methods=["POST"])
@@ -463,80 +377,5 @@ def handwriting_analysis() -> Any:
         ],
     }
     token = _encode_payload(result_payload)
-    return jsonify({**result_payload, "result_redirect": f"/handwriting-result?data={token}"})
-
-
-@api_bp.route("/upload", methods=["POST"])
-@require_auth
-@rate_limited
-def upload_ocr() -> Any:
-    """Extract text from uploaded image and return normalized variants."""
-    file_obj = request.files.get("file") or request.files.get("image")
-    if file_obj is None or not file_obj.filename:
-        return jsonify({"error": "No file provided."}), 400
-
-    validation = validate_image_upload(
-        image_file=file_obj,
-        allowed_extensions=current_app.config["ALLOWED_IMAGE_EXTENSIONS"],
-        allowed_mime_types=current_app.config["ALLOWED_IMAGE_MIME_TYPES"],
-    )
-    if not validation.ok:
-        return jsonify({"error": validation.message}), 400
-
-    try:
-        file_bytes = np.frombuffer(file_obj.read(), dtype=np.uint8)
-        if file_bytes.size == 0:
-            return jsonify({"error": "No file provided."}), 400
-
-        image = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
-        if image is None:
-            return jsonify({"error": "Invalid image file."}), 400
-
-        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-        upscale = cv2.resize(gray, None, fx=1.8, fy=1.8, interpolation=cv2.INTER_CUBIC)
-        denoised = cv2.bilateralFilter(upscale, 7, 50, 50)
-        thresholded = cv2.adaptiveThreshold(
-            denoised,
-            255,
-            cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
-            cv2.THRESH_BINARY,
-            31,
-            11,
-        )
-
-        tesseract_config = "--oem 3 --psm 6"
-        raw_text = pytesseract.image_to_string(thresholded, config=tesseract_config)
-        extracted_text = _clean_ocr_text(raw_text)
-        corrected_text = _correct_ocr_text(extracted_text)
-        simplified_text = _simplify_ocr_text(corrected_text)
-        quality = _ocr_quality_metrics(extracted_text, corrected_text)
-
-        observations = [
-            "Handwritten/low-light samples may reduce OCR quality.",
-            "Corrected text applies lightweight symbol and spacing cleanup.",
-            "Simplified text removes punctuation and common stop words for easier scanning.",
-        ]
-        if quality["quality_score"] < 60:
-            observations.append("OCR quality is low; recapture with better lighting for higher accuracy.")
-
-        result_payload = {
-            "extracted_text": extracted_text,
-            "corrected_text": corrected_text,
-            "simplified_text": simplified_text,
-            "summary": f"OCR completed successfully. Estimated quality: {quality['quality_score']}%.",
-            "ocr_quality_score": quality["quality_score"],
-            "noise_characters": quality["noise_characters"],
-            "underscore_artifacts": quality["underscore_artifacts"],
-            "observations": observations,
-            "recommendations": [
-                "Capture clear, well-lit images.",
-                "Keep text horizontal and avoid shadows.",
-                "Prefer high-contrast dark text on a plain background.",
-            ],
-            "original_text": extracted_text,
-        }
-        token = _encode_payload(result_payload)
-        return jsonify({**result_payload, "result_redirect": f"/ocr-result?data={token}"}), 200
-    except Exception:
-        LOGGER.exception("Unhandled OCR upload failure")
-        return jsonify({"error": "OCR processing unavailable."}), 500
+    response_payload = validate_handwriting_response({**result_payload, "result_redirect": f"/handwriting-result?data={token}"})
+    return jsonify(response_payload)
