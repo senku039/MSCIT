@@ -399,6 +399,14 @@
           } else {
             unstableSamples += 1;
           }
+          lastRawCenter = center;
+
+          drawOverlay(face, roi, !awayNow);
+        } else {
+          awayNow = true;
+          unstableSamples += 1;
+          drawOverlay(null, roi, false);
+        }
 
           if (lastRawCenter) {
             const dx = Math.abs(center.x - lastRawCenter.x);
@@ -604,28 +612,25 @@
 
       const correct = chosen.value === selectedPassage.answer;
       const rawWpm = (pendingMetrics.wordCount / pendingMetrics.elapsedSeconds) * 60;
-      const suspiciousFast = pendingMetrics.elapsedSeconds < pendingMetrics.minExpectedSeconds;
-      const lowFocus = pendingMetrics.focusTime < MIN_VALID_FOCUS_SECONDS;
-      const lookingAwayTooLong = pendingMetrics.lookAwaySeconds >= 4 || pendingMetrics.lookAwayAlerts >= 2;
-      const strongPresence = (pendingMetrics.faceVisibleSeconds / Math.max(pendingMetrics.elapsedSeconds, 1)) >= 0.70;
-      const weakTracking = pendingMetrics.trackingQuality < 0.35 && !strongPresence;
+      const wordsPerMinute = Math.min(rawWpm, MAX_VALID_WPM);
 
-      if (!correct || suspiciousFast || lowFocus || lookingAwayTooLong || weakTracking) {
-        const reasons = [];
-        if (!correct) reasons.push('comprehension answer mismatch');
-        if (suspiciousFast) reasons.push('unrealistically short reading time');
-        if (lowFocus) reasons.push('insufficient focus time');
-        if (lookingAwayTooLong) reasons.push('frequent looking away');
-        if (weakTracking) reasons.push('tracking quality too low');
-        document.getElementById('result').innerText = `Result rejected for reliability (${reasons.join(', ')}). Please retake the test.`;
-        sessionStorage.removeItem('reading_speed_score');
-        sessionStorage.setItem('reading_speed_reliability', 'invalid');
-      } else {
-        const wordsPerMinute = Math.min(rawWpm, MAX_VALID_WPM);
-        document.getElementById('result').innerText = `Validated reading speed: ${wordsPerMinute.toFixed(2)} WPM | Face Presence: ${pendingMetrics.faceVisibleSeconds}s | Looking Away: ${pendingMetrics.lookAwaySeconds}s | Tracking Quality: ${(pendingMetrics.trackingQuality * 100).toFixed(0)}%`;
-        sessionStorage.setItem('reading_speed_score', wordsPerMinute.toFixed(2));
-        sessionStorage.setItem('reading_speed_reliability', 'valid');
-      }
+      // Reliability only indicates data quality, never user performance.
+      const dataComplete = pendingMetrics.elapsedSeconds >= 1 && pendingMetrics.wordCount >= 10;
+      const cameraUsable = pendingMetrics.detectionSamples === 0
+        ? false
+        : ((pendingMetrics.faceVisibleSeconds / Math.max(pendingMetrics.elapsedSeconds, 1)) >= 0.35);
+      const qualityTag = dataComplete && (cameraUsable || pendingMetrics.focusTime >= MIN_VALID_FOCUS_SECONDS)
+        ? 'usable'
+        : 'needs_review';
+
+      const comprehensionAccuracy = correct ? 100 : 0;
+      document.getElementById('result').innerText = `Reading score recorded: ${wordsPerMinute.toFixed(2)} WPM | Comprehension: ${comprehensionAccuracy}% | Face Presence: ${pendingMetrics.faceVisibleSeconds}s | Looking Away: ${pendingMetrics.lookAwaySeconds}s | Tracking Quality: ${(pendingMetrics.trackingQuality * 100).toFixed(0)}%`;
+      sessionStorage.setItem('reading_speed_score', wordsPerMinute.toFixed(2));
+      sessionStorage.setItem('reading_speed_reliability', qualityTag);
+      sessionStorage.setItem('reading_comprehension_accuracy', String(comprehensionAccuracy));
+      sessionStorage.setItem('camera_reliability', (pendingMetrics.trackingQuality * 100).toFixed(0));
+      sessionStorage.setItem('attention_stability', (Math.max(0, 100 - pendingMetrics.lookAwaySeconds * 8)).toFixed(2));
+      sessionStorage.setItem('movement_variability', pendingMetrics.eyeMovementScore.toFixed(2));
 
       sessionStorage.setItem('focus_time', String(pendingMetrics.focusTime));
       sessionStorage.setItem('face_presence_time', String(pendingMetrics.faceVisibleSeconds));
