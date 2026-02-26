@@ -20,7 +20,7 @@
     <div class="glass p-4 mb-3">
       <div class="hero">
         <h2 class="fw-bold">Dyslexia Prediction Result</h2>
-        <p id="summary" class="mb-3"></p>
+        <p id="summary" class="mb-2"></p><div id="decision" class="fw-bold fs-5 mb-3"></div>
         <div class="d-flex flex-wrap gap-2 align-items-center">
           <span id="riskBadge" class="badge fs-6"></span>
           <span id="probability" class="metric fw-semibold"></span>
@@ -44,7 +44,7 @@ if(!payload){document.body.innerHTML='<div class="container mt-5"><div class="al
  document.getElementById('summary').textContent=payload.summary||'';
  document.getElementById('probability').textContent=`Screening Probability: ${payload.probability_percent ?? 0}%`;
  document.getElementById('modelProbability').textContent=`Model Probability: ${payload.model_probability_percent ?? payload.probability_percent ?? 0}%`;
- const b=document.getElementById('riskBadge');b.textContent=`${payload.risk_level||'Unknown'} Risk`;const r=(payload.risk_level||'').toLowerCase();b.classList.add(r.includes('high')?'badge-high':r.includes('moderate')?'badge-moderate':'badge-low');
+ const b=document.getElementById('riskBadge');const risk=(payload.risk_level||'Unknown');b.textContent=risk;const r=risk.toLowerCase();b.classList.add(r.includes('high')?'badge-high':r.includes('moderate')?'badge-moderate':'badge-low');document.getElementById('decision').textContent = r.includes('high') ? 'Final Screening Output: DYSLEXIA RISK DETECTED' : (r.includes('moderate') ? 'Final Screening Output: POSSIBLE DYSLEXIA RISK' : 'Final Screening Output: LOW DYSLEXIA RISK');
  const tbody=document.querySelector('#analysisTable tbody');(payload.feature_analysis||[]).forEach(row=>{const tr=document.createElement('tr');tr.innerHTML=`<td>${row.feature}</td><td>${row.value}</td><td>${row.expected_range}</td><td>${row.status}</td><td>${row.impact}</td>`;if(row.abnormal)tr.classList.add('table-danger');tbody.appendChild(tr);});
  (payload.observations||[]).forEach(i=>{const li=document.createElement('li');li.textContent=i;document.getElementById('observations').appendChild(li);});
  (payload.recommendations||[]).forEach(i=>{const li=document.createElement('li');li.textContent=i;document.getElementById('recommendations').appendChild(li);});
