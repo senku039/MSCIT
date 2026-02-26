@@ -383,6 +383,25 @@
       }
       lastDetectionTick = timestamp;
 
+      updateStatus('success', `Camera active. ${detectionEngine === 'shape' ? 'Native' : 'ML'} face tracking running.`);
+      detectionActive = true;
+      lastDetectionTick = 0;
+      detectionRaf = requestAnimationFrame(detectionTick);
+    }
+
+    async function ensureCameraReady() {
+      if (videoStream) return true;
+
+      const video = document.getElementById('webcam');
+      const shell = document.getElementById('videoShell');
+      const startCamBtn = document.getElementById('startCameraBtn');
+      const stopCamBtn = document.getElementById('stopCameraBtn');
+
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        updateStatus('warning', 'Camera API is not supported in this browser.');
+        return false;
+      }
+
       try {
         const face = await detectFace(video);
         const frameArea = Math.max((video.videoWidth || 1) * (video.videoHeight || 1), 1);
