@@ -1,0 +1,99 @@
+@import url('/assets/styles/design-tokens.css');
+
+body {
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+.app-header {
+  background: linear-gradient(120deg, #0f2559, #1c3f8f) !important;
+  box-shadow: 0 8px 20px rgba(7, 20, 54, .28);
+}
+
+.hero-section {
+  min-height: min(72vh, 620px);
+  display: grid;
+  place-items: center;
+  background:
+    linear-gradient(120deg, rgba(7, 22, 61, .84), rgba(35, 85, 182, .72)),
+    url('/IMAGES/kids.jpg') center / cover no-repeat;
+}
+
+.hero-content { max-width: 860px; }
+.hero-chip {
+  display: inline-block;
+  padding: .45rem .9rem;
+  border: 1px solid rgba(255,255,255,.4);
+  border-radius: 999px;
+  margin-bottom: .8rem;
+}
+.hero-section h1 { font-size: clamp(2rem, 4vw, 3.2rem); font-weight: 800; }
+.hero-section p { font-size: clamp(1rem, 2vw, 1.2rem); color: #e6eeff; margin-bottom: 1.4rem; }
+
+.section-wrap { margin: 2.2rem auto; }
+.section-title { font-weight: 800; margin-bottom: 1.2rem; color: var(--color-primary-strong); }
+
+.stat-card, .tool-card {
+  border-radius: var(--radius-md);
+  padding: 1.4rem;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-md);
+  height: 100%;
+}
+.stat-card h3 { font-weight: 800; }
+.stat-blue { background: linear-gradient(135deg, #1d4fd8, #3a7df5); color: white; }
+.stat-purple { background: linear-gradient(135deg, #5c21b7, #7e4adf); color: white; }
+.stat-teal { background: linear-gradient(135deg, #0b7b87, #1aa5b5); color: white; }
+
+.tool-card p { color: var(--color-text-muted); }
+
+.auth-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(9, 20, 52, .62);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  z-index: 1060;
+}
+
+.auth-modal.is-open { display: flex; }
+
+.auth-dialog {
+  width: min(460px, 96vw);
+  background: var(--color-surface);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  border: 1px solid var(--color-border);
+  padding: 1.2rem;
+  position: relative;
+}
+
+.auth-close { position: absolute; top: .8rem; right: .8rem; }
+
+.upload-shell {
+  max-width: 860px;
+  margin: 2rem auto;
+  padding: 1.4rem;
+  border-radius: var(--radius-lg);
+  background: rgba(255,255,255,.95);
+  box-shadow: var(--shadow-lg);
+}
+
+.upload-zone {
+  border: 2px dashed var(--color-primary);
+  border-radius: var(--radius-md);
+  padding: 2rem;
+  text-align: center;
+  cursor: pointer;
+  background: var(--color-surface-soft);
+}
+
+.upload-zone:focus-visible,
+.btn:focus-visible,
+.form-control:focus-visible {
+  outline: 3px solid rgba(36,94,234,.28);
+  outline-offset: 2px;
+}
