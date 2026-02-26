@@ -399,6 +399,14 @@
           } else {
             unstableSamples += 1;
           }
+          lastRawCenter = center;
+
+          drawOverlay(face, roi, !awayNow);
+        } else {
+          awayNow = true;
+          unstableSamples += 1;
+          drawOverlay(null, roi, false);
+        }
 
           if (lastRawCenter) {
             const dx = Math.abs(center.x - lastRawCenter.x);
