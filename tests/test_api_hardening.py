@@ -54,6 +54,7 @@ def test_predict_rejects_schema_violations():
     assert response.status_code == 400
 
 
+<<<<<<< HEAD
 def test_handwriting_page_exists():
     app = create_app()
     client = app.test_client()
@@ -66,6 +67,34 @@ def test_handwriting_flow(monkeypatch):
     app = create_app()
     app.extensions["model_service"] = StubModelService()
 
+=======
+def test_unified_image_analysis_page_exists():
+    app = create_app()
+    client = app.test_client()
+
+    response = client.get("/image-analysis")
+    assert response.status_code == 200
+
+
+def test_unified_image_analysis_flow(monkeypatch):
+    app = create_app()
+    app.extensions["model_service"] = StubModelService()
+
+    from src.main.webapp.api import routes
+    monkeypatch.setattr(routes, "_run_ocr_pipeline", lambda _file: {
+        "extracted_text": "abc",
+        "corrected_text": "abc",
+        "simplified_text": "abc",
+        "summary": "ok",
+        "ocr_quality_score": 80.0,
+        "noise_characters": 0,
+        "underscore_artifacts": 0,
+        "observations": ["ok"],
+        "recommendations": ["ok"],
+        "original_text": "abc",
+    })
+
+>>>>>>> origin/main
     client = app.test_client()
     data = {"image": (
         __import__("io").BytesIO(b"fake-bytes"),
@@ -73,8 +102,16 @@ def test_handwriting_flow(monkeypatch):
         "image/jpeg",
     )}
 
+<<<<<<< HEAD
     response = client.post("/handwriting-analysis", data=data, content_type="multipart/form-data")
     assert response.status_code == 200
     payload = response.get_json()
     assert payload["predicted_class"] == "Non_Dyslexic"
     assert payload["result_redirect"].startswith("/handwriting-result?data=")
+=======
+    response = client.post("/image-analysis-upload", data=data, content_type="multipart/form-data")
+    assert response.status_code == 200
+    payload = response.get_json()
+    assert "handwriting" in payload and "ocr" in payload
+    assert payload["result_redirect"].startswith("/image-analysis-result?data=")
+>>>>>>> origin/main
