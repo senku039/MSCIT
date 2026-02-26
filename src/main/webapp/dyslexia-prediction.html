@@ -621,6 +621,15 @@
         { name: 'Camera reliability', value: inv01(normHigher(cameraReliability, 35, 100)) }
       ].sort((a, b) => b.value - a.value).slice(0, 4).map((x) => x.name);
 
+      const testBreakdown = [
+        { test: 'Reading Speed + Comprehension', score: Number(readingSpeed.toFixed(2)), normalized_risk: Number((inv01(normHigher(readingSpeed, 70, 220)) * 100).toFixed(2)), analysis: `WPM=${readingSpeed.toFixed(1)}, comprehension=${comprehension.toFixed(0)}%, face_presence=${facePresence.toFixed(0)}s` },
+        { test: 'Rapid Naming', score: Number(rapidNaming.toFixed(2)), normalized_risk: Number((inv01(normHigher(rapidNaming, 40, 100)) * 100).toFixed(2)), analysis: `accuracy=${rapidNamingAccuracy.toFixed(1)}%, speed-score=${rapidNaming.toFixed(1)}` },
+        { test: 'Spelling Accuracy', score: Number(spelling.toFixed(2)), normalized_risk: Number((inv01(normHigher(spelling, 60, 100)) * 100).toFixed(2)), analysis: `spelling accuracy=${spelling.toFixed(1)}%` },
+        { test: 'Phonemic Awareness Errors', score: Number(phonemicErrors.toFixed(2)), normalized_risk: Number((normHigher(phonemicErrors, 0, 5) * 100).toFixed(2)), analysis: `error count=${phonemicErrors.toFixed(1)} (lower is better)` },
+        { test: 'Writing Errors', score: Number(writingErrors.toFixed(2)), normalized_risk: Number((normHigher(writingErrors, 0, 5) * 100).toFixed(2)), analysis: `writing error score=${writingErrors.toFixed(1)} (lower is better)` },
+        { test: 'Cognitive Score', score: Number(cognitive.toFixed(2)), normalized_risk: Number((inv01(normHigher(cognitive, 40, 100)) * 100).toFixed(2)), analysis: `cognitive score=${cognitive.toFixed(1)}%` },
+      ];
+
       const recommendationText = riskLevel === 'High Risk'
         ? 'The screening pattern suggests notable reading-related difficulty indicators. A supportive specialist review is recommended.'
         : (riskLevel === 'Moderate Risk'
@@ -654,6 +663,13 @@
         attention_stability: Number(attentionStability.toFixed(2)),
         movement_variability: Number(movementVariability.toFixed(2)),
         camera_reliability: Number(cameraReliability.toFixed(2)),
+        component_scores: {
+          reading_component: Number((readingComponent * 100).toFixed(2)),
+          language_component: Number((languageComponent * 100).toFixed(2)),
+          cognitive_component: Number((cognitiveComponent * 100).toFixed(2)),
+          support_component: Number((supportComponent * 100).toFixed(2)),
+        },
+        test_breakdown: testBreakdown,
       };
 
       sessionStorage.setItem('dyslexia_risk_score', String(finalPayload.dyslexia_risk_score));
@@ -661,6 +677,7 @@
       sessionStorage.setItem('confidence_level', finalPayload.confidence_level);
       sessionStorage.setItem('dominant_indicators', JSON.stringify(finalPayload.dominant_indicators));
       sessionStorage.setItem('recommendation_text', finalPayload.recommendation_text);
+      sessionStorage.setItem('test_breakdown', JSON.stringify(finalPayload.test_breakdown));
 
       return finalPayload;
     }

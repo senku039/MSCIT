@@ -28,6 +28,7 @@
           <span id="riskScoreMetric" class="metric"></span>
           <span id="confidenceMetric" class="metric"></span>
         </div>
+        <button id="knowMoreBtn" class="btn btn-outline-primary mt-3">Know More</button>
       </div>
     </div>
     <div class="glass p-4 mb-3">
@@ -54,6 +55,14 @@ if(!payload){document.body.innerHTML='<div class="container mt-5"><div class="al
  observations.forEach(i=>{const li=document.createElement('li');li.textContent=i;document.getElementById('observations').appendChild(li);});
  (payload.recommendations||[]).forEach(i=>{const li=document.createElement('li');li.textContent=i;document.getElementById('recommendations').appendChild(li);});
  document.getElementById('friendlyNote').textContent = payload.recommendation_text || 'This output is a supportive behavioral screening result and not a medical diagnosis.';
+
+ const knowMoreBtn = document.getElementById('knowMoreBtn');
+ if (knowMoreBtn) {
+   const encoded = new URLSearchParams(window.location.search).get('data') || '';
+   knowMoreBtn.addEventListener('click', () => {
+     window.location.href = `/detailed-analysis?data=${encoded}`;
+   });
+ }
 }
 </script>
 </body>

@@ -260,6 +260,11 @@ def prediction_result_page() -> Any:
     return render_template("prediction_result.html")
 
 
+@api_bp.route("/detailed-analysis", methods=["GET"])
+def detailed_analysis_page() -> Any:
+    return render_template("detailed_analysis.html")
+
+
 
 
 @api_bp.route("/image-analysis", methods=["GET"])
