@@ -10,7 +10,9 @@
     body { background: url('/IMAGES/kids.jpg') no-repeat center center/cover; font-family: Arial, sans-serif; padding: 20px; }
     .container { max-width: 920px; margin-top: 50px; background: rgba(255,255,255,.95); padding: 30px; border-radius: 12px; box-shadow: 0 10px 24px rgba(0,0,0,.18); }
     #textToRead { height: 220px; overflow-y: auto; border: 1px solid #ccd6f3; border-radius: 10px; padding: 14px; margin-bottom: 18px; background: #f8fbff; }
-    video { width: 100%; max-height: 220px; display: none; border-radius: 10px; }
+    .camera-block { border: 1px solid #ccd6f3; border-radius: 12px; background: #f8fbff; padding: 12px; margin-bottom: 10px; }
+    video { width: 100%; max-height: 340px; min-height: 260px; object-fit: cover; display: none; border-radius: 10px; }
+    #trackingHint { font-size: .88rem; color: #5f6b86; margin-top: 6px; display: none; }
   </style>
 </head>
 <body>
@@ -18,9 +20,12 @@
   <div class="container">
     <h1 class="text-center mb-3">Reading Speed Test</h1>
     <p class="text-muted">To prevent false high scores, the test validates minimum reading time and a quick comprehension check.</p>
-    <video id="webcam" autoplay playsinline muted></video>
-    <div id="cameraStatus" class="alert alert-warning py-2 mt-2" style="display:none;"></div>
-    <div id="trackingPanel" class="alert alert-info py-2" style="display:none;"></div>
+    <div class="camera-block">
+      <video id="webcam" autoplay playsinline muted></video>
+      <div id="trackingHint">Tip: keep your full face centered, with both eyes visible, for better scoring quality.</div>
+      <div id="cameraStatus" class="alert alert-warning py-2 mt-2" style="display:none;"></div>
+      <div id="trackingPanel" class="alert alert-info py-2" style="display:none;"></div>
+    </div>
     <small class="text-muted d-block mb-2">Privacy note: this test uses <strong>video only</strong> for focus/face estimation. It does <strong>not</strong> capture audio.</small>
     <div class="mb-3">
       <p>Read the following text naturally:</p>
@@ -77,7 +82,14 @@
     let faceTrackTimer = null;
     let faceVisibleSeconds = 0;
     let eyeMovementScore = 0;
+    let detectionSamples = 0;
+    let stableFaceSamples = 0;
+    let dynamicSampleRateMs = 700;
+    let trackingHealthScore = 0;
     let lastFaceCenter = null;
+    let lastFaceBox = null;
+    let faceHistory = [];
+    let focusTimer = null;
     let lookAwaySeconds = 0;
     let lookAwayAlerts = 0;
     let faceMissingStreak = 0;
@@ -114,7 +126,36 @@
     function updateTrackingPanel() {
       const panel = document.getElementById('trackingPanel');
       panel.style.display = 'block';
-      panel.innerHTML = `Face presence: <strong>${faceVisibleSeconds}s</strong> | Looking away: <strong>${lookAwaySeconds}s</strong> | Eye-movement index: <strong>${eyeMovementScore.toFixed(1)}</strong>`;
+      const qualityPct = detectionSamples ? ((stableFaceSamples / detectionSamples) * 100).toFixed(0) : '0';
+      panel.innerHTML = `Face presence: <strong>${faceVisibleSeconds}s</strong> | Looking away: <strong>${lookAwaySeconds}s</strong> | Eye movement: <strong>${eyeMovementScore.toFixed(1)}</strong> | Tracking quality: <strong>${qualityPct}%</strong>`;
+    }
+
+    function calcMotion(points) {
+      if (points.length < 2) return 0;
+      let distance = 0;
+      for (let i = 1; i < points.length; i += 1) {
+        const dx = points[i].x - points[i - 1].x;
+        const dy = points[i].y - points[i - 1].y;
+        distance += Math.sqrt((dx * dx) + (dy * dy));
+      }
+      return distance / (points.length - 1);
+    }
+
+    function getEyeProxyFromLandmarks(face, centerY) {
+      if (!face.landmarks || !face.landmarks.length) return centerY;
+      const eyeHints = ['eye', 'pupil'];
+      const eyeLandmarks = face.landmarks.filter((l) => eyeHints.some((hint) => (l.type || '').toLowerCase().includes(hint)));
+      if (!eyeLandmarks.length) return centerY;
+      const avgY = eyeLandmarks.reduce((sum, lm) => sum + lm.location.y, 0) / eyeLandmarks.length;
+      return avgY;
+    }
+
+    function deriveTrackingHealth(face, box) {
+      const frameArea = Math.max((window.innerWidth || 1) * (window.innerHeight || 1), 1);
+      const faceAreaRatio = (box.width * box.height) / frameArea;
+      const hasUsefulBox = faceAreaRatio > 0.015;
+      const landmarkBonus = face.landmarks && face.landmarks.length ? 8 : 0;
+      return (hasUsefulBox ? 12 : 0) + landmarkBonus;
     }
 
     async function setupFaceTracking(video) {
@@ -130,9 +171,10 @@
         if (!tracking || !faceDetector || video.readyState < 2) return;
         try {
           const faces = await faceDetector.detect(video);
+          detectionSamples += 1;
           if (!faces.length) {
             faceMissingStreak += 1;
-            lookAwaySeconds += 1;
+            if (faceMissingStreak % 2 === 0) lookAwaySeconds += 1;
             if (faceMissingStreak === 2) {
               lookAwayAlerts += 1;
               const cameraStatus = document.getElementById('cameraStatus');
@@ -145,22 +187,42 @@
           }
 
           faceMissingStreak = 0;
-          faceVisibleSeconds += 1;
+          if (detectionSamples % 2 === 0) faceVisibleSeconds += 1;
           const box = faces[0].boundingBox;
           const cx = box.x + (box.width / 2);
           const cy = box.y + (box.height / 2);
+          const eyeProxyY = getEyeProxyFromLandmarks(faces[0], cy);
+          const frameScale = Math.max(box.width + box.height, 1);
+
+          faceHistory.push({ x: cx, y: eyeProxyY });
+          if (faceHistory.length > 10) faceHistory.shift();
+          const smoothMotion = calcMotion(faceHistory);
+
+          if (smoothMotion < 18) {
+            stableFaceSamples += 1;
+          }
+
+          trackingHealthScore += deriveTrackingHealth(faces[0], box);
 
           if (lastFaceCenter) {
-            const dx = Math.abs(cx - lastFaceCenter.x);
-            const dy = Math.abs(cy - lastFaceCenter.y);
-            eyeMovementScore += Math.min(dx + dy, 40);
+            const dx = Math.abs(cx - lastFaceCenter.x) / frameScale;
+            const dy = Math.abs(eyeProxyY - lastFaceCenter.y) / frameScale;
+            const boxDelta = lastFaceBox ? Math.abs((box.width * box.height) - lastFaceBox) / Math.max(lastFaceBox, 1) : 0;
+            eyeMovementScore += Math.min(((dx + dy + boxDelta) * 100), 12);
           }
-          lastFaceCenter = { x: cx, y: cy };
+          lastFaceCenter = { x: cx, y: eyeProxyY };
+          lastFaceBox = box.width * box.height;
+
+          const cameraStatus = document.getElementById('cameraStatus');
+          if (trackingHealthScore > 20 && faceMissingStreak === 0) {
+            cameraStatus.className = 'alert alert-success py-2 mt-2';
+            cameraStatus.textContent = 'Camera active. Face and eye movement tracking is stable.';
+          }
           updateTrackingPanel();
         } catch (_error) {
           // ignore intermittent detection errors
         }
-      }, 1000);
+      }, dynamicSampleRateMs);
       return true;
     }
 
@@ -171,9 +233,15 @@
       cameraStatus.textContent = '';
       faceVisibleSeconds = 0;
       eyeMovementScore = 0;
+      detectionSamples = 0;
+      stableFaceSamples = 0;
+      trackingHealthScore = 0;
+      faceHistory = [];
       lookAwaySeconds = 0;
       lookAwayAlerts = 0;
       faceMissingStreak = 0;
+      lastFaceBox = null;
+      document.getElementById('trackingHint').style.display = 'block';
       document.getElementById('trackingPanel').style.display = 'none';
       stopFaceTracking();
 
@@ -188,9 +256,11 @@
       }
 
       try {
-        videoStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
+        videoStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } } });
         video.srcObject = videoStream;
         video.style.display = 'block';
+        await video.play();
+        dynamicSampleRateMs = window.innerWidth < 768 ? 900 : 600;
         tracking = true;
         trackFocusTime();
 
@@ -219,14 +289,19 @@
     function stopWebcam() {
       if (videoStream) videoStream.getTracks().forEach(track => track.stop());
       document.getElementById('webcam').style.display = 'none';
+      document.getElementById('trackingHint').style.display = 'none';
       tracking = false;
       stopFaceTracking();
+      if (focusTimer) {
+        clearTimeout(focusTimer);
+        focusTimer = null;
+      }
     }
 
     function trackFocusTime() {
       if (!tracking) return;
       focusTime++;
-      setTimeout(trackFocusTime, 1000);
+      focusTimer = setTimeout(trackFocusTime, 1000);
     }
 
     document.getElementById('startBtn').addEventListener('click', function() {
@@ -251,7 +326,7 @@
       const wordCount = document.getElementById('textToRead').innerText.trim().split(/\s+/).filter(Boolean).length;
       const minExpectedSeconds = (wordCount / MAX_VALID_WPM) * 60;
       stopWebcam();
-      pendingMetrics = { elapsedSeconds, wordCount, minExpectedSeconds, focusTime, faceVisibleSeconds, eyeMovementScore, lookAwaySeconds, lookAwayAlerts };
+      pendingMetrics = { elapsedSeconds, wordCount, minExpectedSeconds, focusTime, faceVisibleSeconds, eyeMovementScore, lookAwaySeconds, lookAwayAlerts, detectionSamples, stableFaceSamples };
       renderQuestion();
       document.getElementById('result').innerText = 'Answer the quick comprehension question to validate the score.';
     });
@@ -271,13 +346,15 @@
       const reliableFocus = Math.max(pendingMetrics.focusTime, pendingMetrics.faceVisibleSeconds);
       const lowFocus = reliableFocus < MIN_VALID_FOCUS_SECONDS;
       const lookingAwayTooLong = pendingMetrics.lookAwaySeconds >= 4 || pendingMetrics.lookAwayAlerts >= 2;
+      const weakTracking = pendingMetrics.detectionSamples > 6 && (pendingMetrics.stableFaceSamples / pendingMetrics.detectionSamples) < 0.35;
 
-      if (!correct || suspiciousFast || lowFocus || lookingAwayTooLong) {
+      if (!correct || suspiciousFast || lowFocus || lookingAwayTooLong || weakTracking) {
         const reasons = [];
         if (!correct) reasons.push('comprehension answer mismatch');
         if (suspiciousFast) reasons.push('unrealistically short reading time');
         if (lowFocus) reasons.push('insufficient focus/face-presence time');
         if (lookingAwayTooLong) reasons.push('frequent looking away from screen');
+        if (weakTracking) reasons.push('camera tracking quality too low, keep face closer and centered');
         document.getElementById('result').innerText = `Result rejected for reliability (${reasons.join(', ')}). Please retake the test.`;
         sessionStorage.removeItem('reading_speed_score');
         sessionStorage.setItem('reading_speed_reliability', 'invalid');
