@@ -83,31 +83,3 @@ def validate_handwriting_response(payload: dict[str, Any]) -> dict[str, Any]:
     return payload
 
 
-def validate_ocr_response(payload: dict[str, Any]) -> dict[str, Any]:
-    required = {
-        "extracted_text",
-        "corrected_text",
-        "simplified_text",
-        "summary",
-        "ocr_quality_score",
-        "noise_characters",
-        "underscore_artifacts",
-        "observations",
-        "recommendations",
-        "original_text",
-        "result_redirect",
-    }
-    missing = required - set(payload.keys())
-    if missing:
-        raise SchemaValidationError(f"Invalid OCR response; missing keys: {sorted(missing)}")
-    return payload
-
-
-def validate_image_analysis_response(payload: dict[str, Any]) -> dict[str, Any]:
-    required = {"overall_summary", "handwriting", "ocr", "result_redirect"}
-    missing = required - set(payload.keys())
-    if missing:
-        raise SchemaValidationError(f"Invalid image-analysis response; missing keys: {sorted(missing)}")
-    if not isinstance(payload["handwriting"], dict) or not isinstance(payload["ocr"], dict):
-        raise SchemaValidationError("Image-analysis response sections must be objects.")
-    return payload

@@ -1,4 +1,4 @@
-"""API routes for prediction, handwriting analysis, OCR, and result views."""
+"""API routes for prediction, handwriting analysis, and result views."""
 
 from __future__ import annotations
 
@@ -6,26 +6,17 @@ import base64
 from io import BytesIO
 import json
 import logging
-import re
 from functools import wraps
 from pathlib import Path
 from typing import Any, Callable
 
-try:
-    import cv2
-except Exception:  # pragma: no cover - optional native dependency
-    cv2 = None
 import numpy as np
-import pytesseract
-from PIL import Image
 from flask import Blueprint, current_app, jsonify, render_template, request, send_from_directory
 
 from src.main.webapp.api.schemas import (
     SchemaValidationError,
     parse_predict_request,
     validate_handwriting_response,
-    validate_image_analysis_response,
-    validate_ocr_response,
     validate_predict_response,
 )
 from src.main.webapp.utils.validators import validate_image_upload
@@ -49,85 +40,6 @@ _FEATURE_RULES: dict[str, dict[str, Any]] = {
     },
     "Response_Time": {"low": 0.2, "high": 2.0, "direction": "lower_better", "display": "Response Time"},
 }
-
-
-def _clean_ocr_text(raw_text: str) -> str:
-    """Normalize OCR output with conservative cleanup."""
-    lines = [line.strip() for line in raw_text.splitlines()]
-    lines = [line for line in lines if line]
-    joined = "\n".join(lines)
-    joined = re.sub(r"[ \t]+", " ", joined)
-    joined = joined.replace("|", "I")
-    return joined.strip()
-
-
-def _correct_ocr_text(text: str) -> str:
-    """Apply lightweight OCR corrections without external NLP dependencies."""
-    if not text:
-        return ""
-
-    corrected = text
-    for old, new in {"_": " ", "|": "I", "0": "o"}.items():
-        corrected = corrected.replace(old, new)
-
-    corrected = re.sub(r"[^\x20-\x7E\n]", " ", corrected)
-    corrected = re.sub(r"\s+", " ", corrected).strip()
-
-    token_fixes = {
-        "w0n't": "won't",
-        "y0u": "you",
-        "th1s": "this",
-        "1": "I",
-    }
-    tokens = []
-    for token in corrected.split(" "):
-        lowered = token.lower()
-        fixed = token_fixes.get(lowered, token)
-        if token[:1].isupper() and fixed and fixed.islower():
-            fixed = fixed.capitalize()
-        tokens.append(fixed)
-
-    corrected = " ".join(tokens)
-    corrected = re.sub(r"\s+([,.;:!?])", r"\1", corrected)
-    return corrected
-
-
-def _simplify_ocr_text(text: str) -> str:
-    """Build a simplified text view with reduced punctuation/noise."""
-    if not text:
-        return ""
-
-    simplified = text.lower()
-    simplified = re.sub(r"[^a-z0-9\s]", " ", simplified)
-    simplified = re.sub(r"\s+", " ", simplified).strip()
-
-    stop_words = {
-        "the", "a", "an", "and", "or", "to", "of", "for", "in", "on", "is", "are",
-        "was", "were", "be", "as", "at", "it", "that", "this",
-    }
-    filtered = [w for w in simplified.split(" ") if w and w not in stop_words]
-    return " ".join(filtered)
-
-
-def _ocr_quality_metrics(raw_text: str, corrected_text: str) -> dict[str, Any]:
-    """Generate simple quality indicators for OCR result interpretation."""
-    raw_chars = len(raw_text)
-    noise_chars = len(re.findall(r"[^\x20-\x7E\n]", raw_text))
-    underscore_count = raw_text.count("_")
-    correction_delta = abs(len(corrected_text) - len(raw_text))
-
-    quality_score = 100.0
-    if raw_chars:
-        quality_score -= (noise_chars / raw_chars) * 55
-        quality_score -= (underscore_count / raw_chars) * 35
-        quality_score -= min(correction_delta / raw_chars, 1.0) * 10
-    quality_score = float(np.clip(quality_score, 0.0, 100.0))
-
-    return {
-        "quality_score": round(quality_score, 2),
-        "noise_characters": noise_chars,
-        "underscore_artifacts": underscore_count,
-    }
 
 
 def _classify_risk(probability: float) -> str:
@@ -289,10 +201,7 @@ def readiness() -> Any:
         "dyslexia_model_loaded": model_service.dyslexia_model is not None,
         "handwriting_model_loaded": model_service.handwriting_model is not None,
     }
-    dependencies = {
-        "tesseract_configured": bool(getattr(pytesseract.pytesseract, "tesseract_cmd", "")),
-        "redis_enabled": bool(current_app.config.get("REDIS_URL", "")),
-    }
+    dependencies = {"redis_enabled": bool(current_app.config.get("REDIS_URL", ""))}
     overall = "ready" if all(model_status.values()) else "degraded"
     payload = {"status": overall, "models": model_status, "dependencies": dependencies}
     code = 200 if overall == "ready" else 503
@@ -307,11 +216,6 @@ def home_page() -> Any:
 @api_bp.route("/dyslexia-prediction", methods=["GET"])
 def dyslexia_prediction_page() -> Any:
     return _serve_webapp_page("dyslexia-prediction.html")
-
-
-@api_bp.route("/ocr-tool", methods=["GET"])
-def ocr_tool_page() -> Any:
-    return _serve_webapp_page("image_analysis.html")
 
 
 @api_bp.route("/handwriting-analysis-page", methods=["GET"])
@@ -379,21 +283,6 @@ def compatibility_legacy_path(requested: str):
     if filename not in _ALLOWED_PAGE_FILES:
         return jsonify({"error": "Endpoint not found."}), 404
     return _serve_webapp_page(filename)
-
-
-@api_bp.route("/ocr-result", methods=["GET"])
-def ocr_result_page() -> Any:
-    return render_template("ocr_result.html")
-
-
-@api_bp.route("/image-analysis-result", methods=["GET"])
-def image_analysis_result_page() -> Any:
-    return render_template("image_analysis_result.html")
-
-
-@api_bp.route("/ocr-text-details", methods=["GET"])
-def ocr_text_details_page() -> Any:
-    return render_template("ocr_text_details.html")
 
 
 @api_bp.route("/handwriting-result", methods=["GET"])
@@ -496,150 +385,3 @@ def handwriting_analysis() -> Any:
     token = _encode_payload(result_payload)
     response_payload = validate_handwriting_response({**result_payload, "result_redirect": f"/handwriting-result?data={token}"})
     return jsonify(response_payload)
-
-
-def _run_ocr_pipeline(file_obj: Any) -> dict[str, Any]:
-    raw_file = file_obj.read()
-    file_bytes = np.frombuffer(raw_file, dtype=np.uint8)
-    if file_bytes.size == 0:
-        raise ValueError("No file provided.")
-
-    tesseract_config = "--oem 3 --psm 6"
-
-    if cv2 is not None:
-        image = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
-        if image is None:
-            raise ValueError("Invalid image file.")
-
-        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-        upscale = cv2.resize(gray, None, fx=1.8, fy=1.8, interpolation=cv2.INTER_CUBIC)
-        denoised = cv2.bilateralFilter(upscale, 7, 50, 50)
-        thresholded = cv2.adaptiveThreshold(
-            denoised,
-            255,
-            cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
-            cv2.THRESH_BINARY,
-            31,
-            11,
-        )
-        raw_text = pytesseract.image_to_string(thresholded, config=tesseract_config)
-    else:
-        LOGGER.warning("OpenCV unavailable; using direct OCR fallback pipeline.")
-        pil_image = Image.open(BytesIO(raw_file)).convert("L")
-        raw_text = pytesseract.image_to_string(pil_image, config=tesseract_config)
-    extracted_text = _clean_ocr_text(raw_text)
-    corrected_text = _correct_ocr_text(extracted_text)
-    simplified_text = _simplify_ocr_text(corrected_text)
-    quality = _ocr_quality_metrics(extracted_text, corrected_text)
-
-    observations = [
-        "Handwritten/low-light samples may reduce OCR quality.",
-        "Corrected text applies lightweight symbol and spacing cleanup.",
-        "Simplified text removes punctuation and common stop words for easier scanning.",
-    ]
-    if quality["quality_score"] < 60:
-        observations.append("OCR quality is low; recapture with better lighting for higher accuracy.")
-
-    return {
-        "extracted_text": extracted_text,
-        "corrected_text": corrected_text,
-        "simplified_text": simplified_text,
-        "summary": f"OCR completed successfully. Estimated quality: {quality['quality_score']}%.",
-        "ocr_quality_score": quality["quality_score"],
-        "noise_characters": quality["noise_characters"],
-        "underscore_artifacts": quality["underscore_artifacts"],
-        "observations": observations,
-        "recommendations": [
-            "Capture clear, well-lit images.",
-            "Keep text horizontal and avoid shadows.",
-            "Prefer high-contrast dark text on a plain background.",
-        ],
-        "original_text": extracted_text,
-    }
-
-
-@api_bp.route("/image-analysis-upload", methods=["POST"])
-@require_auth
-@rate_limited
-def image_analysis_upload() -> Any:
-    """Run both handwriting classification and OCR extraction for one uploaded photo."""
-    file_obj = request.files.get("file") or request.files.get("image")
-    if file_obj is None or not file_obj.filename:
-        return jsonify({"error": "No file provided."}), 400
-
-    validation = validate_image_upload(
-        image_file=file_obj,
-        allowed_extensions=current_app.config["ALLOWED_IMAGE_EXTENSIONS"],
-        allowed_mime_types=current_app.config["ALLOWED_IMAGE_MIME_TYPES"],
-    )
-    if not validation.ok:
-        return jsonify({"error": validation.message}), 400
-
-    try:
-        image_bytes = file_obj.read()
-        if not image_bytes:
-            return jsonify({"error": "Uploaded file is empty."}), 400
-
-        model_service = current_app.extensions["model_service"]
-        predicted_prob, predicted_class = model_service.predict_handwriting(image_bytes)
-
-        file_obj.stream.seek(0)
-        ocr_payload = _run_ocr_pipeline(file_obj)
-
-        handwriting_payload = {
-            "predicted_probability": predicted_prob,
-            "probability_percent": round(predicted_prob * 100, 2),
-            "predicted_class": predicted_class,
-            "risk_level": "Low Risk" if predicted_class == "Non_Dyslexic" else "Moderate/High Risk",
-            "summary": (
-                "Model detected handwriting characteristics requiring follow-up."
-                if predicted_class == "Dyslexic"
-                else "No major handwriting risk markers detected."
-            ),
-            "recommendations": [
-                "Use as supportive screening output only.",
-                "Combine with cognitive and reading assessments.",
-                "Seek specialist review for high-risk outcomes.",
-            ],
-        }
-
-        unified_payload = {
-            "overall_summary": "Combined image analysis completed: handwriting risk + OCR readability insights generated.",
-            "handwriting": handwriting_payload,
-            "ocr": ocr_payload,
-        }
-        token = _encode_payload(unified_payload)
-        response_payload = validate_image_analysis_response(
-            {**unified_payload, "result_redirect": f"/image-analysis-result?data={token}"}
-        )
-        return jsonify(response_payload), 200
-    except Exception:
-        LOGGER.exception("Unhandled combined image analysis failure")
-        return jsonify({"error": "Combined image analysis unavailable."}), 500
-
-
-@api_bp.route("/upload", methods=["POST"])
-@require_auth
-@rate_limited
-def upload_ocr() -> Any:
-    """Extract text from uploaded image and return normalized variants."""
-    file_obj = request.files.get("file") or request.files.get("image")
-    if file_obj is None or not file_obj.filename:
-        return jsonify({"error": "No file provided."}), 400
-
-    validation = validate_image_upload(
-        image_file=file_obj,
-        allowed_extensions=current_app.config["ALLOWED_IMAGE_EXTENSIONS"],
-        allowed_mime_types=current_app.config["ALLOWED_IMAGE_MIME_TYPES"],
-    )
-    if not validation.ok:
-        return jsonify({"error": validation.message}), 400
-
-    try:
-        result_payload = _run_ocr_pipeline(file_obj)
-        token = _encode_payload(result_payload)
-        response_payload = validate_ocr_response({**result_payload, "result_redirect": f"/ocr-result?data={token}"})
-        return jsonify(response_payload), 200
-    except Exception:
-        LOGGER.exception("Unhandled OCR upload failure")
-        return jsonify({"error": "OCR processing unavailable."}), 500
