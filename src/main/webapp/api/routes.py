@@ -208,6 +208,11 @@ def readiness() -> Any:
     return jsonify(payload), code
 
 
+@api_bp.route("/login", methods=["GET"])
+def login_page() -> Any:
+    return _serve_webapp_page("login.html")
+
+
 @api_bp.route("/home", methods=["GET"])
 def home_page() -> Any:
     return _serve_webapp_page("index.html")
