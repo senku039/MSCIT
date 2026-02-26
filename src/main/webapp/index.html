@@ -311,10 +311,15 @@
     if (logoutBtn) logoutBtn.classList.remove('d-none');
   }
 
+  function resolveLoginPath() {
+    if (location.protocol === 'file:') return 'login.html';
+    return '/login';
+  }
+
   if (logoutBtn) {
     logoutBtn.addEventListener('click', () => {
       safeRemove('auth_user');
-      window.location.href = '/login';
+      window.location.href = resolveLoginPath();
     });
   }
 })();

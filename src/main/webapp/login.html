@@ -25,13 +25,42 @@
       place-items: center;
       padding: 24px;
       background:
-        radial-gradient(circle at 12% 12%, rgba(255, 200, 158, .22), transparent 38%),
-        radial-gradient(circle at 86% 18%, rgba(157, 227, 214, .2), transparent 36%),
-        linear-gradient(135deg, #f6f8fc 0%, #eef2f8 56%, #e8eef7 100%);
+        radial-gradient(circle at 12% 12%, rgba(255, 200, 158, .26), transparent 40%),
+        radial-gradient(circle at 90% 16%, rgba(157, 227, 214, .24), transparent 38%),
+        radial-gradient(circle at 14% 88%, rgba(135, 164, 255, .2), transparent 42%),
+        radial-gradient(circle at 84% 84%, rgba(219, 184, 255, .16), transparent 44%),
+        linear-gradient(135deg, #f9fbff 0%, #eef2f8 54%, #e8eef7 100%);
       color: var(--ink);
+      overflow-x: hidden;
+    }
+
+    body::before,
+    body::after {
+      content: "";
+      position: fixed;
+      width: 340px;
+      height: 340px;
+      border-radius: 50%;
+      filter: blur(54px);
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    body::before {
+      background: rgba(67, 116, 230, .2);
+      top: 8%;
+      left: -90px;
+    }
+
+    body::after {
+      background: rgba(67, 191, 168, .18);
+      bottom: 8%;
+      right: -80px;
     }
 
     .auth-shell {
+      position: relative;
+      z-index: 1;
       width: min(980px, 96vw);
       border-radius: 24px;
       border: 1px solid var(--line);
@@ -45,7 +74,7 @@
     .context-pane {
       padding: 42px;
       background:
-        linear-gradient(150deg, rgba(19, 35, 74, .92), rgba(43, 74, 156, .78)),
+        linear-gradient(150deg, rgba(19, 35, 74, .9), rgba(43, 74, 156, .75)),
         url('https://images.unsplash.com/photo-1503676260728-1c00da094a0b?auto=format&fit=crop&w=1400&q=80') center/cover no-repeat;
       color: #f5f8ff;
     }
@@ -77,8 +106,33 @@
     }
 
     .form-pane {
-      padding: 36px 34px;
+      padding: 34px;
       background: #fff;
+    }
+
+    .auth-tabs {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: .4rem;
+      padding: .35rem;
+      border-radius: 12px;
+      background: #f1f4fb;
+      margin-bottom: 1rem;
+    }
+
+    .auth-tab {
+      border: none;
+      border-radius: 10px;
+      padding: .55rem .6rem;
+      font-weight: 700;
+      color: #51607f;
+      background: transparent;
+    }
+
+    .auth-tab.active {
+      background: #fff;
+      color: #1f3776;
+      box-shadow: 0 6px 14px rgba(28, 50, 107, .14);
     }
 
     .form-pane h3 {
@@ -113,11 +167,12 @@
     .forgot-link { color: #3653a8; text-decoration: none; }
     .forgot-link:hover { text-decoration: underline; }
     .divider { margin: 1.05rem 0 .85rem; }
+    .hidden { display: none !important; }
 
     @media (max-width: 900px) {
       .auth-shell { grid-template-columns: 1fr; }
-      .context-pane { padding: 30px; }
-      .form-pane { padding: 26px 22px; }
+      .context-pane { padding: 28px; }
+      .form-pane { padding: 24px 20px; }
     }
   </style>
 </head>
@@ -135,42 +190,72 @@
     </section>
 
     <section class="form-pane">
-      <h3>Sign In</h3>
-      <p class="help-text mb-3">Please enter your details to continue.</p>
+      <div class="auth-tabs" role="tablist" aria-label="Authentication options">
+        <button id="signinTab" class="auth-tab active" type="button">Sign In</button>
+        <button id="signupTab" class="auth-tab" type="button">Create Account</button>
+      </div>
 
-      <form id="loginForm" novalidate>
-        <div class="mb-3">
-          <label class="form-label" for="email">Email</label>
-          <input id="email" class="form-control" type="email" placeholder="you@example.com" required>
-          <div class="invalid-feedback">Enter a valid email address.</div>
-        </div>
+      <div id="signinPanel">
+        <h3>Sign In</h3>
+        <p class="help-text mb-3">Please enter your details to continue.</p>
 
-        <div class="mb-2">
-          <label class="form-label" for="password">Password</label>
-          <div class="input-group">
-            <input id="password" class="form-control" type="password" placeholder="Enter password" minlength="8" required>
-            <button id="togglePassword" type="button" class="btn btn-outline-secondary">Show</button>
-            <div class="invalid-feedback">Password must be at least 8 characters.</div>
+        <form id="loginForm" novalidate>
+          <div class="mb-3">
+            <label class="form-label" for="email">Email</label>
+            <input id="email" class="form-control" type="email" placeholder="you@example.com" required>
+            <div class="invalid-feedback">Enter a valid email address.</div>
           </div>
-          <div id="capsHint" class="caps mt-1">Caps Lock is ON.</div>
-        </div>
 
-        <div class="d-flex justify-content-between align-items-center mb-3">
-          <div class="form-check">
-            <input id="rememberMe" class="form-check-input" type="checkbox">
-            <label for="rememberMe" class="form-check-label">Remember me</label>
+          <div class="mb-2">
+            <label class="form-label" for="password">Password</label>
+            <div class="input-group">
+              <input id="password" class="form-control" type="password" placeholder="Enter password" minlength="8" required>
+              <button id="togglePassword" type="button" class="btn btn-outline-secondary">Show</button>
+              <div class="invalid-feedback">Password must be at least 8 characters.</div>
+            </div>
+            <div id="capsHint" class="caps mt-1">Caps Lock is ON.</div>
           </div>
-          <a href="#" id="forgotLink" class="forgot-link">Forgot password?</a>
-        </div>
 
-        <button id="loginBtn" class="btn btn-login text-white w-100" type="submit">Sign In</button>
-        <div id="loginStatus" class="help-text mt-2"></div>
-      </form>
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <div class="form-check">
+              <input id="rememberMe" class="form-check-input" type="checkbox">
+              <label for="rememberMe" class="form-check-label">Remember me</label>
+            </div>
+            <a href="#" id="forgotLink" class="forgot-link">Forgot password?</a>
+          </div>
+
+          <button id="loginBtn" class="btn btn-login text-white w-100" type="submit">Sign In</button>
+          <div id="loginStatus" class="help-text mt-2"></div>
+        </form>
+      </div>
+
+      <div id="signupPanel" class="hidden">
+        <h3>Create New Account</h3>
+        <p class="help-text mb-3">Create your local account for this device and sign in instantly.</p>
+
+        <form id="signupForm" novalidate>
+          <div class="mb-2">
+            <label class="form-label" for="newName">Full Name</label>
+            <input id="newName" class="form-control" type="text" minlength="2" required>
+          </div>
+          <div class="mb-2">
+            <label class="form-label" for="newEmail">Email</label>
+            <input id="newEmail" class="form-control" type="email" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label" for="newPassword">Password</label>
+            <input id="newPassword" class="form-control" type="password" minlength="8" required>
+            <div class="help-text mt-1">Minimum 8 characters.</div>
+          </div>
+          <button class="btn btn-login text-white w-100" type="submit">Create Account</button>
+          <div id="signupStatus" class="help-text mt-2"></div>
+        </form>
+      </div>
 
       <hr class="divider">
       <div class="d-flex justify-content-between align-items-center">
         <small class="help-text">Demo: student@dyslexia.app</small>
-        <a href="/home" class="text-decoration-none">Back to Home</a>
+        <a id="backHomeLink" href="/home" class="text-decoration-none">Back to Home</a>
       </div>
     </section>
   </div>
@@ -191,6 +276,44 @@
       try { storage.removeItem(key); } catch (_e) {}
     }
 
+    function getCustomUsers() {
+      try {
+        return JSON.parse(safeGet(localStorage, 'custom_users') || '[]');
+      } catch (_e) {
+        return [];
+      }
+    }
+
+    function setCustomUsers(users) {
+      safeSet(localStorage, 'custom_users', JSON.stringify(users));
+    }
+
+    function resolveHomePath() {
+      if (location.protocol === 'file:') return 'index.html';
+      return '/home';
+    }
+
+    document.getElementById('backHomeLink').setAttribute('href', resolveHomePath());
+
+    const signinTab = document.getElementById('signinTab');
+    const signupTab = document.getElementById('signupTab');
+    const signinPanel = document.getElementById('signinPanel');
+    const signupPanel = document.getElementById('signupPanel');
+
+    signinTab.addEventListener('click', () => {
+      signinTab.classList.add('active');
+      signupTab.classList.remove('active');
+      signinPanel.classList.remove('hidden');
+      signupPanel.classList.add('hidden');
+    });
+
+    signupTab.addEventListener('click', () => {
+      signupTab.classList.add('active');
+      signinTab.classList.remove('active');
+      signupPanel.classList.remove('hidden');
+      signinPanel.classList.add('hidden');
+    });
+
     const emailEl = document.getElementById('email');
     const passwordEl = document.getElementById('password');
     const rememberEl = document.getElementById('rememberMe');
@@ -203,7 +326,7 @@
     }
 
     if (safeGet(sessionStorage, 'auth_user')) {
-      window.location.href = '/home';
+      window.location.href = resolveHomePath();
     }
 
     document.getElementById('togglePassword').addEventListener('click', function() {
@@ -219,6 +342,38 @@
     document.getElementById('forgotLink').addEventListener('click', (event) => {
       event.preventDefault();
       alert('Use demo account: student@dyslexia.app / Student@1234');
+    });
+
+    document.getElementById('signupForm').addEventListener('submit', (event) => {
+      event.preventDefault();
+      const nameEl = document.getElementById('newName');
+      const newEmailEl = document.getElementById('newEmail');
+      const newPassEl = document.getElementById('newPassword');
+      const signupStatus = document.getElementById('signupStatus');
+
+      if (!nameEl.checkValidity() || !newEmailEl.checkValidity() || !newPassEl.checkValidity()) {
+        signupStatus.textContent = 'Please fill all fields correctly.';
+        signupStatus.style.color = '#b45309';
+        return;
+      }
+
+      const email = newEmailEl.value.trim().toLowerCase();
+      const allUsers = [...DEMO_USERS, ...getCustomUsers()];
+      if (allUsers.some((u) => u.email.toLowerCase() === email)) {
+        signupStatus.textContent = 'Account already exists. Please sign in.';
+        signupStatus.style.color = '#b42318';
+        return;
+      }
+
+      const customUsers = getCustomUsers();
+      customUsers.push({ name: nameEl.value.trim(), email, password: newPassEl.value });
+      setCustomUsers(customUsers);
+
+      signupStatus.textContent = 'Account created. Please sign in now.';
+      signupStatus.style.color = '#166534';
+      emailEl.value = email;
+      passwordEl.value = '';
+      signinTab.click();
     });
 
     document.getElementById('loginForm').addEventListener('submit', (event) => {
@@ -238,7 +393,8 @@
         return;
       }
 
-      const matched = DEMO_USERS.find((user) => user.email === email && user.password === password);
+      const allUsers = [...DEMO_USERS, ...getCustomUsers()];
+      const matched = allUsers.find((user) => user.email.toLowerCase() === email && user.password === password);
       if (!matched) {
         statusEl.textContent = 'Invalid credentials. Try student@dyslexia.app / Student@1234';
         statusEl.style.color = '#b91c1c';
@@ -248,10 +404,10 @@
       if (rememberEl.checked) safeSet(localStorage, 'remembered_email', email);
       else safeRemove(localStorage, 'remembered_email');
 
-      safeSet(sessionStorage, 'auth_user', JSON.stringify({ email: matched.email, name: matched.name }));
+      safeSet(sessionStorage, 'auth_user', JSON.stringify({ email: matched.email, name: matched.name || 'User' }));
       statusEl.textContent = 'Login successful. Redirecting...';
       statusEl.style.color = '#166534';
-      setTimeout(() => { window.location.href = '/home'; }, 300);
+      setTimeout(() => { window.location.href = resolveHomePath(); }, 300);
     });
   </script>
 </body>
