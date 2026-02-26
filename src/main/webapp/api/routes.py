@@ -235,6 +235,18 @@ def prediction_result_page() -> Any:
 
 
 
+@api_bp.route("/image-analysis", methods=["GET"])
+def legacy_image_analysis_page() -> Any:
+    return _serve_webapp_page("handwriting_analysis.html")
+
+
+@api_bp.route("/image-analysis-upload", methods=["POST"])
+@require_auth
+@rate_limited
+def legacy_image_analysis_upload() -> Any:
+    return handwriting_analysis()
+
+
 @api_bp.route("/theme.css", methods=["GET"])
 def serve_theme_css():
     webapp_dir = Path(__file__).resolve().parent.parent

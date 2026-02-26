@@ -12,7 +12,6 @@ This repository hosts the Dyslexia Early Detection System, a multi-modal assessm
 - Handwriting analysis using a TensorFlow/Keras model.
 - Eye-tracking experiment support.
 - Dedicated handwriting analysis flow for handwriting-risk screening from uploaded handwriting samples.
-- Dedicated handwriting analysis flow for handwriting-risk screening from uploaded handwriting samples.
 - API endpoints:
   - `POST /predict`
   - `POST /handwriting-analysis`
@@ -76,9 +75,6 @@ Model binaries (`.keras`, `.pkl`, `.h5`) should be stored outside Git (artifact 
 
 ## Hardening additions
 
-- Optional Redis-backed rate limiting via `REDIS_URL` (falls back to in-memory limiter if unavailable).
-- Request/response schema contracts implemented with lightweight internal validators for key API responses.
-- Readiness probe endpoint: `GET /ready` (returns `200` when models are loaded, else `503`).
 - Optional Redis-backed rate limiting via `REDIS_URL` (falls back to in-memory limiter if unavailable).
 - Request/response schema contracts implemented with lightweight internal validators for key API responses.
 - Readiness probe endpoint: `GET /ready` (returns `200` when models are loaded, else `503`).

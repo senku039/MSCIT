@@ -104,7 +104,7 @@
             previewImage({ target: { files: [file] } });
         }
 
-        async function postHandwriting(formData) {
+        async function postHandwriting(file) {
             const endpoints = [
                 "/handwriting-analysis",
                 "http://127.0.0.1:5000/handwriting-analysis",
@@ -112,6 +112,8 @@
 
             for (const endpoint of endpoints) {
                 try {
+                    const formData = new FormData();
+                    formData.append("image", file);
                     const response = await fetch(endpoint, { method: "POST", body: formData });
                     const data = await response.json();
                     if (!response.ok || data.error) throw new Error(data.error || "Analysis request failed.");
@@ -130,12 +132,11 @@
                 return;
             }
 
-            const formData = new FormData();
-            formData.append("image", fileInput.files[0]);
+            const file = fileInput.files[0];
             result.innerText = "Analyzing handwriting...";
 
             try {
-                const { data, endpoint } = await postHandwriting(formData);
+                const { data, endpoint } = await postHandwriting(file);
                 if (data.result_redirect) {
                     const base = endpoint.startsWith("http") ? "http://127.0.0.1:5000" : "";
                     window.location.href = `${base}${data.result_redirect}`;
@@ -144,6 +145,8 @@
                 result.innerHTML = `<span class="badge bg-success">Prediction: ${data.predicted_class}</span>`;
             } catch (error) {
                 result.innerText = `Failed to connect to handwriting server. ${error.message} Start Flask backend on http://127.0.0.1:5000.`;
+            } finally {
+                fileInput.value = "";
             }
         }
     </script>

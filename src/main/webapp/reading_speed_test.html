@@ -20,6 +20,8 @@
     <p class="text-muted">To prevent false high scores, the test validates minimum reading time and a quick comprehension check.</p>
     <video id="webcam" autoplay playsinline muted></video>
     <div id="cameraStatus" class="alert alert-warning py-2 mt-2" style="display:none;"></div>
+    <div id="trackingPanel" class="alert alert-info py-2" style="display:none;"></div>
+    <small class="text-muted d-block mb-2">Privacy note: this test uses <strong>video only</strong> for focus/face estimation. It does <strong>not</strong> capture audio.</small>
     <div class="mb-3">
       <p>Read the following text naturally:</p>
       <div id="textToRead"></div>
@@ -76,6 +78,9 @@
     let faceVisibleSeconds = 0;
     let eyeMovementScore = 0;
     let lastFaceCenter = null;
+    let lookAwaySeconds = 0;
+    let lookAwayAlerts = 0;
+    let faceMissingStreak = 0;
 
     function randomPick(items){return items[Math.floor(Math.random()*items.length)];}
 
@@ -106,6 +111,12 @@
       lastFaceCenter = null;
     }
 
+    function updateTrackingPanel() {
+      const panel = document.getElementById('trackingPanel');
+      panel.style.display = 'block';
+      panel.innerHTML = `Face presence: <strong>${faceVisibleSeconds}s</strong> | Looking away: <strong>${lookAwaySeconds}s</strong> | Eye-movement index: <strong>${eyeMovementScore.toFixed(1)}</strong>`;
+    }
+
     async function setupFaceTracking(video) {
       if (!('FaceDetector' in window)) return false;
       try {
@@ -119,8 +130,21 @@
         if (!tracking || !faceDetector || video.readyState < 2) return;
         try {
           const faces = await faceDetector.detect(video);
-          if (!faces.length) return;
+          if (!faces.length) {
+            faceMissingStreak += 1;
+            lookAwaySeconds += 1;
+            if (faceMissingStreak === 2) {
+              lookAwayAlerts += 1;
+              const cameraStatus = document.getElementById('cameraStatus');
+              cameraStatus.style.display = 'block';
+              cameraStatus.className = 'alert alert-danger py-2 mt-2';
+              cameraStatus.textContent = 'Looking away detected. Please keep your face toward the screen.';
+            }
+            updateTrackingPanel();
+            return;
+          }
 
+          faceMissingStreak = 0;
           faceVisibleSeconds += 1;
           const box = faces[0].boundingBox;
           const cx = box.x + (box.width / 2);
@@ -132,6 +156,7 @@
             eyeMovementScore += Math.min(dx + dy, 40);
           }
           lastFaceCenter = { x: cx, y: cy };
+          updateTrackingPanel();
         } catch (_error) {
           // ignore intermittent detection errors
         }
@@ -146,6 +171,10 @@
       cameraStatus.textContent = '';
       faceVisibleSeconds = 0;
       eyeMovementScore = 0;
+      lookAwaySeconds = 0;
+      lookAwayAlerts = 0;
+      faceMissingStreak = 0;
+      document.getElementById('trackingPanel').style.display = 'none';
       stopFaceTracking();
 
       const mediaSupported = Boolean(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
@@ -154,6 +183,7 @@
         trackFocusTime();
         cameraStatus.style.display = 'block';
         cameraStatus.textContent = 'Camera API is unavailable in this browser. Continuing test without camera/face tracking.';
+        updateTrackingPanel();
         return;
       }
 
@@ -169,10 +199,12 @@
           cameraStatus.style.display = 'block';
           cameraStatus.className = 'alert alert-success py-2 mt-2';
           cameraStatus.textContent = 'Camera active. Face/eye movement proxy tracking is enabled.';
+          updateTrackingPanel();
         } else {
           cameraStatus.style.display = 'block';
           cameraStatus.className = 'alert alert-warning py-2 mt-2';
           cameraStatus.textContent = 'Camera active. Browser does not support built-in face detection; using focus-time fallback.';
+          updateTrackingPanel();
         }
       } catch (_error) {
         tracking = true;
@@ -180,6 +212,7 @@
         cameraStatus.style.display = 'block';
         cameraStatus.className = 'alert alert-warning py-2 mt-2';
         cameraStatus.textContent = 'Camera access blocked/denied. Test will continue without camera tracking.';
+        updateTrackingPanel();
       }
     }
 
@@ -218,7 +251,7 @@
       const wordCount = document.getElementById('textToRead').innerText.trim().split(/\s+/).filter(Boolean).length;
       const minExpectedSeconds = (wordCount / MAX_VALID_WPM) * 60;
       stopWebcam();
-      pendingMetrics = { elapsedSeconds, wordCount, minExpectedSeconds, focusTime, faceVisibleSeconds, eyeMovementScore };
+      pendingMetrics = { elapsedSeconds, wordCount, minExpectedSeconds, focusTime, faceVisibleSeconds, eyeMovementScore, lookAwaySeconds, lookAwayAlerts };
       renderQuestion();
       document.getElementById('result').innerText = 'Answer the quick comprehension question to validate the score.';
     });
@@ -237,18 +270,20 @@
       const suspiciousFast = pendingMetrics.elapsedSeconds < pendingMetrics.minExpectedSeconds;
       const reliableFocus = Math.max(pendingMetrics.focusTime, pendingMetrics.faceVisibleSeconds);
       const lowFocus = reliableFocus < MIN_VALID_FOCUS_SECONDS;
+      const lookingAwayTooLong = pendingMetrics.lookAwaySeconds >= 4 || pendingMetrics.lookAwayAlerts >= 2;
 
-      if (!correct || suspiciousFast || lowFocus) {
+      if (!correct || suspiciousFast || lowFocus || lookingAwayTooLong) {
         const reasons = [];
         if (!correct) reasons.push('comprehension answer mismatch');
         if (suspiciousFast) reasons.push('unrealistically short reading time');
         if (lowFocus) reasons.push('insufficient focus/face-presence time');
+        if (lookingAwayTooLong) reasons.push('frequent looking away from screen');
         document.getElementById('result').innerText = `Result rejected for reliability (${reasons.join(', ')}). Please retake the test.`;
         sessionStorage.removeItem('reading_speed_score');
         sessionStorage.setItem('reading_speed_reliability', 'invalid');
       } else {
         const wordsPerMinute = Math.min(rawWpm, MAX_VALID_WPM);
-        document.getElementById('result').innerText = `Validated reading speed: ${wordsPerMinute.toFixed(2)} WPM | Focus: ${pendingMetrics.focusTime}s | Face Presence: ${pendingMetrics.faceVisibleSeconds}s | Eye Movement Index: ${pendingMetrics.eyeMovementScore.toFixed(1)}`;
+        document.getElementById('result').innerText = `Validated reading speed: ${wordsPerMinute.toFixed(2)} WPM | Focus: ${pendingMetrics.focusTime}s | Face Presence: ${pendingMetrics.faceVisibleSeconds}s | Looking Away: ${pendingMetrics.lookAwaySeconds}s | Eye Movement Index: ${pendingMetrics.eyeMovementScore.toFixed(1)}`;
         sessionStorage.setItem('reading_speed_score', wordsPerMinute.toFixed(2));
         sessionStorage.setItem('reading_speed_reliability', 'valid');
       }
@@ -256,6 +291,7 @@
       sessionStorage.setItem('focus_time', pendingMetrics.focusTime);
       sessionStorage.setItem('face_presence_time', pendingMetrics.faceVisibleSeconds);
       sessionStorage.setItem('eye_movement_index', pendingMetrics.eyeMovementScore.toFixed(2));
+      sessionStorage.setItem('looking_away_seconds', String(pendingMetrics.lookAwaySeconds));
       document.getElementById('finishTestBtn').style.display = 'block';
       document.getElementById('submitAnswerBtn').disabled = true;
     });
