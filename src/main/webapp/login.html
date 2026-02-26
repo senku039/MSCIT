@@ -3,254 +3,146 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Login | Dyslexia Screening Platform</title>
+  <title>Login | Dyslexia Awareness</title>
   <link rel="stylesheet" href="/theme.css">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <style>
     :root {
-      --surface: #f8fbff;
-      --ink: #0f2557;
-      --ink-soft: #4f5f84;
-      --brand-a: #1f5eea;
-      --brand-b: #7a4cff;
+      --ink: #1a2746;
+      --muted: #5f6f8f;
+      --line: #d7deeb;
+      --accent: #3659d9;
+      --accent-deep: #233f9f;
       --danger: #b42318;
-      --success: #027a48;
-      --border: #d2def6;
-      --card-shadow: 0 26px 50px rgba(7, 24, 71, .3);
+      --warn: #b45309;
+      --ok: #166534;
     }
 
     body {
       min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 20px;
-      color: var(--ink);
+      margin: 0;
+      display: grid;
+      place-items: center;
+      padding: 24px;
       background:
-        radial-gradient(circle at 10% 12%, rgba(121, 157, 255, .25), transparent 35%),
-        radial-gradient(circle at 90% 12%, rgba(99, 224, 255, .2), transparent 37%),
-        linear-gradient(132deg, #0f2b74 0%, #274fa8 50%, #2b62be 100%);
+        radial-gradient(circle at 12% 12%, rgba(255, 200, 158, .22), transparent 38%),
+        radial-gradient(circle at 86% 18%, rgba(157, 227, 214, .2), transparent 36%),
+        linear-gradient(135deg, #f6f8fc 0%, #eef2f8 56%, #e8eef7 100%);
+      color: var(--ink);
     }
 
     .auth-shell {
-      width: min(1120px, 96vw);
+      width: min(980px, 96vw);
       border-radius: 24px;
+      border: 1px solid var(--line);
       overflow: hidden;
-      border: 1px solid rgba(201, 217, 248, .65);
-      box-shadow: var(--card-shadow);
-      display: grid;
-      grid-template-columns: 1.08fr 1fr;
+      box-shadow: 0 28px 52px rgba(19, 31, 62, .18);
       background: #fff;
+      display: grid;
+      grid-template-columns: 1.03fr .97fr;
     }
 
-    .brand-pane {
-      position: relative;
-      color: #f2f7ff;
-      padding: 44px;
+    .context-pane {
+      padding: 42px;
       background:
-        linear-gradient(154deg, rgba(13, 36, 104, .92), rgba(44, 92, 198, .82)),
-        url('https://images.unsplash.com/photo-1588072432836-e10032774350?auto=format&fit=crop&w=1800&q=80') center/cover no-repeat;
+        linear-gradient(150deg, rgba(19, 35, 74, .92), rgba(43, 74, 156, .78)),
+        url('https://images.unsplash.com/photo-1503676260728-1c00da094a0b?auto=format&fit=crop&w=1400&q=80') center/cover no-repeat;
+      color: #f5f8ff;
     }
 
-    .brand-pane::after {
-      content: '';
-      position: absolute;
-      inset: auto 0 0 0;
-      height: 35%;
-      background: linear-gradient(to top, rgba(14, 33, 88, .55), transparent);
-      pointer-events: none;
-    }
-
-    .brand-pane-content {
-      position: relative;
-      z-index: 1;
-      max-width: 480px;
-    }
-
-    .brand-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      font-size: .84rem;
-      font-weight: 700;
-      padding: 8px 14px;
+    .context-chip {
+      display: inline-block;
+      font-size: .8rem;
+      letter-spacing: .3px;
+      text-transform: uppercase;
+      border: 1px solid rgba(255,255,255,.44);
       border-radius: 999px;
-      border: 1px solid rgba(202, 223, 255, .42);
-      background: rgba(255, 255, 255, .14);
-      margin-bottom: 14px;
+      padding: .34rem .72rem;
+      margin-bottom: 1rem;
     }
 
-    .brand-pane h2 {
-      font-size: clamp(1.8rem, 2.6vw, 2.5rem);
-      line-height: 1.2;
+    .context-pane h2 {
+      font-size: clamp(1.8rem, 2.6vw, 2.35rem);
       font-weight: 800;
-      margin-bottom: 14px;
+      margin-bottom: .7rem;
+      color: #fff;
     }
 
-    .brand-pane p,
-    .brand-pane li {
-      color: rgba(234, 243, 255, .97);
-      font-size: 1.08rem;
-      line-height: 1.5;
-    }
+    .context-pane p { color: rgba(243,247,255,.9); }
 
-    .brand-pane ul {
-      margin-top: 22px;
-      margin-bottom: 28px;
-    }
-
-    .brand-pane li + li {
-      margin-top: 8px;
-    }
-
-    .support-box {
-      border-radius: 12px;
-      border: 1px solid rgba(201, 220, 255, .4);
-      background: rgba(255, 255, 255, .1);
-      padding: 12px 14px;
-      font-size: .96rem;
+    .context-list {
+      margin-top: 1.2rem;
+      padding-left: 1rem;
+      color: rgba(243,247,255,.9);
     }
 
     .form-pane {
-      background: var(--surface);
       padding: 36px 34px;
+      background: #fff;
     }
 
     .form-pane h3 {
-      font-size: 2rem;
+      color: #1c3168;
       font-weight: 800;
-      color: var(--ink);
-      margin-bottom: 2px;
+      margin-bottom: .35rem;
     }
 
-    .helper {
-      color: var(--ink-soft);
-      font-size: .95rem;
-    }
-
-    .auth-tabs {
-      margin-top: 18px;
-      margin-bottom: 20px;
-      padding: 5px;
-      background: #e9f0ff;
-      border-radius: 12px;
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 6px;
-    }
-
-    .auth-tab {
-      border: 0;
-      border-radius: 9px;
-      padding: 9px 10px;
-      font-weight: 700;
-      color: #345090;
-      background: transparent;
-      transition: .22s ease;
-    }
-
-    .auth-tab.active {
-      background: #fff;
-      color: #17347a;
-      box-shadow: 0 6px 12px rgba(27, 58, 122, .12);
-    }
-
-    .auth-form {
-      display: none;
-      animation: fadeIn .25s ease;
-    }
-
-    .auth-form.active { display: block; }
-
-    .form-label {
-      font-weight: 700;
-      color: #193672;
-      margin-bottom: 6px;
-    }
-
+    .help-text { color: var(--muted); font-size: .92rem; }
+    .form-label { font-weight: 600; color: #1d3160; }
     .form-control {
-      border-radius: 11px;
-      border-color: #c9d7f5;
       min-height: 46px;
-      background: #fff;
+      border-radius: 11px;
+      border-color: #cfd7e8;
     }
 
     .form-control:focus {
-      border-color: #7ca0f8;
-      box-shadow: 0 0 0 .2rem rgba(59, 120, 247, .16);
+      border-color: #8ba1de;
+      box-shadow: 0 0 0 .2rem rgba(54, 89, 217, .14);
     }
 
-    .btn-primary-brand {
-      border: 0;
-      border-radius: 12px;
-      padding: 12px 16px;
+    .btn-login {
+      border-radius: 11px;
       font-weight: 700;
-      background: linear-gradient(135deg, var(--brand-a), var(--brand-b));
-      box-shadow: 0 10px 20px rgba(31, 94, 234, .28);
+      min-height: 46px;
+      border: none;
+      background: linear-gradient(135deg, var(--accent), var(--accent-deep));
+      box-shadow: 0 12px 20px rgba(36, 67, 154, .26);
     }
 
-    .btn-primary-brand:hover { filter: brightness(1.04); }
+    .caps { display: none; font-size: .84rem; color: var(--warn); }
+    .forgot-link { color: #3653a8; text-decoration: none; }
+    .forgot-link:hover { text-decoration: underline; }
+    .divider { margin: 1.05rem 0 .85rem; }
 
-    .action-row {
-      display: flex;
-      justify-content: space-between;
-      gap: 10px;
-      flex-wrap: wrap;
-      font-size: .93rem;
-    }
-
-    .caps,
-    .status {
-      font-size: .87rem;
-      margin-top: 6px;
-    }
-
-    .caps { color: #b54708; display: none; }
-    .status.error { color: var(--danger); }
-    .status.success { color: var(--success); }
-
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(3px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-
-    @media (max-width: 992px) {
+    @media (max-width: 900px) {
       .auth-shell { grid-template-columns: 1fr; }
-      .brand-pane, .form-pane { padding: 28px 24px; }
-      .form-pane h3 { font-size: 1.8rem; }
+      .context-pane { padding: 30px; }
+      .form-pane { padding: 26px 22px; }
     }
   </style>
 </head>
 <body>
-  <div class="auth-shell">
-    <section class="brand-pane">
-      <div class="brand-pane-content">
-        <div class="brand-badge">🔒 Secure Assessment Workspace</div>
-        <h2>Dyslexia Screening Portal</h2>
-        <p>Sign in to continue your guided multi-level assessment journey, track progress, and view personalized recommendations.</p>
-        <ul>
-          <li>Account-based access with remembered sessions</li>
-          <li>Save progress across assessment modules</li>
-          <li>Review recommended interventions and reports</li>
-        </ul>
-        <div class="support-box">Need support? <strong>support@dyslexia-screening.local</strong></div>
-      </div>
+  <div class="auth-shell" role="main" aria-label="Login page">
+    <section class="context-pane" aria-hidden="true">
+      <span class="context-chip">Dyslexia Screening Suite</span>
+      <h2>Welcome back</h2>
+      <p>Access your assessment dashboard, continue incomplete levels, and review your latest analysis confidently.</p>
+      <ul class="context-list">
+        <li>Continue multi-level reading and language tests</li>
+        <li>See handwriting analysis and recommendations</li>
+        <li>Track session progress without losing your place</li>
+      </ul>
     </section>
 
     <section class="form-pane">
-      <h3>Welcome Back</h3>
-      <p class="helper mb-0">Sign in or create your account to continue.</p>
+      <h3>Sign In</h3>
+      <p class="help-text mb-3">Please enter your details to continue.</p>
 
-      <div class="auth-tabs" role="tablist" aria-label="Authentication tabs">
-        <button id="tabSignIn" class="auth-tab active" type="button">Sign In</button>
-        <button id="tabCreate" class="auth-tab" type="button">Create Account</button>
-      </div>
-
-      <form id="loginForm" class="auth-form active" novalidate>
+      <form id="loginForm" novalidate>
         <div class="mb-3">
           <label class="form-label" for="email">Email</label>
           <input id="email" class="form-control" type="email" placeholder="you@example.com" required>
-          <div class="invalid-feedback">Please enter a valid email address.</div>
+          <div class="invalid-feedback">Enter a valid email address.</div>
         </div>
 
         <div class="mb-2">
@@ -258,134 +150,60 @@
           <div class="input-group">
             <input id="password" class="form-control" type="password" placeholder="Enter password" minlength="8" required>
             <button id="togglePassword" type="button" class="btn btn-outline-secondary">Show</button>
+            <div class="invalid-feedback">Password must be at least 8 characters.</div>
           </div>
-          <div class="invalid-feedback d-block" id="passwordInvalid" style="display:none!important;">Password must be at least 8 characters.</div>
-          <div id="capsHint" class="caps">Caps Lock is ON.</div>
+          <div id="capsHint" class="caps mt-1">Caps Lock is ON.</div>
         </div>
 
-        <div class="action-row mb-3 align-items-center">
+        <div class="d-flex justify-content-between align-items-center mb-3">
           <div class="form-check">
             <input id="rememberMe" class="form-check-input" type="checkbox">
             <label for="rememberMe" class="form-check-label">Remember me</label>
           </div>
-          <a href="#" id="forgotLink" class="text-decoration-none">Forgot password?</a>
+          <a href="#" id="forgotLink" class="forgot-link">Forgot password?</a>
         </div>
 
-        <button id="loginBtn" class="btn btn-primary-brand w-100" type="submit">Sign In</button>
-        <div id="loginStatus" class="status"></div>
+        <button id="loginBtn" class="btn btn-login text-white w-100" type="submit">Sign In</button>
+        <div id="loginStatus" class="help-text mt-2"></div>
       </form>
 
-      <form id="registerForm" class="auth-form" novalidate>
-        <div class="mb-3">
-          <label class="form-label" for="registerName">Full Name</label>
-          <input id="registerName" class="form-control" type="text" placeholder="Enter full name" minlength="2" required>
-          <div class="invalid-feedback">Please enter your name.</div>
-        </div>
-
-        <div class="mb-3">
-          <label class="form-label" for="registerEmail">Email</label>
-          <input id="registerEmail" class="form-control" type="email" placeholder="name@example.com" required>
-          <div class="invalid-feedback">Please enter a valid email address.</div>
-        </div>
-
-        <div class="mb-3">
-          <label class="form-label" for="registerPassword">Password</label>
-          <input id="registerPassword" class="form-control" type="password" placeholder="At least 8 characters" minlength="8" required>
-          <div class="invalid-feedback">Use at least 8 characters.</div>
-        </div>
-
-        <div class="mb-3">
-          <label class="form-label" for="registerConfirmPassword">Confirm Password</label>
-          <input id="registerConfirmPassword" class="form-control" type="password" placeholder="Re-enter password" minlength="8" required>
-          <div class="invalid-feedback">Passwords must match.</div>
-        </div>
-
-        <div class="form-check mb-3">
-          <input id="acceptTerms" class="form-check-input" type="checkbox" required>
-          <label for="acceptTerms" class="form-check-label">I agree to the terms and privacy policy.</label>
-          <div class="invalid-feedback">Please accept terms to create account.</div>
-        </div>
-
-        <button class="btn btn-primary-brand w-100" type="submit">Create Account</button>
-        <div id="registerStatus" class="status"></div>
-      </form>
+      <hr class="divider">
+      <div class="d-flex justify-content-between align-items-center">
+        <small class="help-text">Demo: student@dyslexia.app</small>
+        <a href="/home" class="text-decoration-none">Back to Home</a>
+      </div>
     </section>
   </div>
 
   <script>
-    const USERS_STORAGE_KEY = 'dyslexia_users';
-    const REMEMBERED_EMAIL_KEY = 'remembered_email';
-    const AUTH_USER_KEY = 'auth_user';
-
-    const DEFAULT_USERS = [
+    const DEMO_USERS = [
       { email: 'admin@dyslexia.app', password: 'Admin@1234', name: 'Admin' },
-      { email: 'student@dyslexia.app', password: 'Student@1234', name: 'Student' }
+      { email: 'student@dyslexia.app', password: 'Student@1234', name: 'Student' },
     ];
 
-    function loadUsers() {
-      const raw = localStorage.getItem(USERS_STORAGE_KEY);
-      if (!raw) {
-        localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(DEFAULT_USERS));
-        return [...DEFAULT_USERS];
-      }
-      try {
-        const parsed = JSON.parse(raw);
-        return Array.isArray(parsed) ? parsed : [...DEFAULT_USERS];
-      } catch (_error) {
-        localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(DEFAULT_USERS));
-        return [...DEFAULT_USERS];
-      }
+    function safeGet(storage, key) {
+      try { return storage.getItem(key); } catch (_e) { return null; }
     }
-
-    function saveUsers(users) {
-      localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(users));
+    function safeSet(storage, key, value) {
+      try { storage.setItem(key, value); } catch (_e) {}
     }
-
-    const tabSignIn = document.getElementById('tabSignIn');
-    const tabCreate = document.getElementById('tabCreate');
-    const loginForm = document.getElementById('loginForm');
-    const registerForm = document.getElementById('registerForm');
+    function safeRemove(storage, key) {
+      try { storage.removeItem(key); } catch (_e) {}
+    }
 
     const emailEl = document.getElementById('email');
     const passwordEl = document.getElementById('password');
     const rememberEl = document.getElementById('rememberMe');
-    const loginStatusEl = document.getElementById('loginStatus');
-    const registerStatusEl = document.getElementById('registerStatus');
+    const statusEl = document.getElementById('loginStatus');
 
-    const registerNameEl = document.getElementById('registerName');
-    const registerEmailEl = document.getElementById('registerEmail');
-    const registerPasswordEl = document.getElementById('registerPassword');
-    const registerConfirmPasswordEl = document.getElementById('registerConfirmPassword');
-    const acceptTermsEl = document.getElementById('acceptTerms');
-
-    const navigateToHome = () => {
-      window.location.href = 'index.html';
-    };
-
-    const setTab = (tab) => {
-      const isLogin = tab === 'login';
-      tabSignIn.classList.toggle('active', isLogin);
-      tabCreate.classList.toggle('active', !isLogin);
-      loginForm.classList.toggle('active', isLogin);
-      registerForm.classList.toggle('active', !isLogin);
-      loginStatusEl.textContent = '';
-      registerStatusEl.textContent = '';
-      loginStatusEl.className = 'status';
-      registerStatusEl.className = 'status';
-    };
-
-    tabSignIn.addEventListener('click', () => setTab('login'));
-    tabCreate.addEventListener('click', () => setTab('register'));
-
-    const remembered = localStorage.getItem(REMEMBERED_EMAIL_KEY);
+    const remembered = safeGet(localStorage, 'remembered_email');
     if (remembered) {
       emailEl.value = remembered;
       rememberEl.checked = true;
     }
 
-    const existing = sessionStorage.getItem(AUTH_USER_KEY);
-    if (existing) {
-      navigateToHome();
+    if (safeGet(sessionStorage, 'auth_user')) {
+      window.location.href = '/home';
     }
 
     document.getElementById('togglePassword').addEventListener('click', function() {
@@ -400,98 +218,40 @@
 
     document.getElementById('forgotLink').addEventListener('click', (event) => {
       event.preventDefault();
-      alert('Password reset demo: use a registered account from this browser. Default: student@dyslexia.app / Student@1234');
+      alert('Use demo account: student@dyslexia.app / Student@1234');
     });
 
-    loginForm.addEventListener('submit', (event) => {
+    document.getElementById('loginForm').addEventListener('submit', (event) => {
       event.preventDefault();
-      event.stopPropagation();
 
       const email = emailEl.value.trim().toLowerCase();
       const password = passwordEl.value;
-
       const emailValid = emailEl.checkValidity();
-      const passwordValid = passwordEl.checkValidity();
+      const passValid = passwordEl.checkValidity();
+
       emailEl.classList.toggle('is-invalid', !emailValid);
-      passwordEl.classList.toggle('is-invalid', !passwordValid);
-      document.getElementById('passwordInvalid').style.display = passwordValid ? 'none' : 'block';
+      passwordEl.classList.toggle('is-invalid', !passValid);
 
-      if (!emailValid || !passwordValid) {
-        loginStatusEl.textContent = 'Please correct highlighted fields.';
-        loginStatusEl.className = 'status error';
+      if (!emailValid || !passValid) {
+        statusEl.textContent = 'Please correct the highlighted fields.';
+        statusEl.style.color = '#b45309';
         return;
       }
 
-      const users = loadUsers();
-      const matched = users.find((user) => user.email.toLowerCase() === email && user.password === password);
+      const matched = DEMO_USERS.find((user) => user.email === email && user.password === password);
       if (!matched) {
-        loginStatusEl.textContent = 'Invalid credentials. Please try again or create a new account.';
-        loginStatusEl.className = 'status error';
+        statusEl.textContent = 'Invalid credentials. Try student@dyslexia.app / Student@1234';
+        statusEl.style.color = '#b91c1c';
         return;
       }
 
-      if (rememberEl.checked) localStorage.setItem(REMEMBERED_EMAIL_KEY, email);
-      else localStorage.removeItem(REMEMBERED_EMAIL_KEY);
+      if (rememberEl.checked) safeSet(localStorage, 'remembered_email', email);
+      else safeRemove(localStorage, 'remembered_email');
 
-      sessionStorage.setItem(AUTH_USER_KEY, JSON.stringify({ email: matched.email, name: matched.name }));
-      loginStatusEl.textContent = `Welcome ${matched.name}. Redirecting...`;
-      loginStatusEl.className = 'status success';
-      setTimeout(navigateToHome, 350);
-    });
-
-    registerForm.addEventListener('submit', (event) => {
-      event.preventDefault();
-      event.stopPropagation();
-
-      const name = registerNameEl.value.trim();
-      const email = registerEmailEl.value.trim().toLowerCase();
-      const password = registerPasswordEl.value;
-      const confirmPassword = registerConfirmPasswordEl.value;
-      const termsAccepted = acceptTermsEl.checked;
-
-      const checks = [
-        [registerNameEl, registerNameEl.checkValidity()],
-        [registerEmailEl, registerEmailEl.checkValidity()],
-        [registerPasswordEl, registerPasswordEl.checkValidity()],
-        [registerConfirmPasswordEl, registerConfirmPasswordEl.checkValidity() && confirmPassword === password],
-        [acceptTermsEl, termsAccepted]
-      ];
-
-      checks.forEach(([element, ok]) => element.classList.toggle('is-invalid', !ok));
-
-      if (confirmPassword !== password) {
-        registerConfirmPasswordEl.setCustomValidity('Passwords do not match');
-      } else {
-        registerConfirmPasswordEl.setCustomValidity('');
-      }
-
-      if (checks.some(([, ok]) => !ok)) {
-        registerStatusEl.textContent = 'Please complete all fields correctly.';
-        registerStatusEl.className = 'status error';
-        return;
-      }
-
-      const users = loadUsers();
-      const exists = users.some((user) => user.email.toLowerCase() === email);
-      if (exists) {
-        registerStatusEl.textContent = 'An account with this email already exists. Please sign in.';
-        registerStatusEl.className = 'status error';
-        return;
-      }
-
-      users.push({ name, email, password });
-      saveUsers(users);
-
-      registerStatusEl.textContent = 'Account created successfully. You can now sign in.';
-      registerStatusEl.className = 'status success';
-
-      emailEl.value = email;
-      passwordEl.value = '';
-      rememberEl.checked = true;
-      localStorage.setItem(REMEMBERED_EMAIL_KEY, email);
-      registerForm.reset();
-
-      setTimeout(() => setTab('login'), 500);
+      safeSet(sessionStorage, 'auth_user', JSON.stringify({ email: matched.email, name: matched.name }));
+      statusEl.textContent = 'Login successful. Redirecting...';
+      statusEl.style.color = '#166534';
+      setTimeout(() => { window.location.href = '/home'; }, 300);
     });
   </script>
 </body>
