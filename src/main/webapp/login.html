@@ -121,10 +121,14 @@
       rememberEl.checked = true;
     }
 
+    const navigateToHome = () => {
+      window.location.href = 'index.html';
+    };
+
     // auto redirect if already signed in
     const existing = sessionStorage.getItem('auth_user');
     if (existing) {
-      window.location.href = '/home';
+      navigateToHome();
     }
 
     document.getElementById('togglePassword').addEventListener('click', function() {
@@ -172,7 +176,7 @@
       sessionStorage.setItem('auth_user', JSON.stringify({ email: matched.email, name: matched.name }));
       statusEl.textContent = 'Login successful. Redirecting...';
       statusEl.style.color = '#166534';
-      setTimeout(() => { window.location.href = '/home'; }, 350);
+      setTimeout(() => { navigateToHome(); }, 350);
     });
   </script>
 </body>
