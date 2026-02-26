@@ -255,7 +255,7 @@
       <hr class="divider">
       <div class="d-flex justify-content-between align-items-center">
         <small class="help-text">Demo: student@dyslexia.app</small>
-        <a id="backHomeLink" href="/home" class="text-decoration-none">Back to Home</a>
+        <a id="backHomeLink" href="/index.html" class="text-decoration-none">Back to Home</a>
       </div>
     </section>
   </div>
@@ -290,7 +290,7 @@
 
     function resolveHomePath() {
       if (location.protocol === 'file:') return 'index.html';
-      return '/home';
+      return '/index.html';
     }
 
     document.getElementById('backHomeLink').setAttribute('href', resolveHomePath());
@@ -305,6 +305,7 @@
       signupTab.classList.remove('active');
       signinPanel.classList.remove('hidden');
       signupPanel.classList.add('hidden');
+      document.getElementById('signupStatus').textContent = '';
     });
 
     signupTab.addEventListener('click', () => {
@@ -312,6 +313,7 @@
       signinTab.classList.remove('active');
       signupPanel.classList.remove('hidden');
       signinPanel.classList.add('hidden');
+      statusEl.textContent = '';
     });
 
     const emailEl = document.getElementById('email');
@@ -374,6 +376,8 @@
       emailEl.value = email;
       passwordEl.value = '';
       signinTab.click();
+      statusEl.textContent = 'Account created. You can sign in now.';
+      statusEl.style.color = '#166534';
     });
 
     document.getElementById('loginForm').addEventListener('submit', (event) => {
