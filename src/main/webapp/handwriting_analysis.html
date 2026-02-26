@@ -104,36 +104,47 @@
             previewImage({ target: { files: [file] } });
         }
 
-        function uploadImage() {
-            let fileInput = document.getElementById('fileInput');
+        async function postHandwriting(formData) {
+            const endpoints = [
+                "/handwriting-analysis",
+                "http://127.0.0.1:5000/handwriting-analysis",
+            ];
+
+            for (const endpoint of endpoints) {
+                try {
+                    const response = await fetch(endpoint, { method: "POST", body: formData });
+                    const data = await response.json();
+                    if (!response.ok || data.error) throw new Error(data.error || "Analysis request failed.");
+                    return { data, endpoint };
+                } catch (error) {
+                    if (endpoint === endpoints[endpoints.length - 1]) throw error;
+                }
+            }
+        }
+
+        async function uploadImage() {
+            const fileInput = document.getElementById('fileInput');
+            const result = document.getElementById("result");
             if (fileInput.files.length === 0) {
-                document.getElementById("result").innerText = "Please select an image first!";
+                result.innerText = "Please select an image first!";
                 return;
             }
 
-            let formData = new FormData();
+            const formData = new FormData();
             formData.append("image", fileInput.files[0]);
-            document.getElementById("result").innerText = "Analyzing handwriting...";
+            result.innerText = "Analyzing handwriting...";
 
-            fetch("http://127.0.0.1:5000/handwriting-analysis", {
-                method: "POST",
-                body: formData
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.error) {
-                    document.getElementById("result").innerText = "Error: " + data.error;
-                } else {
-                    if (data.result_redirect) {
-                        window.location.href = `http://127.0.0.1:5000${data.result_redirect}`;
-                        return;
-                    }
-                    document.getElementById("result").innerHTML = `<span class="badge bg-success">Prediction: ${data.predicted_class}</span>`;
+            try {
+                const { data, endpoint } = await postHandwriting(formData);
+                if (data.result_redirect) {
+                    const base = endpoint.startsWith("http") ? "http://127.0.0.1:5000" : "";
+                    window.location.href = `${base}${data.result_redirect}`;
+                    return;
                 }
-            })
-            .catch(() => {
-                document.getElementById("result").innerText = "Failed to connect to the server!";
-            });
+                result.innerHTML = `<span class="badge bg-success">Prediction: ${data.predicted_class}</span>`;
+            } catch (error) {
+                result.innerText = `Failed to connect to handwriting server. ${error.message} Start Flask backend on http://127.0.0.1:5000.`;
+            }
         }
     </script>
 </body>

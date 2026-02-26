@@ -11,11 +11,8 @@ This repository hosts the Dyslexia Early Detection System, a multi-modal assessm
 - Cognitive tests for reading speed, spelling accuracy, phonemic awareness, response time, and rapid naming (RAN).
 - Handwriting analysis using a TensorFlow/Keras model.
 - Eye-tracking experiment support.
-<<<<<<< HEAD
 - Dedicated handwriting analysis flow for handwriting-risk screening from uploaded handwriting samples.
-=======
-- Unified image-analysis flow that runs OCR + handwriting screening from one uploaded photo.
->>>>>>> origin/main
+- Dedicated handwriting analysis flow for handwriting-risk screening from uploaded handwriting samples.
 - API endpoints:
   - `POST /predict`
   - `POST /handwriting-analysis`
@@ -79,20 +76,12 @@ Model binaries (`.keras`, `.pkl`, `.h5`) should be stored outside Git (artifact 
 
 ## Hardening additions
 
-<<<<<<< HEAD
 - Optional Redis-backed rate limiting via `REDIS_URL` (falls back to in-memory limiter if unavailable).
 - Request/response schema contracts implemented with lightweight internal validators for key API responses.
 - Readiness probe endpoint: `GET /ready` (returns `200` when models are loaded, else `503`).
-=======
-Install the native **Tesseract OCR engine** and ensure `tesseract` is available on your system PATH. `pytesseract` is only the Python wrapper.
-
-## Hardening additions
-
 - Optional Redis-backed rate limiting via `REDIS_URL` (falls back to in-memory limiter if unavailable).
 - Request/response schema contracts implemented with lightweight internal validators for key API responses.
 - Readiness probe endpoint: `GET /ready` (returns `200` when models are loaded, else `503`).
-- Legacy OCR standalone app now proxies to the main Flask application entrypoint for consistency.
->>>>>>> origin/main
 - Large native installers are excluded from Git; keep them in external artifact storage.
 
 
