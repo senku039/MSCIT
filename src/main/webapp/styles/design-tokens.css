@@ -1,0 +1,32 @@
+:root {
+  --color-bg: #eef3fb;
+  --color-surface: #ffffff;
+  --color-surface-soft: #f7faff;
+  --color-border: #d4e0f5;
+  --color-text: #112a56;
+  --color-text-muted: #53648d;
+  --color-primary: #245eea;
+  --color-primary-strong: #1747bc;
+  --color-success: #198754;
+  --color-danger: #b42318;
+  --radius-sm: 10px;
+  --radius-md: 16px;
+  --radius-lg: 24px;
+  --shadow-md: 0 14px 28px rgba(13, 35, 88, 0.16);
+  --shadow-lg: 0 22px 46px rgba(8, 22, 60, 0.25);
+  --space-1: .25rem;
+  --space-2: .5rem;
+  --space-3: .75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

@@ -237,7 +237,7 @@ def readiness() -> Any:
 
 @api_bp.route("/login", methods=["GET"])
 def login_page() -> Any:
-    return _serve_webapp_page("login.html")
+    return _serve_webapp_page("index.html")
 
 
 @api_bp.route("/home", methods=["GET"])
