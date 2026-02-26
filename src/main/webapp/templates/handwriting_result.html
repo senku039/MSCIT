@@ -13,12 +13,13 @@
 <div class="container py-4" style="max-width:980px;">
   <a class="btn btn-light border mb-3" href="/handwriting-analysis-page">← Back to Handwriting</a>
   <div class="card panel mb-3"><div class="card-body"><h2 class="fw-bold">Handwriting Analysis Result</h2><p id="summary" class="text-muted"></p><div class="d-flex flex-wrap gap-3 align-items-center"><span id="risk" class="badge fs-6"></span><strong id="prob"></strong></div></div></div>
+  <div class="card panel mb-3"><div class="card-body"><h4>ML Insights</h4><ul id="insights" class="mb-0"></ul></div></div>
   <div class="card panel"><div class="card-body"><h4>Recommendations</h4><ul id="recommendations" class="mb-0"></ul></div></div>
 </div>
 <script>
 function decodePayload(){const p=new URLSearchParams(window.location.search);const d=p.get('data');if(!d)return null;try{return JSON.parse(atob(d.replace(/-/g,'+').replace(/_/g,'/')));}catch{return null;}}
 const payload=decodePayload();
-if(!payload){document.body.innerHTML='<div class="container mt-5"><div class="alert alert-warning">No handwriting result data found.</div></div>';}else{document.getElementById('summary').textContent=payload.summary||'';document.getElementById('prob').textContent=`Probability Score: ${payload.probability_percent ?? 0}%`;const b=document.getElementById('risk');b.textContent=`${payload.risk_level||'Unknown'} Risk`;const r=(payload.risk_level||'').toLowerCase();b.classList.add(r.includes('high')?'badge-high':r.includes('moderate')?'badge-moderate':'badge-low');(payload.recommendations||[]).forEach(i=>{const li=document.createElement('li');li.textContent=i;document.getElementById('recommendations').appendChild(li);});}
+if(!payload){document.body.innerHTML='<div class="container mt-5"><div class="alert alert-warning">No handwriting result data found.</div></div>';}else{document.getElementById('summary').textContent=payload.summary||'';document.getElementById('prob').textContent=`Probability Score: ${payload.probability_percent ?? 0}%`;const b=document.getElementById('risk');b.textContent=`${payload.risk_level||'Unknown'} Risk`;const r=(payload.risk_level||'').toLowerCase();b.classList.add(r.includes('high')?'badge-high':r.includes('moderate')?'badge-moderate':'badge-low');const insights=payload.ml_insights||{};const insightsHost=document.getElementById('insights');const insightRows=[`Decision threshold: ${insights.decision_threshold ?? 'n/a'}`,`Model confidence: ${insights.confidence !== undefined ? (insights.confidence*100).toFixed(1)+'%' : 'n/a'}`,`Image quality score: ${insights.image_quality_score ?? 'n/a'}`];insightRows.forEach(i=>{const li=document.createElement('li');li.textContent=i;insightsHost.appendChild(li);});(payload.recommendations||[]).forEach(i=>{const li=document.createElement('li');li.textContent=i;document.getElementById('recommendations').appendChild(li);});}
 </script>
 </body>
 </html>
