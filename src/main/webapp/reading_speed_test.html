@@ -88,8 +88,8 @@
     const DETECT_SAMPLE_MS = 140;
     const AWAY_TRIGGER_MS = 500;
     const AWAY_GRACE_MS = 300;
-    const MIN_FACE_AREA_RATIO = 0.02;
-    const MIN_CONFIDENCE = 0.45;
+    const MIN_FACE_AREA_RATIO = 0.008;
+    const MIN_CONFIDENCE = 0.2;
 
     // State machine required for stable integration with the wider project.
     const STATE = { IDLE: 'idle', RUNNING: 'running', SUBMITTED: 'submitted', FINISHED: 'finished' };
@@ -256,8 +256,8 @@
     function getRoi(video) {
       const w = video.videoWidth || 1;
       const h = video.videoHeight || 1;
-      const roiW = w * 0.6;
-      const roiH = h * 0.7;
+      const roiW = w * 0.78;
+      const roiH = h * 0.82;
       return {
         x: (w - roiW) / 2,
         y: (h - roiH) / 2,
@@ -383,25 +383,6 @@
       }
       lastDetectionTick = timestamp;
 
-      updateStatus('success', `Camera active. ${detectionEngine === 'shape' ? 'Native' : 'ML'} face tracking running.`);
-      detectionActive = true;
-      lastDetectionTick = 0;
-      detectionRaf = requestAnimationFrame(detectionTick);
-    }
-
-    async function ensureCameraReady() {
-      if (videoStream) return true;
-
-      const video = document.getElementById('webcam');
-      const shell = document.getElementById('videoShell');
-      const startCamBtn = document.getElementById('startCameraBtn');
-      const stopCamBtn = document.getElementById('stopCameraBtn');
-
-      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        updateStatus('warning', 'Camera API is not supported in this browser.');
-        return false;
-      }
-
       try {
         const face = await detectFace(video);
         const frameArea = Math.max((video.videoWidth || 1) * (video.videoHeight || 1), 1);
@@ -413,14 +394,18 @@
           const smooth = smoothCenter(center);
           const confAvg = averageConfidence(face.confidence);
           const areaRatio = (face.width * face.height) / frameArea;
-          const inRoi = smooth.x >= roi.x && smooth.x <= (roi.x + roi.width) && smooth.y >= roi.y && smooth.y <= (roi.y + roi.height);
+          const roiMarginX = roi.width * 0.08;
+          const roiMarginY = roi.height * 0.08;
+          const inRoi = smooth.x >= (roi.x - roiMarginX) && smooth.x <= (roi.x + roi.width + roiMarginX)
+            && smooth.y >= (roi.y - roiMarginY) && smooth.y <= (roi.y + roi.height + roiMarginY);
           const largeEnough = areaRatio >= MIN_FACE_AREA_RATIO;
           const confGood = confAvg >= MIN_CONFIDENCE;
 
           awayNow = !(inRoi && largeEnough && confGood);
 
+          // Count face presence whenever a face is detected; away-state is tracked separately.
+          facePresenceMs += delta;
           if (!awayNow) {
-            facePresenceMs += delta;
             stableFaceSamples += 1;
           } else {
             unstableSamples += 1;
@@ -450,7 +435,7 @@
           }
           if (continuousAwayDurationMs > AWAY_TRIGGER_MS && (continuousAwayDurationMs - delta) <= AWAY_TRIGGER_MS) {
             lookAwayAlerts += 1;
-            updateStatus('danger', 'Looking away detected. Keep your face inside the center guide box.');
+            updateStatus('danger', 'Face detected but not centered. Please move into the blue guide box.');
           }
         } else {
           if (continuousAwayDurationMs > AWAY_TRIGGER_MS / 2) {
