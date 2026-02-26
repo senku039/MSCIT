@@ -399,6 +399,7 @@
           } else {
             unstableSamples += 1;
           }
+          lastRawCenter = center;
 
           if (lastRawCenter) {
             const dx = Math.abs(center.x - lastRawCenter.x);
