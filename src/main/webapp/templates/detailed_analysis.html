@@ -17,7 +17,7 @@
     <a class="btn btn-light border mb-3" href="javascript:history.back()">← Back</a>
     <div class="glass p-4 mb-3">
       <h2 class="fw-bold">Detailed Screening Analysis (6 Core Tests)</h2>
-      <p class="text-muted mb-2">This page explains how each completed assessment contributed to the final behavioral screening output.</p>
+      <p class="text-muted mb-2">This page explains, in simple words, how each test affected your final screening result.</p>
       <div class="d-flex flex-wrap gap-2">
         <span id="riskMetric" class="metric"></span>
         <span id="confidenceMetric" class="metric"></span>
@@ -26,18 +26,20 @@
     </div>
 
     <div class="glass p-4 mb-3">
-      <h4 class="fw-bold text-primary">Per-Test Breakdown</h4>
+      <h4 class="fw-bold text-primary">Per-Test Breakdown (Simple View)</h4>
+      <p class="text-muted mb-2">To compare different test types fairly, we convert each test to the same 0–100 risk scale. This is called normalization.</p>
+      <p class="text-muted mb-2"><strong>Priority used:</strong> Reading tests (highest), Language tests (next), Cognitive (medium), Support signals (lowest).</p>
       <div class="table-responsive">
         <table class="table table-bordered align-middle" id="breakdownTable">
-          <thead class="table-primary"><tr><th>Test</th><th>Raw Score</th><th>Normalized Risk</th><th>Analysis</th></tr></thead>
+          <thead class="table-primary"><tr><th>Test</th><th>Your Score</th><th>Common Risk Scale (0-100)</th><th>What this means</th></tr></thead>
           <tbody></tbody>
         </table>
       </div>
     </div>
 
     <div class="row g-3">
-      <div class="col-md-6"><div class="glass p-4 h-100"><h4 class="fw-bold text-primary">Component Contribution</h4><ul id="componentList" class="mb-0"></ul></div></div>
-      <div class="col-md-6"><div class="glass p-4 h-100"><h4 class="fw-bold text-primary">Recommended Next Steps</h4><ul id="nextSteps" class="mb-0"></ul></div></div>
+      <div class="col-md-6"><div class="glass p-4 h-100"><h4 class="fw-bold text-primary">Which areas had more impact?</h4><ul id="componentList" class="mb-0"></ul></div></div>
+      <div class="col-md-6"><div class="glass p-4 h-100"><h4 class="fw-bold text-primary">Personalized Next Steps</h4><ul id="nextSteps" class="mb-0"></ul></div></div>
     </div>
   </div>
 

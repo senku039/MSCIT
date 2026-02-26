@@ -160,8 +160,6 @@ class ModelService:
         quality_score = float(np.clip((float(np.std(image_tensor)) / 0.22), 0.0, 1.0))
         confidence = float(np.clip(1.0 - (uncertainty * 2.2), 0.0, 1.0))
         details = {
-            "ensemble_samples": int(scores.shape[0]),
-            "score_spread": round(uncertainty, 4),
             "confidence": round(confidence, 4),
             "image_quality_score": round(quality_score, 4),
             "decision_threshold": threshold,

@@ -127,6 +127,7 @@
     let smoothedCenter = null;
     let lastRawCenter = null;
     let recentConfidences = [];
+    let detectorWarmupPromise = null;
 
     function randomPick(items) { return items[Math.floor(Math.random() * items.length)]; }
 
@@ -322,25 +323,31 @@
     }
 
     async function initDetectionEngine() {
-      if ('FaceDetector' in window) {
+      if (detectionEngine !== 'none') return true;
+      if (detectorWarmupPromise) return detectorWarmupPromise;
+
+      detectorWarmupPromise = (async () => {
+        if ('FaceDetector' in window) {
+          try {
+            faceDetector = new window.FaceDetector({ fastMode: true, maxDetectedFaces: 1 });
+            detectionEngine = 'shape';
+            return true;
+          } catch (_error) {
+            detectionEngine = 'none';
+          }
+        }
         try {
-          faceDetector = new window.FaceDetector({ fastMode: true, maxDetectedFaces: 1 });
-          detectionEngine = 'shape';
+          await loadExternalScript('https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.20.0/dist/tf.min.js');
+          await loadExternalScript('https://cdn.jsdelivr.net/npm/@tensorflow-models/blazeface@0.0.7/dist/blazeface.min.js');
+          blazeModel = await window.blazeface.load();
+          detectionEngine = 'blazeface';
           return true;
         } catch (_error) {
           detectionEngine = 'none';
+          return false;
         }
-      }
-      try {
-        await loadExternalScript('https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.20.0/dist/tf.min.js');
-        await loadExternalScript('https://cdn.jsdelivr.net/npm/@tensorflow-models/blazeface@0.0.7/dist/blazeface.min.js');
-        blazeModel = await window.blazeface.load();
-        detectionEngine = 'blazeface';
-        return true;
-      } catch (_error) {
-        detectionEngine = 'none';
-      }
-      return false;
+      })();
+      return detectorWarmupPromise;
     }
 
     async function detectFace(video) {
@@ -376,6 +383,25 @@
       }
       lastDetectionTick = timestamp;
 
+      updateStatus('success', `Camera active. ${detectionEngine === 'shape' ? 'Native' : 'ML'} face tracking running.`);
+      detectionActive = true;
+      lastDetectionTick = 0;
+      detectionRaf = requestAnimationFrame(detectionTick);
+    }
+
+    async function ensureCameraReady() {
+      if (videoStream) return true;
+
+      const video = document.getElementById('webcam');
+      const shell = document.getElementById('videoShell');
+      const startCamBtn = document.getElementById('startCameraBtn');
+      const stopCamBtn = document.getElementById('stopCameraBtn');
+
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        updateStatus('warning', 'Camera API is not supported in this browser.');
+        return false;
+      }
+
       try {
         const face = await detectFace(video);
         const frameArea = Math.max((video.videoWidth || 1) * (video.videoHeight || 1), 1);
@@ -399,7 +425,6 @@
           } else {
             unstableSamples += 1;
           }
-          lastRawCenter = center;
 
           if (lastRawCenter) {
             const dx = Math.abs(center.x - lastRawCenter.x);
@@ -579,6 +604,8 @@
     }
 
     document.getElementById('startCameraBtn').addEventListener('click', async () => {
+      updateStatus('info', 'Preparing camera and face detector...');
+      await initDetectionEngine();
       const ok = await ensureCameraReady();
       if (ok && testState === STATE.RUNNING) {
         await startDetection();
@@ -654,6 +681,8 @@
       loadPassage();
       setState(STATE.IDLE);
       updateTrackingPanel();
+      // Warm detector before test starts to avoid 5-10s startup delay.
+      setTimeout(() => { initDetectionEngine().catch(() => {}); }, 250);
     });
   </script>
 </body>

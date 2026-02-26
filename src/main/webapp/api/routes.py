@@ -418,9 +418,7 @@ def handwriting_analysis() -> Any:
         predicted_class = "Needs_Manual_Review"
         handwriting_meta = {
             "confidence": 0.25,
-            "score_spread": 0.0,
             "image_quality_score": 0.5,
-            "ensemble_samples": 0,
             "decision_threshold": float(current_app.config.get("HANDWRITING_THRESHOLD", 0.5)),
             "fallback_mode": "model_unavailable",
         }
@@ -453,16 +451,23 @@ def handwriting_analysis() -> Any:
         summary += f" Confidence: {round(model_confidence * 100, 1)}%."
 
     recommendations = [
-        "Use as supportive screening output only.",
-        "Combine with cognitive and reading assessments.",
-        "Seek specialist review for high-risk outcomes.",
+        "Use this as a supportive screening output only.",
+        "Combine handwriting findings with reading and language assessments.",
     ]
+
+    if predicted_class == "Dyslexic":
+        recommendations.append("Personalized tip: practice short guided handwriting drills (10-15 min/day) focusing on spacing and letter formation.")
+    elif predicted_class == "Non_Dyslexic":
+        recommendations.append("Personalized tip: maintain current writing practice and track progress weekly with short dictation tasks.")
+    else:
+        recommendations.append("Personalized tip: complete a manual handwriting review with teacher feedback before making conclusions.")
+
     if handwriting_meta.get("image_quality_score", 1.0) < 0.35:
-        recommendations.append("Uploaded image quality is low; retake with better lighting and a flat page.")
+        recommendations.append("Image quality note: retake the photo in better lighting with a flat page for a more reliable result.")
     if handwriting_meta.get("fallback_mode") == "model_unavailable":
-        recommendations.append("Install missing model dependencies (e.g., scikit-learn) and restart server for full ML inference.")
+        recommendations.append("System note: install missing model dependencies (e.g., scikit-learn) and restart server for full ML inference.")
     elif model_confidence < 0.45:
-        recommendations.append("Prediction confidence is low; retry with a clearer handwriting sample.")
+        recommendations.append("Confidence note: retry with a clearer handwriting sample to improve model confidence.")
 
     result_payload = {
         "predicted_probability": predicted_prob,

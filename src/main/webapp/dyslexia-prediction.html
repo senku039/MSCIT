@@ -631,10 +631,12 @@
       ];
 
       const recommendationText = riskLevel === 'High Risk'
-        ? 'The screening pattern suggests notable reading-related difficulty indicators. A supportive specialist review is recommended.'
+        ? 'Your pattern shows stronger reading-language difficulty signals. A supportive specialist review can help plan next steps.'
         : (riskLevel === 'Moderate Risk'
-          ? 'The screening pattern suggests some reading/language indicators. Repeat practice and follow-up screening are recommended.'
-          : 'The screening pattern currently suggests lower risk. Continue reading practice and periodic monitoring.');
+          ? 'Your pattern shows some reading/language difficulty signals. Regular practice and follow-up screening are recommended.'
+          : 'Your current pattern suggests lower risk. Keep regular reading practice and monitor progress over time.');
+
+      const personalRecommendation = `Focus first on: ${indicators.slice(0, 2).join(' and ')}. Practice 10-15 minutes daily with guided tasks in these areas.`;
 
       const finalPayload = {
         prediction: Number((riskScore / 100).toFixed(4)),
@@ -647,7 +649,8 @@
         recommendations: [
           'This is a behavioral screening result, not a medical diagnosis.',
           'Use reading, language, and classroom observations together for next steps.',
-          recommendationText
+          recommendationText,
+          personalRecommendation,
         ],
         feature_analysis: [
           { feature: 'Reading Component (High Priority)', value: Number((readingComponent * 100).toFixed(2)), expected_range: '0-100 risk', status: 'Computed', impact: 'Primary signal', abnormal: readingComponent > 0.6 },
@@ -659,7 +662,7 @@
         dyslexia_risk_level: riskLevel,
         confidence_level: confidenceLevel,
         dominant_indicators: indicators,
-        recommendation_text: recommendationText,
+        recommendation_text: `${recommendationText} ${personalRecommendation}`,
         attention_stability: Number(attentionStability.toFixed(2)),
         movement_variability: Number(movementVariability.toFixed(2)),
         camera_reliability: Number(cameraReliability.toFixed(2)),

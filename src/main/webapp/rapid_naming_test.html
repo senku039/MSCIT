@@ -46,6 +46,7 @@
 
     let currentLevel = 0;
     let sequence = [];
+    const preparedSequences = LEVELS.map((level) => shuffle(level.items));
     let startedAt = null;
     const levelScores = [];
 
@@ -64,7 +65,7 @@
 
     function buildLevel(levelIndex) {
       const level = LEVELS[levelIndex];
-      sequence = shuffle(level.items);
+      sequence = preparedSequences[levelIndex];
       const host = document.getElementById('symbolGrid');
       host.innerHTML = sequence.map((x) => `<div class="tile">${x}</div>`).join('');
       document.getElementById('roundInfo').textContent = `Level ${levelIndex + 1} / ${LEVELS.length} — ${level.name}`;
