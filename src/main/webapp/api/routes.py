@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import base64
+from io import BytesIO
 import json
 import logging
 from functools import wraps
@@ -219,7 +220,12 @@ def dyslexia_prediction_page() -> Any:
 
 @api_bp.route("/handwriting-analysis-page", methods=["GET"])
 def handwriting_analysis_page() -> Any:
-    return _serve_webapp_page("handwriting_analysis.html")
+    return _serve_webapp_page("image_analysis.html")
+
+
+@api_bp.route("/image-analysis", methods=["GET"])
+def image_analysis_page() -> Any:
+    return _serve_webapp_page("image_analysis.html")
 
 
 @api_bp.route("/prediction-result", methods=["GET"])
