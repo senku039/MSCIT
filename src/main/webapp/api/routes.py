@@ -50,6 +50,25 @@ def _classify_risk(probability: float) -> str:
     return "High Risk"
 
 
+def _compute_feature_signal(table_rows: list[dict[str, Any]]) -> tuple[float, float, float]:
+    """Return (risk_signal, protective_signal, data_quality)."""
+    if not table_rows:
+        return 0.0, 0.0, 0.0
+
+    abnormal_count = sum(1 for row in table_rows if row["abnormal"])
+    supportive_count = sum(
+        1
+        for row in table_rows
+        if (not row["abnormal"]) and ("supports" in row["impact"].lower() or "within" in row["impact"].lower())
+    )
+    total = len(table_rows)
+
+    risk_signal = float(np.clip(abnormal_count / total, 0.0, 1.0))
+    protective_signal = float(np.clip(supportive_count / total, 0.0, 1.0))
+    data_quality = float(np.clip((supportive_count + abnormal_count) / total, 0.0, 1.0))
+    return risk_signal, protective_signal, data_quality
+
+
 def _build_feature_analysis(feature_map: dict[str, float]) -> tuple[list[dict[str, Any]], list[str]]:
     rows: list[dict[str, Any]] = []
     abnormal_observations: list[str] = []
@@ -95,18 +114,17 @@ def _build_prediction_payload(prediction: float, feature_map: dict[str, float]) 
 
     table_rows, abnormal_observations = _build_feature_analysis(feature_map)
     abnormal_count = sum(1 for row in table_rows if row["abnormal"])
-    if table_rows:
-        severity_sum = 0.0
-        for row in table_rows:
-            if row["abnormal"]:
-                severity_sum += 1.0
-            elif "supports" in row["impact"].lower() or "within" in row["impact"].lower():
-                severity_sum += 0.15
-        feature_signal = float(np.clip(severity_sum / len(table_rows), 0.0, 1.0))
-    else:
-        feature_signal = 0.0
+    risk_signal, protective_signal, data_quality = _compute_feature_signal(table_rows)
 
-    screening_probability = float(np.clip((0.8 * model_probability) + (0.2 * feature_signal), 0.0, 1.0))
+    model_weight = 0.72
+    feature_weight = 0.28
+    feature_adjusted = float(np.clip((risk_signal * 0.9) - (protective_signal * 0.35) + 0.2, 0.0, 1.0))
+    screening_probability = float(
+        np.clip((model_weight * model_probability) + (feature_weight * feature_adjusted), 0.0, 1.0)
+    )
+
+    disagreement = abs(model_probability - risk_signal)
+    confidence = float(np.clip((1.0 - disagreement) * (0.65 + (0.35 * data_quality)), 0.0, 1.0))
 
     probability_percent = round(screening_probability * 100, 2)
     model_probability_percent = round(model_probability * 100, 2)
@@ -127,6 +145,8 @@ def _build_prediction_payload(prediction: float, feature_map: dict[str, float]) 
         "Review flagged features with an educator/specialist.",
         "If moderate/high risk, schedule a formal dyslexia assessment.",
     ]
+    if confidence < 0.45:
+        recommendations.append("Prediction confidence is low; retake tests to improve signal quality.")
 
     return {
         "prediction": screening_probability,
@@ -137,6 +157,13 @@ def _build_prediction_payload(prediction: float, feature_map: dict[str, float]) 
         "feature_analysis": table_rows,
         "abnormal_feature_count": abnormal_count,
         "observations": abnormal_observations or ["No major abnormal indicators were detected."],
+        "ml_explainability": {
+            "model_weight": model_weight,
+            "feature_weight": feature_weight,
+            "feature_risk_signal": round(risk_signal, 4),
+            "feature_protective_signal": round(protective_signal, 4),
+            "confidence": round(confidence, 4),
+        },
         "summary": summary,
         "recommendations": recommendations,
     }
@@ -231,6 +258,11 @@ def image_analysis_page() -> Any:
 @api_bp.route("/prediction-result", methods=["GET"])
 def prediction_result_page() -> Any:
     return render_template("prediction_result.html")
+
+
+@api_bp.route("/detailed-analysis", methods=["GET"])
+def detailed_analysis_page() -> Any:
+    return render_template("detailed_analysis.html")
 
 
 
@@ -370,29 +402,76 @@ def handwriting_analysis() -> Any:
 
     try:
         model_service = current_app.extensions["model_service"]
-        predicted_prob, predicted_class = model_service.predict_handwriting(image_bytes)
+        prediction_result = model_service.predict_handwriting(image_bytes)
+        handwriting_meta: dict[str, Any] = {}
+        if isinstance(prediction_result, tuple) and len(prediction_result) == 3:
+            predicted_prob, predicted_class, handwriting_meta = prediction_result
+        else:
+            predicted_prob, predicted_class = prediction_result
+    except RuntimeError as error:
+        if "Handwriting model is unavailable" not in str(error):
+            LOGGER.exception("Unhandled handwriting prediction failure")
+            return jsonify({"error": "Handwriting analysis unavailable."}), 500
+
+        # Graceful fallback when handwriting model could not load at startup.
+        predicted_prob = 0.5
+        predicted_class = "Needs_Manual_Review"
+        handwriting_meta = {
+            "confidence": 0.25,
+            "score_spread": 0.0,
+            "image_quality_score": 0.5,
+            "ensemble_samples": 0,
+            "decision_threshold": float(current_app.config.get("HANDWRITING_THRESHOLD", 0.5)),
+            "fallback_mode": "model_unavailable",
+        }
     except Exception:
         LOGGER.exception("Unhandled handwriting prediction failure")
         return jsonify({"error": "Handwriting analysis unavailable."}), 500
 
     probability_percent = round(predicted_prob * 100, 2)
-    risk_level = "Low Risk" if predicted_class == "Non_Dyslexic" else "Moderate/High Risk"
+    model_confidence = float(handwriting_meta.get("confidence", 0.0))
+    if predicted_class == "Needs_Manual_Review":
+        risk_level = "Screening Pending"
+    elif predicted_class == "Non_Dyslexic" and model_confidence >= 0.6:
+        risk_level = "Low Risk"
+    elif predicted_class == "Non_Dyslexic":
+        risk_level = "Low/Moderate Risk"
+    elif model_confidence >= 0.6:
+        risk_level = "Moderate/High Risk"
+    else:
+        risk_level = "Moderate Risk"
     summary = (
-        "Model detected handwriting characteristics requiring follow-up."
-        if predicted_class == "Dyslexic"
-        else "No major handwriting risk markers detected."
+        "Handwriting model is unavailable in this environment; a manual review-friendly fallback was used."
+        if predicted_class == "Needs_Manual_Review"
+        else (
+            "Model detected handwriting characteristics requiring follow-up."
+            if predicted_class == "Dyslexic"
+            else "No major handwriting risk markers detected."
+        )
     )
+    if handwriting_meta:
+        summary += f" Confidence: {round(model_confidence * 100, 1)}%."
+
+    recommendations = [
+        "Use as supportive screening output only.",
+        "Combine with cognitive and reading assessments.",
+        "Seek specialist review for high-risk outcomes.",
+    ]
+    if handwriting_meta.get("image_quality_score", 1.0) < 0.35:
+        recommendations.append("Uploaded image quality is low; retake with better lighting and a flat page.")
+    if handwriting_meta.get("fallback_mode") == "model_unavailable":
+        recommendations.append("Install missing model dependencies (e.g., scikit-learn) and restart server for full ML inference.")
+    elif model_confidence < 0.45:
+        recommendations.append("Prediction confidence is low; retry with a clearer handwriting sample.")
+
     result_payload = {
         "predicted_probability": predicted_prob,
         "probability_percent": probability_percent,
         "predicted_class": predicted_class,
         "risk_level": risk_level,
+        "ml_insights": handwriting_meta,
         "summary": summary,
-        "recommendations": [
-            "Use as supportive screening output only.",
-            "Combine with cognitive and reading assessments.",
-            "Seek specialist review for high-risk outcomes.",
-        ],
+        "recommendations": recommendations,
     }
     token = _encode_payload(result_payload)
     response_payload = validate_handwriting_response({**result_payload, "result_redirect": f"/handwriting-result?data={token}"})
