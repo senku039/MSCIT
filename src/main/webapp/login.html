@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login | Dyslexia Screening Platform</title>
+  <link rel="stylesheet" href="/theme.css">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body{
+      min-height:100vh;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:20px;
+      background:
+        radial-gradient(circle at 15% 18%, rgba(99,132,255,.22), transparent 35%),
+        radial-gradient(circle at 82% 24%, rgba(20,193,211,.2), transparent 34%),
+        linear-gradient(125deg, rgba(12,30,85,.92), rgba(29,72,167,.86));
+    }
+    .login-shell{
+      width:min(1040px, 96vw);
+      border-radius:22px;
+      overflow:hidden;
+      border:1px solid rgba(198,218,255,.45);
+      box-shadow:0 24px 44px rgba(8,18,55,.4);
+      background:#fff;
+      display:grid;
+      grid-template-columns:1.1fr 1fr;
+    }
+    .brand-pane{
+      padding:42px;
+      color:#f0f6ff;
+      background:
+        linear-gradient(150deg, rgba(19,40,108,.92), rgba(53,103,224,.78)),
+        url('https://images.unsplash.com/photo-1503676260728-1c00da094a0b?auto=format&fit=crop&w=1800&q=80') center/cover no-repeat;
+    }
+    .form-pane{padding:36px 34px;background:#f7faff;}
+    .form-label{font-weight:600;color:#1b2b5c;}
+    .form-control{border-radius:10px;min-height:44px;}
+    .helper{font-size:.86rem;color:#5a678e;}
+    .btn-login{border-radius:12px;font-weight:700;padding:11px 16px;}
+    .link-row{display:flex;justify-content:space-between;gap:10px;font-size:.92rem;}
+    .caps{font-size:.82rem;color:#b45309;display:none;}
+    @media (max-width: 920px){
+      .login-shell{grid-template-columns:1fr;}
+      .brand-pane{padding:28px;}
+      .form-pane{padding:24px;}
+    }
+  </style>
+</head>
+<body>
+  <div class="login-shell">
+    <section class="brand-pane">
+      <h2 class="fw-bold">Dyslexia Screening Portal</h2>
+      <p class="mb-4">Sign in to continue your multi-level assessment roadmap, view recommendations, and track progress.</p>
+      <ul>
+        <li>Secure session-based access</li>
+        <li>Save progress between assessment levels</li>
+        <li>Personalized recommendations and detailed analysis</li>
+      </ul>
+      <div class="mt-4 small">Need support? Contact: <strong>support@dyslexia-screening.local</strong></div>
+    </section>
+
+    <section class="form-pane">
+      <h3 class="fw-bold mb-1" style="color:#15316b;">Welcome Back</h3>
+      <p class="helper mb-3">Enter your account details to continue.</p>
+
+      <form id="loginForm" novalidate>
+        <div class="mb-3">
+          <label class="form-label" for="email">Email</label>
+          <input id="email" class="form-control" type="email" placeholder="you@example.com" required>
+          <div class="invalid-feedback">Please enter a valid email.</div>
+        </div>
+
+        <div class="mb-2">
+          <label class="form-label" for="password">Password</label>
+          <div class="input-group">
+            <input id="password" class="form-control" type="password" placeholder="Enter password" minlength="8" required>
+            <button id="togglePassword" type="button" class="btn btn-outline-secondary">Show</button>
+            <div class="invalid-feedback">Password must be at least 8 characters.</div>
+          </div>
+          <div id="capsHint" class="caps mt-1">Caps Lock is ON.</div>
+        </div>
+
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <div class="form-check">
+            <input id="rememberMe" class="form-check-input" type="checkbox">
+            <label for="rememberMe" class="form-check-label">Remember me</label>
+          </div>
+          <a href="#" id="forgotLink" class="text-decoration-none">Forgot password?</a>
+        </div>
+
+        <button id="loginBtn" class="btn btn-primary btn-login w-100" type="submit">Sign In</button>
+        <div id="loginStatus" class="helper mt-2"></div>
+      </form>
+
+      <hr class="my-4">
+      <div class="link-row">
+        <span class="helper">New user?</span>
+        <a href="#" class="text-decoration-none">Create account</a>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    const DEMO_USERS = [
+      { email: 'admin@dyslexia.app', password: 'Admin@1234', name: 'Admin' },
+      { email: 'student@dyslexia.app', password: 'Student@1234', name: 'Student' },
+    ];
+
+    const emailEl = document.getElementById('email');
+    const passwordEl = document.getElementById('password');
+    const rememberEl = document.getElementById('rememberMe');
+    const statusEl = document.getElementById('loginStatus');
+
+    // prefill remembered account
+    const remembered = localStorage.getItem('remembered_email');
+    if (remembered) {
+      emailEl.value = remembered;
+      rememberEl.checked = true;
+    }
+
+    // auto redirect if already signed in
+    const existing = sessionStorage.getItem('auth_user');
+    if (existing) {
+      window.location.href = '/home';
+    }
+
+    document.getElementById('togglePassword').addEventListener('click', function() {
+      const nextType = passwordEl.type === 'password' ? 'text' : 'password';
+      passwordEl.type = nextType;
+      this.textContent = nextType === 'password' ? 'Show' : 'Hide';
+    });
+
+    passwordEl.addEventListener('keyup', (event) => {
+      document.getElementById('capsHint').style.display = event.getModifierState('CapsLock') ? 'block' : 'none';
+    });
+
+    document.getElementById('forgotLink').addEventListener('click', (event) => {
+      event.preventDefault();
+      alert('Password reset is enabled by admin setup. For now, use demo account:\nstudent@dyslexia.app / Student@1234');
+    });
+
+    document.getElementById('loginForm').addEventListener('submit', (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+
+      const email = emailEl.value.trim().toLowerCase();
+      const password = passwordEl.value;
+      const valid = emailEl.checkValidity() && passwordEl.checkValidity();
+
+      emailEl.classList.toggle('is-invalid', !emailEl.checkValidity());
+      passwordEl.classList.toggle('is-invalid', !passwordEl.checkValidity());
+
+      if (!valid) {
+        statusEl.textContent = 'Please correct the highlighted fields.';
+        statusEl.style.color = '#b45309';
+        return;
+      }
+
+      const matched = DEMO_USERS.find((user) => user.email === email && user.password === password);
+      if (!matched) {
+        statusEl.textContent = 'Invalid credentials. Try student@dyslexia.app / Student@1234';
+        statusEl.style.color = '#b91c1c';
+        return;
+      }
+
+      if (rememberEl.checked) localStorage.setItem('remembered_email', email);
+      else localStorage.removeItem('remembered_email');
+
+      sessionStorage.setItem('auth_user', JSON.stringify({ email: matched.email, name: matched.name }));
+      statusEl.textContent = 'Login successful. Redirecting...';
+      statusEl.style.color = '#166534';
+      setTimeout(() => { window.location.href = '/home'; }, 350);
+    });
+  </script>
+</body>
+</html>

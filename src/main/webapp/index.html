@@ -1,290 +1,180 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dyslexia Awareness</title>
-    <link rel="stylesheet" href="/theme.css">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <style>
-        :root {
-            --ink: #13254b;
-            --panel-border: #d2dff4;
-            --panel-bg: rgba(255, 255, 255, 0.95);
-        }
-
-        body {
-            color: var(--ink);
-            background:
-                radial-gradient(circle at 12% 25%, rgba(37, 99, 235, 0.12), transparent 33%),
-                radial-gradient(circle at 88% 15%, rgba(6, 182, 212, 0.11), transparent 36%),
-                linear-gradient(180deg, #f1f6ff 0%, #e7eef9 48%, #edf3fc 100%);
-            min-height: 100vh;
-        }
-
-        .navbar {
-            background: rgba(10, 24, 60, 0.94) !important;
-            border-bottom: 1px solid rgba(170, 193, 235, 0.25);
-            box-shadow: 0 10px 20px rgba(8, 19, 50, 0.2);
-        }
-
-        .navbar .nav-link { font-weight: 500; }
-        .navbar .nav-link.active { color: #ffffff !important; }
-
-        .hero-section {
-            position: relative;
-            color: #fff;
-            min-height: 600px;
-            display: flex;
-            align-items: center;
-            background:
-                linear-gradient(110deg, rgba(8, 26, 68, 0.9), rgba(22, 52, 122, 0.76)),
-                url('https://images.unsplash.com/photo-1503676260728-1c00da094a0b?auto=format&fit=crop&w=2400&q=80') center/cover no-repeat;
-            border-bottom-left-radius: 28px;
-            border-bottom-right-radius: 28px;
-            overflow: hidden;
-        }
-
-        .hero-section::after {
-            content: "";
-            position: absolute;
-            inset: auto -80px -120px auto;
-            width: 420px;
-            height: 420px;
-            background: radial-gradient(circle, rgba(255, 255, 255, 0.2), transparent 68%);
-            pointer-events: none;
-        }
-
-        .hero-card {
-            max-width: 980px;
-            margin: 30px auto;
-            padding: 52px 56px;
-            border-radius: 24px;
-            background: rgba(11, 31, 80, 0.38);
-            border: 1px solid rgba(198, 217, 255, 0.3);
-            box-shadow: 0 28px 48px rgba(7, 17, 44, 0.34);
-            backdrop-filter: blur(2px);
-        }
-
-        .hero-chip {
-            display: inline-block;
-            background: rgba(255, 255, 255, 0.18);
-            border: 1px solid rgba(255, 255, 255, 0.35);
-            border-radius: 999px;
-            padding: 7px 16px;
-            font-weight: 600;
-            letter-spacing: .2px;
-        }
-
-        .hero-title {
-            font-weight: 800;
-            font-size: clamp(2rem, 4vw, 3.25rem);
-            letter-spacing: -0.5px;
-            margin-top: 18px;
-        }
-
-        .hero-subtitle {
-            font-size: 1.22rem;
-            color: #dbe6ff;
-            max-width: 760px;
-            margin: 14px auto 26px;
-        }
-
-        .btn-hero-primary {
-            background: linear-gradient(135deg, #2563eb, #3b82f6);
-            border: none;
-            border-radius: 12px;
-            padding: 11px 24px;
-            font-weight: 600;
-            box-shadow: 0 10px 20px rgba(37, 99, 235, 0.35);
-        }
-
-        .btn-hero-secondary {
-            border-radius: 12px;
-            padding: 11px 24px;
-            font-weight: 600;
-            border-color: rgba(255,255,255,.72);
-            color: #fff;
-        }
-
-        .section-wrap {
-            max-width: 1480px;
-            margin: 34px auto;
-            padding: 0 14px;
-        }
-
-        .app-card {
-            border-radius: 24px;
-            border: 1px solid var(--panel-border);
-            background: var(--panel-bg);
-            box-shadow: 0 20px 40px rgba(16, 38, 84, 0.12);
-            padding: 48px 42px;
-        }
-
-        .section-title {
-            text-align: center;
-            color: #15316b;
-            font-size: clamp(1.8rem, 2.5vw, 2.35rem);
-            font-weight: 800;
-            margin-bottom: 34px;
-            letter-spacing: -.3px;
-        }
-
-        .stat-card {
-            border-radius: 16px;
-            color: #fff;
-            border: none;
-            box-shadow: 0 12px 22px rgba(20, 38, 97, 0.2);
-            padding: 26px;
-            min-height: 172px;
-        }
-        .stat-card h3 { color: #fff !important; font-weight: 800; font-size: 2.1rem; margin-bottom: .5rem; }
-        .stat-card p { margin: 0; color: rgba(255,255,255,.95); font-size: 1.08rem; }
-        .stat-blue { background: linear-gradient(140deg, #1d4ed8, #3b82f6); }
-        .stat-purple { background: linear-gradient(140deg, #5b21b6, #7c3aed); }
-        .stat-teal { background: linear-gradient(140deg, #0f766e, #14b8a6); }
-
-        .feature-card {
-            border-radius: 16px;
-            border: 1px solid #c8d8f8;
-            transition: .25s ease;
-            text-decoration: none;
-            color: inherit;
-            display: block;
-            background: linear-gradient(180deg, #ffffff, #f7faff);
-            min-height: 100%;
-        }
-
-        .feature-card .card-body { padding: 30px 24px; }
-
-        .feature-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 16px 28px rgba(18,37,94,.14);
-            border-color:#8cb0f5;
-        }
-
-        .feature-card h4 { font-weight: 700; color: #16306a; }
-        .feature-card p { font-size: 1.02rem; color: #425884; }
-
-        .tool-card {
-            border-radius: 18px;
-            border: 1px solid #c7d9fb;
-            background: linear-gradient(180deg, #ffffff, #f5f9ff);
-            box-shadow: 0 12px 24px rgba(22, 52, 121, 0.12);
-            padding: 30px;
-        }
-
-        .tool-card h4 { color: #15316b; font-weight: 700; }
-        .tool-card p { color: #43598a; font-size: 1.04rem; min-height: 58px; }
-        .tool-card .btn { border-radius: 10px; font-weight: 600; padding: 10px 20px; }
-
-        @media (max-width: 992px) {
-            .hero-section { min-height: 520px; border-bottom-left-radius: 18px; border-bottom-right-radius: 18px; }
-            .hero-card { padding: 38px 28px; }
-            .app-card { padding: 34px 24px; }
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dyslexia Screening Platform</title>
+  <link rel="stylesheet" href="/assets/styles/design-tokens.css" />
+  <link rel="stylesheet" href="/assets/styles/main.css" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet" />
 </head>
 <body>
-<nav class="navbar navbar-expand-lg navbar-dark sticky-top">
-    <div class="container">
-        <a class="navbar-brand fw-bold" href="index.html">Dyslexia Awareness</a>
-        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"><span class="navbar-toggler-icon"></span></button>
-        <div class="collapse navbar-collapse" id="navbarNav">
-            <ul class="navbar-nav ms-auto">
-                <li class="nav-item"><a class="nav-link active" href="index.html">Home</a></li>
-                <li class="nav-item"><a class="nav-link" href="dyslexia-prediction.html">Dyslexia Test</a></li>
-                <li class="nav-item"><a class="nav-link" href="handwriting_analysis.html">Handwriting Analysis</a></li>
-            </ul>
-        </div>
+<header class="app-header navbar navbar-expand-lg navbar-dark sticky-top">
+  <div class="container">
+    <a class="navbar-brand fw-bold" href="/home">Dyslexia Screening</a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"><span class="navbar-toggler-icon"></span></button>
+    <div class="collapse navbar-collapse" id="navbarNav">
+      <ul class="navbar-nav ms-auto align-items-lg-center gap-lg-2">
+        <li class="nav-item"><a class="nav-link active" href="/home">Home</a></li>
+        <li class="nav-item"><a class="nav-link" href="dyslexia-prediction.html">Dyslexia Test</a></li>
+        <li class="nav-item"><a class="nav-link" href="handwriting_analysis.html">Handwriting</a></li>
+        <li class="nav-item"><span id="userWelcome" class="navbar-text text-light small"></span></li>
+        <li class="nav-item"><button id="logoutBtn" class="btn btn-outline-light btn-sm" type="button">Logout</button></li>
+      </ul>
     </div>
-</nav>
+  </div>
+</header>
 
-<section class="hero-section text-center">
-    <div class="container">
-        <div class="hero-card">
-            <span class="hero-chip">Evidence-informed learning support</span>
-            <h1 class="hero-title">Smart Dyslexia Screening & Assistance</h1>
-            <p class="hero-subtitle">Take structured tests and get handwriting analysis in one professional platform designed for early support workflows.</p>
-            <div class="d-flex justify-content-center gap-3 flex-wrap">
-                <a href="dyslexia-prediction.html" class="btn btn-hero-primary btn-lg">Start Screening</a>
-                <a href="handwriting_analysis.html" class="btn btn-outline-light btn-hero-secondary btn-lg">Open Handwriting Analysis</a>
-            </div>
-        </div>
+<main>
+  <section class="hero-section text-white text-center">
+    <div class="container hero-content">
+      <span class="hero-chip">Accessible behavioral screening</span>
+      <h1>Professional Dyslexia Screening Roadmap</h1>
+      <p>Track reading, naming, phonemic, spelling, writing, and response-time indicators in one guided journey.</p>
+      <div class="d-flex gap-3 justify-content-center flex-wrap">
+        <a href="dyslexia-prediction.html" class="btn btn-primary btn-lg">Start Screening</a>
+        <a href="handwriting_analysis.html" class="btn btn-outline-light btn-lg">Analyze Handwriting</a>
+      </div>
     </div>
-</section>
+  </section>
 
-<section class="section-wrap">
-    <div class="app-card">
-        <h2 class="section-title">Dyslexia: By the Numbers</h2>
-        <div class="row g-4">
-            <div class="col-md-4"><div class="stat-card stat-blue"><h3>15-20%</h3><p>of students may show reading-related dyslexia indicators.</p></div></div>
-            <div class="col-md-4"><div class="stat-card stat-purple"><h3>1 in 5</h3><p>learners need additional language and phonics support.</p></div></div>
-            <div class="col-md-4"><div class="stat-card stat-teal"><h3>90%</h3><p>improvement chance with early intervention planning.</p></div></div>
-        </div>
+  <section class="section-wrap container">
+    <h2 class="section-title">Quick Facts</h2>
+    <div class="row g-4">
+      <div class="col-md-4"><article class="stat-card stat-blue"><h3>15-20%</h3><p>of students may show dyslexia-linked reading indicators.</p></article></div>
+      <div class="col-md-4"><article class="stat-card stat-purple"><h3>1 in 5</h3><p>learners need additional language support during growth years.</p></article></div>
+      <div class="col-md-4"><article class="stat-card stat-teal"><h3>Early Help</h3><p>personalized plans improve confidence and outcomes.</p></article></div>
     </div>
-</section>
+  </section>
 
-<section class="section-wrap">
-    <div class="app-card">
-        <h2 class="section-title">Explore & Understand</h2>
-        <div class="row g-4">
-            <div class="col-md-4">
-                <a class="feature-card h-100" href="info_what_is_dyslexia.html">
-                    <div class="card-body text-center">
-                        <i class="fas fa-brain fa-3x text-primary mb-3"></i>
-                        <h4>What is Dyslexia?</h4>
-                        <p>Core concepts explained clearly with practical context.</p>
-                    </div>
-                </a>
-            </div>
-            <div class="col-md-4">
-                <a class="feature-card h-100" href="info_common_signs.html">
-                    <div class="card-body text-center">
-                        <i class="fas fa-list-check fa-3x text-primary mb-3"></i>
-                        <h4>Common Signs</h4>
-                        <p>Observable learning and reading patterns by profile.</p>
-                    </div>
-                </a>
-            </div>
-            <div class="col-md-4">
-                <a class="feature-card h-100" href="info_support_paths.html">
-                    <div class="card-body text-center">
-                        <i class="fas fa-hands-helping fa-3x text-primary mb-3"></i>
-                        <h4>Support Paths</h4>
-                        <p>School, home and technology interventions that help.</p>
-                    </div>
-                </a>
-            </div>
-        </div>
+  <section class="section-wrap container pb-4">
+    <h2 class="section-title">Tools</h2>
+    <div class="row g-4">
+      <div class="col-lg-6">
+        <article class="tool-card h-100">
+          <h4><i class="fas fa-clipboard-question me-2"></i>Dyslexia Multi-Level Test</h4>
+          <p>Complete all 6 levels and get a combined risk interpretation with confidence and recommendations.</p>
+          <a href="dyslexia-prediction.html" class="btn btn-primary" data-primary-action>Open Test</a>
+        </article>
+      </div>
+      <div class="col-lg-6">
+        <article class="tool-card h-100">
+          <h4><i class="fas fa-pen-fancy me-2"></i>Handwriting Upload</h4>
+          <p>Upload a handwriting sample to generate structured observations and personalized suggestions.</p>
+          <a href="handwriting_analysis.html" class="btn btn-primary" data-primary-action>Open Upload</a>
+        </article>
+      </div>
     </div>
-</section>
+  </section>
+</main>
 
-<section class="section-wrap pb-4">
-    <div class="app-card">
-        <h2 class="section-title">Use Our Tools</h2>
-        <div class="row g-4 justify-content-center">
-            <div class="col-md-6">
-                <div class="tool-card h-100 text-center">
-                    <i class="fas fa-clipboard-question fa-3x text-primary mb-3"></i>
-                    <h4>Dyslexia Test</h4>
-                    <p>Structured feature-based screening with clear, understandable output and level-wise progression.</p>
-                    <a href="dyslexia-prediction.html" class="btn btn-primary">Try Now</a>
-                </div>
-            </div>
-            <div class="col-md-6">
-                <div class="tool-card h-100 text-center">
-                    <i class="fas fa-file-lines fa-3x text-primary mb-3"></i>
-                    <h4>Unified Handwriting Analysis</h4>
-                    <p>Upload one handwriting image to receive handwriting-risk analysis insights.</p>
-                    <a href="handwriting_analysis.html" class="btn btn-primary">Analyze Image</a>
-                </div>
-            </div>
+<div id="authModal" class="auth-modal" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="authTitle">
+  <div class="auth-dialog" role="document">
+    <button class="btn-close auth-close" id="authClose" aria-label="Close"></button>
+    <h2 id="authTitle">Sign in to continue</h2>
+    <p class="text-muted">Use demo account: <strong>student@dyslexia.app</strong> / <strong>Student@1234</strong></p>
+    <form id="modalLoginForm" novalidate>
+      <label class="form-label" for="modalEmail">Email</label>
+      <input id="modalEmail" type="email" class="form-control mb-2" required />
+      <label class="form-label" for="modalPassword">Password</label>
+      <input id="modalPassword" type="password" class="form-control mb-3" minlength="8" required />
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <div class="form-check">
+          <input id="modalRemember" class="form-check-input" type="checkbox" />
+          <label class="form-check-label" for="modalRemember">Remember me</label>
         </div>
-    </div>
-</section>
+        <a href="/login" class="small">Open full login page</a>
+      </div>
+      <button id="modalLoginBtn" class="btn btn-primary w-100" type="submit" data-primary-action>Sign In</button>
+      <div id="modalLoginStatus" class="small mt-2"></div>
+    </form>
+  </div>
+</div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="/assets/scripts/ui-interactions.js"></script>
+<script>
+  const DEMO_USERS = [
+    { email: 'admin@dyslexia.app', password: 'Admin@1234', name: 'Admin' },
+    { email: 'student@dyslexia.app', password: 'Student@1234', name: 'Student' }
+  ];
+
+  const modal = document.getElementById('authModal');
+  const form = document.getElementById('modalLoginForm');
+  const statusEl = document.getElementById('modalLoginStatus');
+  const welcome = document.getElementById('userWelcome');
+  const logoutBtn = document.getElementById('logoutBtn');
+
+  function getUser() {
+    try { return JSON.parse(sessionStorage.getItem('auth_user') || 'null'); } catch { return null; }
+  }
+
+  function openAuthModal() {
+    modal.classList.add('is-open');
+    modal.setAttribute('aria-hidden', 'false');
+    if (window.AppUI) window.AppUI.activateFocusTrap(modal);
+    document.getElementById('modalEmail').focus();
+  }
+
+  function closeAuthModal() {
+    modal.classList.remove('is-open');
+    modal.setAttribute('aria-hidden', 'true');
+    if (window.AppUI) window.AppUI.deactivateFocusTrap();
+  }
+
+  function refreshAuthUI() {
+    const user = getUser();
+    if (user?.name) {
+      welcome.textContent = `Signed in as ${user.name}`;
+      closeAuthModal();
+    } else {
+      welcome.textContent = '';
+      openAuthModal();
+    }
+  }
+
+  document.getElementById('authClose').addEventListener('click', () => {
+    if (location.pathname === '/login') return;
+    closeAuthModal();
+  });
+
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal && location.pathname !== '/login') closeAuthModal();
+  });
+
+  logoutBtn.addEventListener('click', () => {
+    sessionStorage.removeItem('auth_user');
+    refreshAuthUI();
+  });
+
+  form.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const email = document.getElementById('modalEmail').value.trim().toLowerCase();
+    const password = document.getElementById('modalPassword').value;
+    const match = DEMO_USERS.find((u) => u.email === email && u.password === password);
+    if (!match) {
+      statusEl.textContent = 'Invalid credentials. Please retry demo credentials.';
+      statusEl.className = 'small mt-2 text-danger';
+      return;
+    }
+    if (document.getElementById('modalRemember').checked) {
+      localStorage.setItem('remembered_email', email);
+    }
+    sessionStorage.setItem('auth_user', JSON.stringify({ email: match.email, name: match.name }));
+    statusEl.textContent = 'Login successful.';
+    statusEl.className = 'small mt-2 text-success';
+    refreshAuthUI();
+    if (location.pathname === '/login') {
+      location.href = '/home';
+    }
+  });
+
+  const remembered = localStorage.getItem('remembered_email');
+  if (remembered) document.getElementById('modalEmail').value = remembered;
+
+  refreshAuthUI();
+  if (location.pathname === '/login') openAuthModal();
+</script>
 </body>
 </html>

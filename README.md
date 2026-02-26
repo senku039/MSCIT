@@ -90,3 +90,23 @@ Reading-speed scoring now enforces basic reliability checks: minimum plausible r
 
 - Replaced the earlier attention-span mini task in the level flow with a **Rapid Naming** test, which is generally more specific to reading/dyslexia risk than generic attention metrics.
 - Reduced writing-errors prompts from 8 to 5 items to lower fatigue while preserving signal quality.
+
+## UI design tokens and interaction layer
+
+The UI is now standardized with shared tokens and interaction utilities:
+
+- `src/main/webapp/styles/design-tokens.css`: color, spacing, radius, shadow, and motion tokens.
+- `src/main/webapp/styles/main.css`: global shell styles for home, cards, modal, and upload interface.
+- `src/main/webapp/scripts/ui-interactions.js`: keyboard Enter-to-primary-action behavior, modal focus trap, and reduced-friction accessibility helpers.
+
+### Run UI locally
+
+```bash
+flask --app src.main.webapp.wsgi:app run --host 0.0.0.0 --port 5000
+```
+
+Open:
+
+- `http://127.0.0.1:5000/home` (home + auth modal)
+- `http://127.0.0.1:5000/login` (fallback login route that opens auth modal)
+- `http://127.0.0.1:5000/handwriting_analysis.html` (upload screen)
