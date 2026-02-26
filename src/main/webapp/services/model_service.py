@@ -46,23 +46,41 @@ class ModelService:
         return hasher.hexdigest()
 
     def load_models(self) -> None:
-        """Load models once at startup with sanity checks."""
-        dyslexia_path = self._assert_local_file(self._cfg("DYSLEXIA_MODEL_PATH"))
-        handwriting_path = self._assert_local_file(self._cfg("HANDWRITING_MODEL_PATH"))
+        """Load models once at startup with per-model isolation.
 
-        LOGGER.info("Loading dyslexia model from %s", dyslexia_path)
-        self.dyslexia_model = joblib.load(dyslexia_path)
-        if not hasattr(self.dyslexia_model, "predict"):
-            raise TypeError("Loaded dyslexia model does not expose a predict method.")
+        If one model fails (e.g., missing sklearn for pickled estimator),
+        the other model can still load and serve requests.
+        """
+        loaded_any = False
 
-        LOGGER.info("Loading handwriting model from %s", handwriting_path)
-        self.handwriting_model = tf.keras.models.load_model(handwriting_path, compile=False)
+        dyslexia_path = self._cfg("DYSLEXIA_MODEL_PATH")
+        if dyslexia_path:
+            try:
+                dyslexia_file = self._assert_local_file(dyslexia_path)
+                LOGGER.info("Loading dyslexia model from %s", dyslexia_file)
+                self.dyslexia_model = joblib.load(dyslexia_file)
+                if not hasattr(self.dyslexia_model, "predict"):
+                    raise TypeError("Loaded dyslexia model does not expose a predict method.")
+                loaded_any = True
+                LOGGER.info("Dyslexia model hash=%s", self._sha256(dyslexia_file))
+            except Exception:
+                self.dyslexia_model = None
+                LOGGER.exception("Failed to load dyslexia model. Continuing with partial availability.")
 
-        LOGGER.info(
-            "Model hashes: dyslexia=%s handwriting=%s",
-            self._sha256(dyslexia_path),
-            self._sha256(handwriting_path),
-        )
+        handwriting_path = self._cfg("HANDWRITING_MODEL_PATH")
+        if handwriting_path:
+            try:
+                handwriting_file = self._assert_local_file(handwriting_path)
+                LOGGER.info("Loading handwriting model from %s", handwriting_file)
+                self.handwriting_model = tf.keras.models.load_model(handwriting_file, compile=False)
+                loaded_any = True
+                LOGGER.info("Handwriting model hash=%s", self._sha256(handwriting_file))
+            except Exception:
+                self.handwriting_model = None
+                LOGGER.exception("Failed to load handwriting model. Continuing with partial availability.")
+
+        if not loaded_any:
+            raise RuntimeError("No ML models could be loaded at startup.")
 
     def predict_dyslexia(self, feature_values: list[float]) -> float:
         if self.dyslexia_model is None:

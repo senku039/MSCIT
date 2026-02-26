@@ -403,13 +403,31 @@ def handwriting_analysis() -> Any:
             predicted_prob, predicted_class, handwriting_meta = prediction_result
         else:
             predicted_prob, predicted_class = prediction_result
+    except RuntimeError as error:
+        if "Handwriting model is unavailable" not in str(error):
+            LOGGER.exception("Unhandled handwriting prediction failure")
+            return jsonify({"error": "Handwriting analysis unavailable."}), 500
+
+        # Graceful fallback when handwriting model could not load at startup.
+        predicted_prob = 0.5
+        predicted_class = "Needs_Manual_Review"
+        handwriting_meta = {
+            "confidence": 0.25,
+            "score_spread": 0.0,
+            "image_quality_score": 0.5,
+            "ensemble_samples": 0,
+            "decision_threshold": float(current_app.config.get("HANDWRITING_THRESHOLD", 0.5)),
+            "fallback_mode": "model_unavailable",
+        }
     except Exception:
         LOGGER.exception("Unhandled handwriting prediction failure")
         return jsonify({"error": "Handwriting analysis unavailable."}), 500
 
     probability_percent = round(predicted_prob * 100, 2)
     model_confidence = float(handwriting_meta.get("confidence", 0.0))
-    if predicted_class == "Non_Dyslexic" and model_confidence >= 0.6:
+    if predicted_class == "Needs_Manual_Review":
+        risk_level = "Screening Pending"
+    elif predicted_class == "Non_Dyslexic" and model_confidence >= 0.6:
         risk_level = "Low Risk"
     elif predicted_class == "Non_Dyslexic":
         risk_level = "Low/Moderate Risk"
@@ -418,9 +436,13 @@ def handwriting_analysis() -> Any:
     else:
         risk_level = "Moderate Risk"
     summary = (
-        "Model detected handwriting characteristics requiring follow-up."
-        if predicted_class == "Dyslexic"
-        else "No major handwriting risk markers detected."
+        "Handwriting model is unavailable in this environment; a manual review-friendly fallback was used."
+        if predicted_class == "Needs_Manual_Review"
+        else (
+            "Model detected handwriting characteristics requiring follow-up."
+            if predicted_class == "Dyslexic"
+            else "No major handwriting risk markers detected."
+        )
     )
     if handwriting_meta:
         summary += f" Confidence: {round(model_confidence * 100, 1)}%."
@@ -432,7 +454,9 @@ def handwriting_analysis() -> Any:
     ]
     if handwriting_meta.get("image_quality_score", 1.0) < 0.35:
         recommendations.append("Uploaded image quality is low; retake with better lighting and a flat page.")
-    if model_confidence < 0.45:
+    if handwriting_meta.get("fallback_mode") == "model_unavailable":
+        recommendations.append("Install missing model dependencies (e.g., scikit-learn) and restart server for full ML inference.")
+    elif model_confidence < 0.45:
         recommendations.append("Prediction confidence is low; retry with a clearer handwriting sample.")
 
     result_payload = {
