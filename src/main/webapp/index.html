@@ -292,7 +292,7 @@
 (function(){
   const sessionRaw = sessionStorage.getItem('auth_user');
   if (!sessionRaw) {
-    window.location.href = '/login';
+    window.location.href = 'login.html';
     return;
   }
 
@@ -307,7 +307,7 @@
   if (logoutBtn) {
     logoutBtn.addEventListener('click', () => {
       sessionStorage.removeItem('auth_user');
-      window.location.href = '/login';
+      window.location.href = 'login.html';
     });
   }
 })();

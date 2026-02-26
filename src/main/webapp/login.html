@@ -6,64 +6,167 @@
   <title>Login | Dyslexia Screening Platform</title>
   <link rel="stylesheet" href="/theme.css">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
-    body{
-      min-height:100vh;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      padding:20px;
-      background:
-        radial-gradient(circle at 15% 18%, rgba(99,132,255,.22), transparent 35%),
-        radial-gradient(circle at 82% 24%, rgba(20,193,211,.2), transparent 34%),
-        linear-gradient(125deg, rgba(12,30,85,.92), rgba(29,72,167,.86));
+    :root {
+      --ink: #11295f;
+      --muted: #53658f;
+      --card: #f7faff;
+      --line: #cddcf8;
+      --brand-a: #2563eb;
+      --brand-b: #7c3aed;
     }
-    .login-shell{
-      width:min(1040px, 96vw);
-      border-radius:22px;
-      overflow:hidden;
-      border:1px solid rgba(198,218,255,.45);
-      box-shadow:0 24px 44px rgba(8,18,55,.4);
-      background:#fff;
-      display:grid;
-      grid-template-columns:1.1fr 1fr;
-    }
-    .brand-pane{
-      padding:42px;
-      color:#f0f6ff;
+
+    body {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      font-family: "Inter", system-ui, -apple-system, sans-serif;
       background:
-        linear-gradient(150deg, rgba(19,40,108,.92), rgba(53,103,224,.78)),
+        radial-gradient(circle at 14% 12%, rgba(103, 132, 255, .24), transparent 33%),
+        radial-gradient(circle at 86% 20%, rgba(64, 205, 241, .18), transparent 35%),
+        linear-gradient(130deg, #102b74 0%, #274fa8 54%, #2f66c0 100%);
+    }
+
+    .login-shell {
+      width: min(1060px, 96vw);
+      border-radius: 24px;
+      overflow: hidden;
+      border: 1px solid rgba(203, 221, 255, .58);
+      box-shadow: 0 28px 50px rgba(8, 21, 58, .34);
+      background: #fff;
+      display: grid;
+      grid-template-columns: 1.08fr 1fr;
+    }
+
+    .brand-pane {
+      color: #f2f8ff;
+      padding: 42px;
+      background:
+        linear-gradient(150deg, rgba(15, 39, 109, .9), rgba(53, 105, 224, .8)),
         url('https://images.unsplash.com/photo-1503676260728-1c00da094a0b?auto=format&fit=crop&w=1800&q=80') center/cover no-repeat;
+      position: relative;
     }
-    .form-pane{padding:36px 34px;background:#f7faff;}
-    .form-label{font-weight:600;color:#1b2b5c;}
-    .form-control{border-radius:10px;min-height:44px;}
-    .helper{font-size:.86rem;color:#5a678e;}
-    .btn-login{border-radius:12px;font-weight:700;padding:11px 16px;}
-    .link-row{display:flex;justify-content:space-between;gap:10px;font-size:.92rem;}
-    .caps{font-size:.82rem;color:#b45309;display:none;}
-    @media (max-width: 920px){
-      .login-shell{grid-template-columns:1fr;}
-      .brand-pane{padding:28px;}
-      .form-pane{padding:24px;}
+
+    .brand-pane::after {
+      content: "";
+      position: absolute;
+      inset: auto 0 0 0;
+      height: 38%;
+      background: linear-gradient(to top, rgba(12, 31, 86, .52), transparent);
+      pointer-events: none;
+    }
+
+    .brand-content { position: relative; z-index: 1; }
+
+    .brand-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 14px;
+      border-radius: 999px;
+      border: 1px solid rgba(205, 224, 255, .45);
+      background: rgba(255, 255, 255, .14);
+      font-size: .84rem;
+      font-weight: 700;
+      margin-bottom: 14px;
+    }
+
+    .brand-pane h2 {
+      font-size: clamp(1.8rem, 2.5vw, 2.45rem);
+      line-height: 1.2;
+      margin-bottom: 12px;
+      font-weight: 800;
+    }
+
+    .brand-pane p,
+    .brand-pane li {
+      color: rgba(235, 245, 255, .98);
+      font-size: 1.04rem;
+      line-height: 1.5;
+    }
+
+    .form-pane {
+      padding: 36px 34px;
+      background: linear-gradient(180deg, #f9fbff, #f2f7ff);
+    }
+
+    .form-pane h3 {
+      color: var(--ink);
+      font-size: 2rem;
+      font-weight: 800;
+      margin-bottom: 2px;
+    }
+
+    .helper { color: var(--muted); font-size: .93rem; }
+    .form-label { font-weight: 700; color: #173777; margin-bottom: 6px; }
+
+    .form-control {
+      border-radius: 11px;
+      border-color: var(--line);
+      min-height: 46px;
+      transition: border-color .22s ease, box-shadow .22s ease, transform .22s ease;
+    }
+
+    .form-control:focus {
+      border-color: #82a4f4;
+      box-shadow: 0 0 0 .2rem rgba(59, 124, 246, .15);
+      transform: translateY(-1px);
+    }
+
+    .btn-login {
+      border: 0;
+      border-radius: 12px;
+      font-weight: 700;
+      padding: 12px 16px;
+      background: linear-gradient(130deg, var(--brand-a), var(--brand-b));
+      box-shadow: 0 10px 22px rgba(37, 99, 235, .3);
+      transition: transform .22s ease, box-shadow .22s ease;
+    }
+
+    .btn-login:hover { transform: translateY(-1px); box-shadow: 0 14px 28px rgba(37, 99, 235, .33); }
+
+    .caps { font-size: .82rem; color: #b45309; display: none; }
+    .trust-note {
+      margin-top: 10px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 1px solid var(--line);
+      background: #edf4ff;
+      color: #204586;
+      font-size: .86rem;
+      font-weight: 600;
+    }
+
+    .link-row { display: flex; justify-content: space-between; gap: 10px; font-size: .92rem; }
+
+    @media (max-width: 920px) {
+      .login-shell { grid-template-columns: 1fr; }
+      .brand-pane { padding: 28px; }
+      .form-pane { padding: 24px; }
     }
   </style>
 </head>
 <body>
   <div class="login-shell">
     <section class="brand-pane">
-      <h2 class="fw-bold">Dyslexia Screening Portal</h2>
-      <p class="mb-4">Sign in to continue your multi-level assessment roadmap, view recommendations, and track progress.</p>
-      <ul>
-        <li>Secure session-based access</li>
-        <li>Save progress between assessment levels</li>
-        <li>Personalized recommendations and detailed analysis</li>
-      </ul>
-      <div class="mt-4 small">Need support? Contact: <strong>support@dyslexia-screening.local</strong></div>
+      <div class="brand-content">
+        <div class="brand-chip">🔒 Secure Assessment Workspace</div>
+        <h2>Dyslexia Screening Portal</h2>
+        <p class="mb-4">Sign in to continue your multi-level assessment roadmap, view recommendations, and track progress.</p>
+        <ul>
+          <li>Secure session-based access</li>
+          <li>Save progress between assessment levels</li>
+          <li>Personalized recommendations and detailed analysis</li>
+        </ul>
+        <div class="mt-4 small">Need support? Contact: <strong>support@dyslexia-screening.local</strong></div>
+      </div>
     </section>
 
     <section class="form-pane">
-      <h3 class="fw-bold mb-1" style="color:#15316b;">Welcome Back</h3>
+      <h3>Welcome Back</h3>
       <p class="helper mb-3">Enter your account details to continue.</p>
 
       <form id="loginForm" novalidate>
@@ -91,8 +194,9 @@
           <a href="#" id="forgotLink" class="text-decoration-none">Forgot password?</a>
         </div>
 
-        <button id="loginBtn" class="btn btn-primary btn-login w-100" type="submit">Sign In</button>
+        <button id="loginBtn" class="btn btn-login text-white w-100" type="submit">Sign In</button>
         <div id="loginStatus" class="helper mt-2"></div>
+        <div class="trust-note">🔐 Your session is protected and used only for your assessment journey.</div>
       </form>
 
       <hr class="my-4">
@@ -114,17 +218,19 @@
     const rememberEl = document.getElementById('rememberMe');
     const statusEl = document.getElementById('loginStatus');
 
-    // prefill remembered account
     const remembered = localStorage.getItem('remembered_email');
     if (remembered) {
       emailEl.value = remembered;
       rememberEl.checked = true;
     }
 
-    // auto redirect if already signed in
+    const navigateToHome = () => {
+      window.location.href = 'index.html';
+    };
+
     const existing = sessionStorage.getItem('auth_user');
     if (existing) {
-      window.location.href = '/home';
+      navigateToHome();
     }
 
     document.getElementById('togglePassword').addEventListener('click', function() {
@@ -172,7 +278,7 @@
       sessionStorage.setItem('auth_user', JSON.stringify({ email: matched.email, name: matched.name }));
       statusEl.textContent = 'Login successful. Redirecting...';
       statusEl.style.color = '#166534';
-      setTimeout(() => { window.location.href = '/home'; }, 350);
+      setTimeout(() => { navigateToHome(); }, 350);
     });
   </script>
 </body>
