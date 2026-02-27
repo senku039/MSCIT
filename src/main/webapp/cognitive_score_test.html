@@ -17,13 +17,13 @@
       min-height: 100vh;
     }
     .page-shell {
-      max-width: 980px;
-      margin: 50px auto;
+      max-width: min(1240px, 96vw);
+      margin: clamp(18px, 4vh, 46px) auto;
       background: rgba(255, 255, 255, 0.94);
       border: 1px solid #d6e2ff;
       border-radius: 18px;
       box-shadow: 0 16px 36px rgba(11, 24, 74, 0.26);
-      padding: 28px;
+      padding: clamp(18px, 2.3vw, 36px);
     }
     .question-title { color: #172a65; font-weight: 700; }
     .helper-text { color: #4e5e8f; font-size: 0.95rem; }
