@@ -9,6 +9,7 @@ from flask import Flask, jsonify
 from flask_cors import CORS
 from werkzeug.exceptions import RequestEntityTooLarge
 
+from src.main.webapp.auth import init_user_table
 from src.main.webapp.api.routes import api_bp
 from src.main.webapp.config import CONFIG_MAPPING
 from src.main.webapp.services.model_service import ModelService
@@ -44,6 +45,9 @@ def create_app() -> Flask:
         )
     app.extensions["model_service"] = model_service
     app.extensions["rate_limiter"] = RateLimiter(app.config)
+
+    with app.app_context():
+        init_user_table()
 
     app.register_blueprint(api_bp)
 
