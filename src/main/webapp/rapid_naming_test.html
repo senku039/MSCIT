@@ -7,51 +7,20 @@
   <link rel="stylesheet" href="/theme.css">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <style>
-    body {
-      min-height: 100vh;
-      font-family: 'Inter', Arial, sans-serif;
-      color: #0f172a;
-      padding: 20px;
-      background:
-        radial-gradient(circle at 14% 14%, rgba(37,99,235,.15), transparent 42%),
-        radial-gradient(circle at 84% 10%, rgba(16,185,129,.15), transparent 35%),
-        linear-gradient(155deg, rgba(12,31,88,.68), rgba(69,94,199,.56)),
-        url('/IMAGES/kids.jpg') center/cover no-repeat;
-    }
-    .container {
-      max-width: min(1080px, 96vw);
-      background: rgba(255,255,255,.96);
-      padding: clamp(20px, 2.4vw, 38px);
-      border-radius: 18px;
-      box-shadow: 0 18px 36px rgba(0,0,0,.2);
-    }
-    .viewer {
-      min-height: 230px;
-      border-radius: 14px;
-      border: 1px dashed #a8c2ff;
-      background: linear-gradient(180deg, #f8fbff, #f2f8ff);
-      display: grid;
-      place-items: center;
-      margin: 14px 0;
-      text-align: center;
-      padding: 12px;
-    }
-    .viewer img {
-      max-height: 190px;
-      border-radius: 10px;
-      box-shadow: 0 10px 18px rgba(0,0,0,.18);
-    }
+    body { background: url('/IMAGES/kids.jpg') no-repeat center center/cover; font-family: Arial, sans-serif; padding: 20px; }
+    .container { max-width: min(1200px, 96vw); background: rgba(255,255,255,.96); padding: clamp(20px, 2.4vw, 38px); border-radius: 16px; box-shadow: 0 14px 30px rgba(0,0,0,.18); }
+    .grid { display:grid; grid-template-columns: repeat(3, 1fr); gap:10px; margin:16px 0; }
+    .tile { border:1px solid #d6e2ff; background:#f7faff; padding:12px; text-align:center; border-radius:8px; font-weight:700; font-size:1.1rem; }
   </style>
 </head>
 <body>
   <button class="global-back-btn" type="button" onclick="window.location.href='index.html'">← Back</button>
   <div class="container">
-    <h1 class="text-center mb-2">Rapid Naming · Image Sequence</h1>
-    <p class="text-muted text-center">Animals appear one after another. Type which animal came <strong>first</strong> and the full order.</p>
-
+    <h1 class="text-center mb-3">Rapid Naming Test (High Priority)</h1>
+    <p class="text-muted">Complete only <strong>2 levels</strong>: one for <strong>letters</strong> and one for <strong>words</strong>.</p>
     <div class="d-flex justify-content-between align-items-center">
-      <div id="roundInfo" class="fw-semibold text-primary">Level 1 / 2</div>
-      <small class="text-muted">Memory + naming speed combined</small>
+      <div id="roundInfo" class="fw-semibold text-primary">Level 1 / 2 — Letters</div>
+      <small class="text-muted">Read left-to-right and type in order</small>
     </div>
 
     <div id="viewer" class="viewer">Press <strong>Start Level</strong> to begin sequence playback.</div>
@@ -66,17 +35,8 @@
 
   <script>
     const LEVELS = [
-      { name: 'Sequence A' },
-      { name: 'Sequence B' }
-    ];
-
-    const animals = [
-      { label: 'cat', url: 'https://upload.wikimedia.org/wikipedia/commons/4/4d/Cat_November_2010-1a.jpg' },
-      { label: 'dog', url: 'https://images.unsplash.com/photo-1517849845537-4d257902454a?auto=format&fit=crop&w=900&q=80' },
-      { label: 'lion', url: 'https://images.unsplash.com/photo-1546182990-dffeafbe841d?auto=format&fit=crop&w=900&q=80' },
-      { label: 'rabbit', url: 'https://images.unsplash.com/photo-1585110396000-c9ffd4e4b308?auto=format&fit=crop&w=900&q=80' },
-      { label: 'horse', url: 'https://images.unsplash.com/photo-1553284965-83fd3e82fa5a?auto=format&fit=crop&w=900&q=80' },
-      { label: 'elephant', url: 'https://upload.wikimedia.org/wikipedia/commons/3/37/African_Bush_Elephant.jpg' },
+      { name: 'Letters', items: ['b', 'd', 'p', 'q', 'm', 'n', 'u', 'v', 'w'] },
+      { name: 'Words', items: ['was', 'saw', 'form', 'from', 'trail', 'trial', 'tap', 'pat', 'left'] },
     ];
 
     let currentLevel = 0;
@@ -197,10 +157,11 @@
       document.getElementById('submitBtn').disabled = true;
       document.getElementById('startBtn').disabled = false;
       document.getElementById('startBtn').textContent = 'Start Next Level';
-      document.getElementById('viewer').innerHTML = 'Ready for next sequence';
       document.getElementById('result').innerHTML = `
         <div class="alert alert-info">
-          Level ${currentLevel} complete · Accuracy ${scored.accuracy.toFixed(2)}% · Time ${elapsed.toFixed(2)}s
+          <strong>Level ${currentLevel} complete.</strong>
+          Accuracy: ${accuracy.toFixed(2)}% | Time: ${elapsed.toFixed(2)} sec.
+          Click <strong>Start Next Level</strong> for Level ${currentLevel + 1} (${LEVELS[currentLevel].name}).
         </div>`;
       updateRoundInfo();
     });
@@ -211,18 +172,17 @@
 
     document.addEventListener('keydown', (event) => {
       if (event.key !== 'Enter') return;
-      const active = document.activeElement;
-      const inTextArea = active && active.tagName === 'TEXTAREA';
-      if (inTextArea && event.shiftKey) return;
       event.preventDefault();
-
       const startBtn = document.getElementById('startBtn');
       const submitBtn = document.getElementById('submitBtn');
-      if (!startBtn.disabled) startBtn.click();
-      else if (!submitBtn.disabled) submitBtn.click();
+      const finishBtn = document.getElementById('finishTestBtn');
+
+      if (finishBtn.style.display !== 'none') { finishBtn.click(); return; }
+      if (!startBtn.disabled) { startBtn.click(); return; }
+      if (!submitBtn.disabled) { submitBtn.click(); }
     });
 
-    updateRoundInfo();
+    buildLevel(0);
   </script>
 </body>
 </html>

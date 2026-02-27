@@ -82,9 +82,9 @@
           <h3 class="m-0">Stage 2 · Animal Sequence</h3>
           <span class="badge-soft" id="sequenceHint">Watch carefully</span>
         </div>
-        <p class="helper-text">Images appear one by one. After playback, type <strong>the first animal shown</strong> and the full order.</p>
+        <p class="helper-text">Images appear one by one. After playback, type only the full animal order (comma separated).</p>
         <div id="sequenceBoard" class="sequence-board">Press <strong>Submit &amp; Next</strong> to start playback.</div>
-        <input type="text" id="attentionInput" class="form-control mt-2" placeholder="Format: first=cat | order=cat,dog,lion" required>
+        <input type="text" id="attentionInput" class="form-control mt-2" placeholder="Example: cat,dog,lion,rabbit" required>
       </div>
 
       <div id="problemSolvingTest" class="mb-4 stage-card" style="display: none;">
@@ -187,7 +187,7 @@
 
       function showNext() {
         if (idx >= animalSequence.length) {
-          board.innerHTML = '<strong>Sequence complete.</strong><br>Type: first=&lt;animal&gt; | order=&lt;a,b,c,d&gt;';
+          board.innerHTML = '<strong>Sequence complete.</strong><br>Type the full order (a,b,c,d).';
           hint.textContent = 'Now answer';
           return;
         }
@@ -217,16 +217,17 @@
     }
 
     function evaluateAttentionInput(input) {
-      const value = input.toLowerCase();
-      const first = animalSequence[0]?.label || '';
+      const normalizedOrder = input.toLowerCase().split(',').map((x) => x.trim()).filter(Boolean).join(',');
       const order = tests[1].correctAnswer;
-      let score = 0;
+      if (normalizedOrder === order) return 100;
 
-      if (value.includes(`first=${first}`)) score += 60;
-      const orderPart = value.split('order=')[1] || '';
-      const normalizedOrder = orderPart.split(',').map((x) => x.trim()).filter(Boolean).join(',');
-      if (normalizedOrder === order) score += 40;
-      return score;
+      const typed = normalizedOrder ? normalizedOrder.split(',') : [];
+      const target = order.split(',');
+      let correctSlots = 0;
+      for (let i = 0; i < Math.min(typed.length, target.length); i++) {
+        if (typed[i] === target[i]) correctSlots += 1;
+      }
+      return Math.round((correctSlots / target.length) * 100);
     }
 
     function submitCurrentTest() {
