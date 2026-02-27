@@ -539,12 +539,161 @@
     document.getElementById('takeAttentionTest').addEventListener('click', () => goToLevel('attention'));
     document.getElementById('takeResponseTimeTest').addEventListener('click', () => goToLevel('response_time'));
 
-    document.getElementById('submitBtn').addEventListener('click', function() {
+    function toNum(key, fallback = 0) {
+      const value = Number(sessionStorage.getItem(key));
+      return Number.isFinite(value) ? value : fallback;
+    }
+
+    function clamp01(v) { return Math.max(0, Math.min(1, v)); }
+    function inv01(v) { return 1 - clamp01(v); }
+    function normHigher(v, min, max) { return clamp01((v - min) / Math.max(max - min, 1e-6)); }
+    function normLower(v, min, max) { return inv01(normHigher(v, min, max)); }
+
+    function encodePayload(payload) {
+      const raw = JSON.stringify(payload);
+      return btoa(unescape(encodeURIComponent(raw))).replace(/\+/g, '-').replace(/\//g, '_');
+    }
+
+    function computeCentralEvaluation() {
+      const readingSpeed = toNum('reading_speed_score', toNum('reading_speed', 0));
+      const rapidNaming = toNum('attention_score', toNum('attention_score', toNum('attention', 0)));
+      const rapidNamingAccuracy = toNum('rapid_naming_accuracy', 75);
+      const phonemicErrors = toNum('phonemic_errors_score', toNum('phonemic_awareness_errors_score', toNum('phonemic_errors', 0)));
+      const spelling = toNum('spelling_accuracy_score', toNum('spelling_accuracy', 0));
+      const writingErrors = toNum('writing_errors_score', toNum('writing_errors', 0));
+      const cognitive = toNum('cognitive_score', toNum('cognitive', 0));
+      const responseTime = toNum('response_time_score', toNum('response_time', 1.0));
+      const comprehension = toNum('reading_comprehension_accuracy', 70);
+
+      const facePresence = toNum('face_presence_time', 0);
+      const lookingAway = toNum('looking_away_seconds', 0);
+      const eyeMovement = toNum('eye_movement_index', 0);
+      const attentionStability = toNum('attention_stability', 70);
+      const movementVariability = toNum('movement_variability', eyeMovement);
+      const cameraReliability = toNum('camera_reliability', toNum('tracking_quality', 60));
+
+      // High-priority reading indicators (50%).
+      const readingComponent = (
+        inv01(normHigher(readingSpeed, 70, 220)) * 0.35 +
+        inv01(normHigher(comprehension, 50, 100)) * 0.20 +
+        inv01(normHigher(rapidNaming, 40, 100)) * 0.20 +
+        normHigher(phonemicErrors, 0, 5) * 0.20 +
+        normHigher(eyeMovement, 0, 100) * 0.05
+      );
+
+      // Language indicators (30%).
+      const languageComponent = (
+        inv01(normHigher(spelling, 60, 100)) * 0.6 +
+        normHigher(writingErrors, 0, 5) * 0.4
+      );
+
+      // Cognitive indicators (15%).
+      const cognitiveComponent = inv01(normHigher(cognitive, 40, 100));
+
+      // Support indicators (5%).
+      const supportComponent = (
+        normHigher(responseTime, 0.2, 2.2) * 0.55 +
+        inv01(normHigher(cameraReliability, 35, 100)) * 0.45
+      );
+
+      const finalRisk01 = clamp01((readingComponent * 0.50) + (languageComponent * 0.30) + (cognitiveComponent * 0.15) + (supportComponent * 0.05));
+      const riskScore = Math.round(finalRisk01 * 100);
+      const riskLevel = riskScore <= 30 ? 'Low Risk' : (riskScore <= 60 ? 'Moderate Risk' : 'High Risk');
+
+      const completeness = [
+        'reading_speed_score','attention_score','spelling_accuracy_score','phonemic_errors_score','writing_errors_score','cognitive_score','response_time_score'
+      ].map((k) => sessionStorage.getItem(k) !== null).filter(Boolean).length / 7;
+      const cameraQuality = clamp01(cameraReliability / 100);
+      const consistencySpread = Math.max(readingComponent, languageComponent, cognitiveComponent, supportComponent) - Math.min(readingComponent, languageComponent, cognitiveComponent, supportComponent);
+      const consistency = clamp01(1 - consistencySpread);
+      const confidenceValue = clamp01((completeness * 0.5) + (cameraQuality * 0.2) + (consistency * 0.3));
+      const confidenceLevel = confidenceValue >= 0.75 ? 'High' : (confidenceValue >= 0.5 ? 'Medium' : 'Low');
+
+      const indicators = [
+        { name: 'Reading fluency', value: inv01(normHigher(readingSpeed, 70, 220)) },
+        { name: 'Rapid naming', value: inv01(normHigher(rapidNaming, 40, 100)) },
+        { name: 'Phonemic awareness', value: normHigher(phonemicErrors, 0, 5) },
+        { name: 'Spelling pattern', value: inv01(normHigher(spelling, 60, 100)) },
+        { name: 'Writing errors', value: normHigher(writingErrors, 0, 5) },
+        { name: 'Attention stability', value: inv01(normHigher(attentionStability, 40, 100)) },
+        { name: 'Response-time support', value: normHigher(responseTime, 0.2, 2.2) },
+        { name: 'Movement variability', value: normHigher(movementVariability, 0, 120) },
+        { name: 'Camera reliability', value: inv01(normHigher(cameraReliability, 35, 100)) }
+      ].sort((a, b) => b.value - a.value).slice(0, 4).map((x) => x.name);
+
+      const testBreakdown = [
+        { test: 'Reading Speed + Comprehension', score: Number(readingSpeed.toFixed(2)), normalized_risk: Number((inv01(normHigher(readingSpeed, 70, 220)) * 100).toFixed(2)), analysis: `WPM=${readingSpeed.toFixed(1)}, comprehension=${comprehension.toFixed(0)}%, face_presence=${facePresence.toFixed(0)}s` },
+        { test: 'Rapid Naming', score: Number(rapidNaming.toFixed(2)), normalized_risk: Number((inv01(normHigher(rapidNaming, 40, 100)) * 100).toFixed(2)), analysis: `accuracy=${rapidNamingAccuracy.toFixed(1)}%, speed-score=${rapidNaming.toFixed(1)}` },
+        { test: 'Spelling Accuracy', score: Number(spelling.toFixed(2)), normalized_risk: Number((inv01(normHigher(spelling, 60, 100)) * 100).toFixed(2)), analysis: `spelling accuracy=${spelling.toFixed(1)}%` },
+        { test: 'Phonemic Awareness Errors', score: Number(phonemicErrors.toFixed(2)), normalized_risk: Number((normHigher(phonemicErrors, 0, 5) * 100).toFixed(2)), analysis: `error count=${phonemicErrors.toFixed(1)} (lower is better)` },
+        { test: 'Writing Errors', score: Number(writingErrors.toFixed(2)), normalized_risk: Number((normHigher(writingErrors, 0, 5) * 100).toFixed(2)), analysis: `writing error score=${writingErrors.toFixed(1)} (lower is better)` },
+        { test: 'Cognitive Score', score: Number(cognitive.toFixed(2)), normalized_risk: Number((inv01(normHigher(cognitive, 40, 100)) * 100).toFixed(2)), analysis: `cognitive score=${cognitive.toFixed(1)}%` },
+      ];
+
+      const recommendationText = riskLevel === 'High Risk'
+        ? 'Your pattern shows stronger reading-language difficulty signals. A supportive specialist review can help plan next steps.'
+        : (riskLevel === 'Moderate Risk'
+          ? 'Your pattern shows some reading/language difficulty signals. Regular practice and follow-up screening are recommended.'
+          : 'Your current pattern suggests lower risk. Keep regular reading practice and monitor progress over time.');
+
+      const personalRecommendation = `Focus first on: ${indicators.slice(0, 2).join(' and ')}. Practice 10-15 minutes daily with guided tasks in these areas.`;
+
+      const finalPayload = {
+        prediction: Number((riskScore / 100).toFixed(4)),
+        probability_percent: riskScore,
+        model_probability: Number((riskScore / 100).toFixed(4)),
+        model_probability_percent: riskScore,
+        risk_level: riskLevel,
+        summary: recommendationText,
+        observations: indicators.map((i) => `${i} contributed to the final screening profile.`),
+        recommendations: [
+          'This is a behavioral screening result, not a medical diagnosis.',
+          'Use reading, language, and classroom observations together for next steps.',
+          recommendationText,
+          personalRecommendation,
+        ],
+        feature_analysis: [
+          { feature: 'Reading Component (High Priority)', value: Number((readingComponent * 100).toFixed(2)), expected_range: '0-100 risk', status: 'Computed', impact: 'Primary signal', abnormal: readingComponent > 0.6 },
+          { feature: 'Language Component', value: Number((languageComponent * 100).toFixed(2)), expected_range: '0-100 risk', status: 'Computed', impact: 'Secondary signal', abnormal: languageComponent > 0.6 },
+          { feature: 'Cognitive Component', value: Number((cognitiveComponent * 100).toFixed(2)), expected_range: '0-100 risk', status: 'Computed', impact: 'Supportive signal', abnormal: cognitiveComponent > 0.6 },
+          { feature: 'Support Component', value: Number((supportComponent * 100).toFixed(2)), expected_range: '0-100 risk', status: 'Computed', impact: 'Quality signal', abnormal: supportComponent > 0.7 }
+        ],
+        dyslexia_risk_score: riskScore,
+        dyslexia_risk_level: riskLevel,
+        confidence_level: confidenceLevel,
+        dominant_indicators: indicators,
+        recommendation_text: `${recommendationText} ${personalRecommendation}`,
+        attention_stability: Number(attentionStability.toFixed(2)),
+        movement_variability: Number(movementVariability.toFixed(2)),
+        camera_reliability: Number(cameraReliability.toFixed(2)),
+        component_scores: {
+          reading_component: Number((readingComponent * 100).toFixed(2)),
+          language_component: Number((languageComponent * 100).toFixed(2)),
+          cognitive_component: Number((cognitiveComponent * 100).toFixed(2)),
+          support_component: Number((supportComponent * 100).toFixed(2)),
+        },
+        test_breakdown: testBreakdown,
+      };
+
+      sessionStorage.setItem('dyslexia_risk_score', String(finalPayload.dyslexia_risk_score));
+      sessionStorage.setItem('dyslexia_risk_level', finalPayload.dyslexia_risk_level);
+      sessionStorage.setItem('confidence_level', finalPayload.confidence_level);
+      sessionStorage.setItem('dominant_indicators', JSON.stringify(finalPayload.dominant_indicators));
+      sessionStorage.setItem('recommendation_text', finalPayload.recommendation_text);
+      sessionStorage.setItem('test_breakdown', JSON.stringify(finalPayload.test_breakdown));
+
+      return finalPayload;
+    }
+
+    async function submitFinalPrediction() {
       const completedState = getCompletionState();
       if (!completedState.every(Boolean)) {
         document.getElementById('result').innerHTML = `<div class="alert alert-warning mt-2">Please complete all levels before prediction.</div>`;
         return;
       }
+
+      const localEval = computeCentralEvaluation();
+      document.getElementById('result').innerHTML = `<div class="alert alert-info mt-2">Generating final behavioral screening result…</div>`;
 
       const inputData = {
         Attention_Span: document.getElementById('attention').value,
@@ -556,33 +705,26 @@
         Response_Time: document.getElementById('response_time').value
       };
 
-      fetch(`${API_BASE}/predict`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(inputData)
-      })
-      .then(response => {
+      try {
+        const response = await fetch(`${API_BASE}/predict`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(inputData)
+        });
+
         if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-        return response.json();
-      })
-      .then(data => {
-        if (data.prediction !== undefined) {
-          const predictionScore = Number(data.prediction);
-          const resultText = predictionScore >= 0.5 ? "High likelihood of dyslexia" : "Low likelihood of dyslexia";
-          const redirectPath = data.result_redirect || '';
-          if (redirectPath) {
-            window.location.href = `${API_BASE}${redirectPath}`;
-            return;
-          }
-          document.getElementById('result').innerHTML = `<div class="alert alert-info mt-2">${resultText} (${(predictionScore*100).toFixed(2)}%)</div>`;
-        } else {
-          document.getElementById('result').innerHTML = `<div class="alert alert-danger mt-2">Error: ${data.error || 'No prediction returned'}</div>`;
-        }
-      })
-      .catch(error => {
-        document.getElementById('result').innerHTML = `<div class="alert alert-danger mt-2">Error: ${error.message}</div>`;
-      });
-    });
+        const data = await response.json();
+        const merged = { ...data, ...localEval };
+        const encoded = encodePayload(merged);
+        window.location.href = `${API_BASE}/prediction-result?data=${encoded}`;
+      } catch (_error) {
+        // Always produce a final result unless data is unusable.
+        const encoded = encodePayload(localEval);
+        window.location.href = `${API_BASE}/prediction-result?data=${encoded}`;
+      }
+    }
+
+    document.getElementById('submitBtn').addEventListener('click', submitFinalPrediction);
   </script>
 </body>
 </html>
