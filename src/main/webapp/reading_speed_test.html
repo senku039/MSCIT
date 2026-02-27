@@ -89,7 +89,16 @@
     let detectionSamples = 0;
     let stableFaceSamples = 0;
     let lookAwayAlerts = 0;
-    let eyeMovementScore = 0;
+    let faceMissingStreak = 0;
+    let cameraStartPromise = null;
+
+    const CAMERA_TRACE_ENABLED = new URLSearchParams(window.location.search).get('debugCamera') === '1'
+      || window.localStorage.getItem('debug_reading_camera') === '1';
+
+    function cameraTrace(step, details = {}) {
+      if (!CAMERA_TRACE_ENABLED) return;
+      console.log('[reading-camera]', step, details);
+    }
 
     function randomPick(items){ return items[Math.floor(Math.random() * items.length)]; }
 
@@ -203,8 +212,20 @@
       if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
         let lastErr = null;
         for (const constraints of constraintsList) {
-          try { return await navigator.mediaDevices.getUserMedia(constraints); }
-          catch (e) { lastErr = e; }
+          try {
+            cameraTrace('getUserMedia.attempt', { constraints });
+            const stream = await navigator.mediaDevices.getUserMedia(constraints);
+            cameraTrace('getUserMedia.success', { trackCount: stream.getTracks().length });
+            return stream;
+          }
+          catch (e) {
+            cameraTrace('getUserMedia.failure', {
+              constraint: constraints,
+              name: e?.name,
+              message: e?.message
+            });
+            lastErr = e;
+          }
         }
         throw lastErr || new Error('Camera unavailable');
       }
@@ -217,11 +238,41 @@
     }
 
     async function startCameraPreview() {
-      const video = document.getElementById('webcam');
+      if (cameraStartPromise) {
+        cameraTrace('camera.start.skipped_inflight');
+        return cameraStartPromise;
+      }
+
+      cameraStartPromise = (async () => {
+        const video = document.getElementById('webcam');
+      cameraTrace('camera.start.begin', {
+        protocol: window.location.protocol,
+        readyState: document.readyState,
+        hasVideoElement: Boolean(video),
+        mediaDevices: Boolean(navigator.mediaDevices),
+        hasGetUserMedia: Boolean(navigator.mediaDevices && navigator.mediaDevices.getUserMedia)
+      });
+
       const mediaSupported = Boolean((navigator.mediaDevices && navigator.mediaDevices.getUserMedia) || navigator.getUserMedia || navigator.webkitGetUserMedia);
       if (!mediaSupported) {
         setCameraStatus('Camera API is unavailable in this browser. Reading test will continue without camera tracking.', 'warning');
+        cameraTrace('camera.start.no_media_api');
         return false;
+      }
+
+      if (navigator.mediaDevices && navigator.mediaDevices.enumerateDevices) {
+        try {
+          const devices = await navigator.mediaDevices.enumerateDevices();
+          if (!devices.some((d) => d.kind === 'videoinput')) {
+            setCameraStatus('Camera device not listed yet. Attempting to request camera permission...', 'info');
+          }
+        } catch (_e) {
+          setCameraStatus('Could not pre-check camera devices. Attempting to start camera...', 'info');
+        }
+      }
+
+      if (location.protocol !== 'https:' && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
+        setCameraStatus('Camera can be blocked on non-secure pages. Prefer localhost/https.', 'warning');
       }
 
       if (navigator.mediaDevices && navigator.mediaDevices.enumerateDevices) {
@@ -254,22 +305,41 @@
         video.style.display = 'block';
         try { await video.play(); } catch (_e) {}
         setCameraStatus('Camera preview started. You can now begin reading.', 'success');
+        cameraTrace('camera.start.success', {
+          activeTracks: videoStream.getVideoTracks().map((t) => ({
+            label: t.label,
+            readyState: t.readyState
+          }))
+        });
         return true;
       } catch (error) {
-        setCameraStatus(`Camera access issue (${error.name || 'error'}). Allow permission, close other camera apps, and retry.`, 'warning');
+        const errorName = error?.name || 'error';
+        const errorMessage = error?.message || 'Unknown camera error';
+        const messageByError = {
+          NotAllowedError: 'Camera permission was denied. Please allow camera access in browser settings and retry.',
+          NotFoundError: 'No camera device was found. Please connect a camera and retry.',
+          NotReadableError: 'Camera is already in use by another app. Close other apps and retry.'
+        };
+        setCameraStatus(messageByError[errorName] || `Camera access issue (${errorName}). ${errorMessage}`, 'warning');
+        cameraTrace('camera.start.error', { name: errorName, message: errorMessage });
         return false;
+      } finally {
+        cameraStartPromise = null;
       }
+      })();
 
-      detectionRaf = requestAnimationFrame(detectionTick);
+      return cameraStartPromise;
     }
 
     function stopCamera() {
+      cameraTrace('camera.stop.begin', { hasStream: Boolean(videoStream) });
       if (videoStream) {
         videoStream.getTracks().forEach((track) => track.stop());
         videoStream = null;
       }
       document.getElementById('webcam').style.display = 'none';
       stopFaceTracking();
+      cameraTrace('camera.stop.done');
     }
 
     function resetTrackingMetrics() {
@@ -281,14 +351,16 @@
       document.getElementById('trackingPanel').style.display = 'none';
     }
 
-    document.getElementById('startCameraBtn').addEventListener('click', async function() {
+    document.getElementById('startCameraBtn').addEventListener('click', async function(event) {
+      cameraTrace('ui.click.startCameraBtn', { trusted: event.isTrusted, target: event.target?.id });
       this.disabled = true;
       setCameraStatus('Starting camera preview...', 'info');
       await startCameraPreview();
       this.disabled = false;
     });
 
-    document.getElementById('startBtn').addEventListener('click', async function() {
+    document.getElementById('startBtn').addEventListener('click', async function(event) {
+      cameraTrace('ui.click.startBtn', { trusted: event.isTrusted, target: event.target?.id });
       focusTime = 0;
       startTime = Date.now();
       testState = 'running';
@@ -396,6 +468,11 @@
     });
 
     function initializeReadingPage() {
+      cameraTrace('page.init', {
+        protocol: window.location.protocol,
+        readyState: document.readyState,
+        hasTextHost: Boolean(document.getElementById('textToRead'))
+      });
       loadPassage();
       if (testState === 'idle') {
         document.getElementById('startBtn').style.display = 'block';
@@ -405,7 +482,10 @@
 
     initializeReadingPage();
     document.addEventListener('DOMContentLoaded', initializeReadingPage);
-    window.addEventListener('pageshow', () => initializeReadingPage());
+    window.addEventListener('pageshow', (event) => {
+      cameraTrace('page.pageshow', { persisted: event.persisted });
+      initializeReadingPage();
+    });
   </script>
   <script src="/assets/enter-key-helper.js"></script>
 </body>
