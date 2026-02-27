@@ -196,8 +196,9 @@
                 <li class="nav-item"><a class="nav-link active" href="index.html">Home</a></li>
                 <li class="nav-item"><a class="nav-link" href="dyslexia-prediction.html">Dyslexia Test</a></li>
                 <li class="nav-item"><a class="nav-link" href="handwriting_analysis.html">Handwriting Analysis</a></li>
+                <li class="nav-item"><a id="loginLink" class="nav-link" href="login.html">Login</a></li>
                 <li class="nav-item"><span id="userWelcome" class="navbar-text text-light small"></span></li>
-                <li class="nav-item"><button id="logoutBtn" class="btn btn-outline-light btn-sm" type="button">Logout</button></li>
+                <li class="nav-item"><button id="logoutBtn" class="btn btn-outline-light btn-sm d-none" type="button">Logout</button></li>
             </ul>
         </div>
     </div>
@@ -296,14 +297,38 @@
     return;
   }
 
-  let user = null;
-  try { user = JSON.parse(sessionRaw); } catch (_e) {}
-  const welcome = document.getElementById('userWelcome');
-  if (welcome && user?.name) {
-    welcome.textContent = `Signed in as ${user.name}`;
+  function readAuthUser() {
+    const raw = safeGet('auth_user') || (function(){ try { return localStorage.getItem('auth_user'); } catch(_e){ return null; } })();
+    if (!raw) return null;
+    try { return JSON.parse(raw); } catch (_e) { return null; }
   }
 
-  const logoutBtn = document.getElementById('logoutBtn');
+  let user = readAuthUser();
+
+  if (user && user.name) {
+    welcome.textContent = `Signed in as ${user.name}`;
+    if (loginLink) loginLink.classList.add('d-none');
+    if (logoutBtn) logoutBtn.classList.remove('d-none');
+  }
+
+  function resolveLoginPath() {
+    const normalizedPath = location.pathname.replace(/\\/g, '/').toLowerCase();
+    if (location.protocol === 'file:') {
+      if (normalizedPath.includes('/src/main/webapp/index.html')) return 'login.html';
+      return 'src/main/webapp/login.html';
+    }
+    // static/live-server path
+    if (normalizedPath.includes('/src/main/webapp/')) return '/src/main/webapp/login.html';
+    // flask route
+    if (normalizedPath === '/home') return '/login';
+    return '/login.html';
+  }
+
+  if (!(user && user.name)) {
+    window.location.href = resolveLoginPath();
+    return;
+  }
+
   if (logoutBtn) {
     logoutBtn.addEventListener('click', () => {
       sessionStorage.removeItem('auth_user');
