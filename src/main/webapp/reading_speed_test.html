@@ -154,9 +154,41 @@
       initializeReadingPage();
     });
 
-    window.addEventListener('pageshow', function() {
-      initializeReadingPage();
-    });
+    async function initDetectionEngine() {
+      if (detectionEngine !== 'none') return true;
+      if (detectorWarmupPromise) return detectorWarmupPromise;
+
+      detectorWarmupPromise = (async () => {
+        if ('FaceDetector' in window) {
+          try {
+            faceDetector = new window.FaceDetector({ fastMode: true, maxDetectedFaces: 1 });
+            detectionEngine = 'shape';
+            return true;
+          } catch (_error) {
+            detectionEngine = 'none';
+          }
+        }
+        try {
+          await loadExternalScript('https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.20.0/dist/tf.min.js');
+          await loadExternalScript('https://cdn.jsdelivr.net/npm/@tensorflow-models/blazeface@0.0.7/dist/blazeface.min.js');
+
+          // Prefer CPU backend for maximum compatibility (many school/lab devices block WebGL).
+          // This avoids model-init failures where camera works but detector never starts.
+          if (window.tf && typeof window.tf.setBackend === 'function') {
+            await window.tf.setBackend('cpu');
+            await window.tf.ready();
+          }
+
+          blazeModel = await window.blazeface.load();
+          detectionEngine = 'blazeface';
+          return true;
+        } catch (_error) {
+          detectionEngine = 'none';
+          return false;
+        }
+      })();
+      return detectorWarmupPromise;
+    }
 
     initializeReadingPage();
 

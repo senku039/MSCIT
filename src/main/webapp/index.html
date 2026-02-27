@@ -291,15 +291,10 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
 (function(){
-  const loginLink = document.getElementById('loginLink');
-  const welcome = document.getElementById('userWelcome');
-  const logoutBtn = document.getElementById('logoutBtn');
-
-  function safeGet(key) {
-    try { return sessionStorage.getItem(key); } catch (_e) { return null; }
-  }
-  function safeRemove(key) {
-    try { sessionStorage.removeItem(key); } catch (_e) {}
+  const sessionRaw = sessionStorage.getItem('auth_user');
+  if (!sessionRaw) {
+    window.location.href = 'login.html';
+    return;
   }
 
   function readAuthUser() {
@@ -336,9 +331,8 @@
 
   if (logoutBtn) {
     logoutBtn.addEventListener('click', () => {
-      safeRemove('auth_user');
-      try { localStorage.removeItem('auth_user'); } catch (_e) {}
-      window.location.href = resolveLoginPath();
+      sessionStorage.removeItem('auth_user');
+      window.location.href = 'login.html';
     });
   }
 })();
