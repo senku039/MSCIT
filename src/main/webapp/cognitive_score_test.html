@@ -8,56 +8,93 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <style>
     body {
-      font-family: Arial, sans-serif;
-      padding: 20px;
-      color: #0d1b4a;
-      background:
-        linear-gradient(140deg, rgba(7, 27, 84, 0.7), rgba(95, 57, 180, 0.6)),
-        url('/IMAGES/kids.jpg') no-repeat center center/cover;
+      font-family: 'Inter', Arial, sans-serif;
       min-height: 100vh;
+      color: #0f172a;
+      padding: 20px;
+      background:
+        radial-gradient(circle at 12% 14%, rgba(37,99,235,.17), transparent 40%),
+        radial-gradient(circle at 88% 18%, rgba(99,102,241,.17), transparent 36%),
+        linear-gradient(140deg, rgba(7,27,84,.7), rgba(95,57,180,.6)),
+        url('/IMAGES/kids.jpg') center/cover no-repeat;
     }
     .page-shell {
       max-width: min(1240px, 96vw);
       margin: clamp(18px, 4vh, 46px) auto;
-      background: rgba(255, 255, 255, 0.94);
+      background: rgba(255, 255, 255, 0.95);
       border: 1px solid #d6e2ff;
-      border-radius: 18px;
-      box-shadow: 0 16px 36px rgba(11, 24, 74, 0.26);
-      padding: clamp(18px, 2.3vw, 36px);
+      border-radius: 20px;
+      box-shadow: 0 20px 40px rgba(11, 24, 74, 0.26);
+      padding: clamp(20px, 2.6vw, 40px);
     }
-    .question-title { color: #172a65; font-weight: 700; }
-    .animal-card img { height: 170px; object-fit: cover; border-radius: 12px; width: 100%; }
+    .game-title { font-weight: 800; color: #172a65; }
     .helper-text { color: #4e5e8f; font-size: 0.95rem; }
+    .stage-card {
+      border: 1px solid #d8e3ff;
+      background: linear-gradient(180deg, #ffffff, #f8fbff);
+      border-radius: 14px;
+      padding: 16px;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.8);
+    }
+    .sequence-board {
+      min-height: 190px;
+      display: grid;
+      place-items: center;
+      border: 1px dashed #9fb8ff;
+      border-radius: 12px;
+      background: #f5f9ff;
+      margin: 8px 0 10px;
+      padding: 10px;
+      text-align: center;
+    }
+    .sequence-board img { max-height: 170px; width: auto; border-radius: 10px; box-shadow: 0 8px 16px rgba(0,0,0,.18); }
+    .badge-soft {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: .75rem;
+      font-weight: 700;
+      background: #e8efff;
+      color: #304da7;
+      border: 1px solid #cddcff;
+    }
   </style>
 </head>
 <body>
   <button class="global-back-btn" type="button" onclick="window.location.href='index.html'">← Back</button>
   <div class="page-shell">
-    <h1 class="text-center mb-4">Cognitive Score Test</h1>
+    <h1 class="text-center mb-2 game-title">Cognitive Challenge Arena</h1>
+    <p class="text-center helper-text mb-4">A 4-stage smart challenge: memory recall, image-order reasoning, logic sprint, and language completion.</p>
 
     <div id="taskContainer">
-      <div id="memoryTest" class="mb-4">
-        <h3 class="question-title">Memory Test</h3>
-        <p class="helper-text mb-1">Remember these words:</p>
+      <div id="memoryTest" class="mb-4 stage-card">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <h3 class="m-0">Stage 1 · Memory Flash</h3>
+          <span class="badge-soft" id="memoryTimer">Memorize: 8s</span>
+        </div>
+        <p class="helper-text mb-2">Memorize the words below. They will disappear.</p>
         <p class="fw-semibold" id="memoryWords"></p>
-        <input type="text" id="memoryInput" class="form-control" placeholder="Type the words you remember" required>
+        <input type="text" id="memoryInput" class="form-control" placeholder="Type the words you remember (comma separated)" required>
       </div>
 
-      <div id="attentionTest" class="mb-4" style="display: none;">
-        <h3 class="question-title">Attention Test</h3>
-        <p class="helper-text">Find the animals in the images below:</p>
-        <div class="row" id="animalImages"></div>
-        <input type="text" id="attentionInput" class="form-control mt-3" placeholder="Type the animals you found (comma separated)" required>
+      <div id="attentionTest" class="mb-4 stage-card" style="display: none;">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <h3 class="m-0">Stage 2 · Animal Sequence</h3>
+          <span class="badge-soft" id="sequenceHint">Watch carefully</span>
+        </div>
+        <p class="helper-text">Images appear one by one. After playback, type only the full animal order (comma separated).</p>
+        <div id="sequenceBoard" class="sequence-board">Press <strong>Submit &amp; Next</strong> to start playback.</div>
+        <input type="text" id="attentionInput" class="form-control mt-2" placeholder="Example: cat,dog,lion,rabbit" required>
       </div>
 
-      <div id="problemSolvingTest" class="mb-4" style="display: none;">
-        <h3 class="question-title">Problem-Solving Test</h3>
-        <p id="problemQuestion" class="helper-text">Loading question...</p>
+      <div id="problemSolvingTest" class="mb-4 stage-card" style="display: none;">
+        <h3>Stage 3 · Logic Sprint</h3>
+        <p id="problemQuestion" class="helper-text">Loading puzzle...</p>
         <input type="text" id="problemInput" class="form-control" placeholder="Your answer" required>
       </div>
 
-      <div id="languageTest" class="mb-4" style="display: none;">
-        <h3 class="question-title">Language Test</h3>
+      <div id="languageTest" class="mb-4 stage-card" style="display: none;">
+        <h3>Stage 4 · Language Precision</h3>
         <p id="languageQuestion" class="helper-text">Loading question...</p>
         <input type="text" id="languageInput" class="form-control" placeholder="Your answer" required>
       </div>
@@ -70,32 +107,32 @@
 
   <script>
     const memoryWordSets = [
-      ["apple", "banana", "orange"],
-      ["river", "planet", "mirror"],
-      ["garden", "pencil", "rocket"],
-      ["camera", "window", "tiger"]
+      ["apple", "rocket", "garden", "mirror"],
+      ["planet", "bridge", "camera", "window"],
+      ["forest", "pencil", "tiger", "silver"],
+      ["castle", "orange", "ocean", "lantern"]
     ];
 
     const imageLinks = [
       { label: "cat", url: "https://upload.wikimedia.org/wikipedia/commons/4/4d/Cat_November_2010-1a.jpg" },
       { label: "elephant", url: "https://upload.wikimedia.org/wikipedia/commons/3/37/African_Bush_Elephant.jpg" },
-      { label: "dog", url: "https://images.unsplash.com/photo-1517849845537-4d257902454a?auto=format&fit=crop&w=500&q=80" },
-      { label: "horse", url: "https://images.unsplash.com/photo-1553284965-83fd3e82fa5a?auto=format&fit=crop&w=500&q=80" },
-      { label: "lion", url: "https://images.unsplash.com/photo-1546182990-dffeafbe841d?auto=format&fit=crop&w=500&q=80" },
-      { label: "rabbit", url: "https://images.unsplash.com/photo-1585110396000-c9ffd4e4b308?auto=format&fit=crop&w=500&q=80" }
+      { label: "dog", url: "https://images.unsplash.com/photo-1517849845537-4d257902454a?auto=format&fit=crop&w=900&q=80" },
+      { label: "horse", url: "https://images.unsplash.com/photo-1553284965-83fd3e82fa5a?auto=format&fit=crop&w=900&q=80" },
+      { label: "lion", url: "https://images.unsplash.com/photo-1546182990-dffeafbe841d?auto=format&fit=crop&w=900&q=80" },
+      { label: "rabbit", url: "https://images.unsplash.com/photo-1585110396000-c9ffd4e4b308?auto=format&fit=crop&w=900&q=80" }
     ];
 
     const problemQuestions = [
-      { question: "If you have 3 apples and eat 1, how many are left?", answer: "2" },
-      { question: "What is 6 + 7?", answer: "13" },
-      { question: "A farmer has 10 sheep and 3 run away. How many remain?", answer: "7" },
-      { question: "What is 9 - 4?", answer: "5" }
+      { question: "Find next number: 3, 6, 12, 24, ?", answer: "48" },
+      { question: "If all Bloops are Razzles and all Razzles are Lazzles, are all Bloops Lazzles? (yes/no)", answer: "yes" },
+      { question: "A bag has 5 red and 3 blue balls. Probability of picking red (fraction)?", answer: "5/8" },
+      { question: "Rearrange letters to form a word: N E I R B A (hint: body part)", answer: "brain" }
     ];
 
     const languageQuestions = [
-      { question: 'Complete: "The cat ___ on the mat."', answer: "sat" },
-      { question: 'Fill in: "She ___ a beautiful song."', answer: "sang" },
-      { question: 'Complete: "Birds ___ in the sky."', answer: "fly" }
+      { question: 'Complete: "The scientist carefully ___ the result."', answer: "recorded" },
+      { question: 'Fill in: "She ___ a beautiful melody yesterday."', answer: "sang" },
+      { question: 'Complete: "Ideas ___ when we practice daily."', answer: "grow" }
     ];
 
     function pickRandom(list, count = 1) {
@@ -108,88 +145,156 @@
     }
 
     const tests = [
-      { id: 'memoryTest', inputId: 'memoryInput', correctAnswer: '' },
-      { id: 'attentionTest', inputId: 'attentionInput', correctAnswer: '' },
-      { id: 'problemSolvingTest', inputId: 'problemInput', correctAnswer: '' },
-      { id: 'languageTest', inputId: 'languageInput', correctAnswer: '' }
+      { id: 'memoryTest', inputId: 'memoryInput', correctAnswer: '', score: 0 },
+      { id: 'attentionTest', inputId: 'attentionInput', correctAnswer: '', score: 0 },
+      { id: 'problemSolvingTest', inputId: 'problemInput', correctAnswer: '', score: 0 },
+      { id: 'languageTest', inputId: 'languageInput', correctAnswer: '', score: 0 }
     ];
 
     let currentTestIndex = 0;
     let totalScore = 0;
+    let animalSequence = [];
+    let sequencePlayed = false;
 
     function loadMemoryChallenge() {
       const words = pickRandom(memoryWordSets, 1)[0];
       document.getElementById('memoryWords').textContent = words.join(', ');
-      tests[0].correctAnswer = words.join(', ');
+      tests[0].correctAnswer = words.map((w) => w.toLowerCase()).sort().join(',');
+
+      let timer = 8;
+      const timerEl = document.getElementById('memoryTimer');
+      timerEl.textContent = `Memorize: ${timer}s`;
+      const interval = setInterval(() => {
+        timer -= 1;
+        timerEl.textContent = `Memorize: ${Math.max(timer, 0)}s`;
+        if (timer <= 0) {
+          clearInterval(interval);
+          document.getElementById('memoryWords').textContent = '••• hidden •••';
+          timerEl.textContent = 'Recall now';
+        }
+      }, 1000);
     }
 
-    function displayRandomImages() {
-      const selected = pickRandom(imageLinks, 3);
-      document.getElementById('animalImages').innerHTML = selected
-        .map((item) => `<div class="col-md-4 mb-3 animal-card"><img src="${item.url}" alt="${item.label}" loading="lazy"></div>`)
-        .join('');
-      tests[1].correctAnswer = selected.map((item) => item.label).sort().join(',');
-    }
+    function playAnimalSequence() {
+      const board = document.getElementById('sequenceBoard');
+      const hint = document.getElementById('sequenceHint');
+      animalSequence = pickRandom(imageLinks, 4);
+      tests[1].correctAnswer = animalSequence.map((a) => a.label).join(',');
+      sequencePlayed = true;
 
-    function loadRandomQuestion() {
-      const selected = pickRandom(problemQuestions, 1)[0];
-      document.getElementById('problemQuestion').innerText = selected.question;
-      tests[2].correctAnswer = selected.answer.toLowerCase();
-    }
+      let idx = 0;
+      hint.textContent = 'Playing...';
 
-    function loadRandomLanguageQuestion() {
-      const selected = pickRandom(languageQuestions, 1)[0];
-      document.getElementById('languageQuestion').innerText = selected.question;
-      tests[3].correctAnswer = selected.answer.toLowerCase();
-    }
-
-    function initializeTests() {
-      loadMemoryChallenge();
-      displayRandomImages();
-      loadRandomQuestion();
-      loadRandomLanguageQuestion();
-    }
-
-    document.addEventListener("DOMContentLoaded", initializeTests);
-
-    document.getElementById('submitBtn').addEventListener('click', function() {
-      const currentTest = tests[currentTestIndex];
-      const input = document.getElementById(currentTest.inputId);
-      const userAnswer = input.value.trim().toLowerCase();
-      const correctAnswer = currentTest.correctAnswer;
-
-      let isCorrect = false;
-      if (currentTest.id === 'attentionTest') {
-        const normalizedUser = userAnswer.split(',').map((x) => x.trim()).filter(Boolean).sort().join(',');
-        isCorrect = normalizedUser === correctAnswer;
-      } else {
-        isCorrect = userAnswer === correctAnswer;
+      function showNext() {
+        if (idx >= animalSequence.length) {
+          board.innerHTML = '<strong>Sequence complete.</strong><br>Type the full order (a,b,c,d).';
+          hint.textContent = 'Now answer';
+          return;
+        }
+        const item = animalSequence[idx];
+        board.innerHTML = `<img src="${item.url}" alt="Animal frame ${idx + 1}" loading="lazy"><div class="mt-2 text-muted">Frame ${idx + 1} / ${animalSequence.length}</div>`;
+        idx += 1;
+        setTimeout(showNext, 1250);
       }
 
-      if (isCorrect) {
-        totalScore += 25;
-        document.getElementById('result').textContent = "✅ Correct!";
+      showNext();
+    }
+
+    function loadRandomQuestion(type) {
+      const source = type === 'problem' ? problemQuestions : languageQuestions;
+      const picked = pickRandom(source, 1)[0];
+      if (type === 'problem') {
+        document.getElementById('problemQuestion').textContent = picked.question;
+        tests[2].correctAnswer = picked.answer.toLowerCase();
       } else {
-        document.getElementById('result').textContent = `❌ Incorrect. Correct answer: ${currentTest.correctAnswer}`;
+        document.getElementById('languageQuestion').textContent = picked.question;
+        tests[3].correctAnswer = picked.answer.toLowerCase();
+      }
+    }
+
+    function normalizeCommaWords(text) {
+      return text.toLowerCase().split(',').map((x) => x.trim()).filter(Boolean).sort().join(',');
+    }
+
+    function evaluateAttentionInput(input) {
+      const normalizedOrder = input.toLowerCase().split(',').map((x) => x.trim()).filter(Boolean).join(',');
+      const order = tests[1].correctAnswer;
+      if (normalizedOrder === order) return 100;
+
+      const typed = normalizedOrder ? normalizedOrder.split(',') : [];
+      const target = order.split(',');
+      let correctSlots = 0;
+      for (let i = 0; i < Math.min(typed.length, target.length); i++) {
+        if (typed[i] === target[i]) correctSlots += 1;
+      }
+      return Math.round((correctSlots / target.length) * 100);
+    }
+
+    function submitCurrentTest() {
+      const test = tests[currentTestIndex];
+      const currentInput = document.getElementById(test.inputId);
+      const userAnswer = currentInput.value.trim();
+
+      if (!userAnswer) {
+        document.getElementById('result').innerText = 'Please enter an answer before proceeding.';
+        return;
       }
 
-      document.getElementById(currentTest.id).style.display = "none";
-      input.value = "";
+      let testScore = 0;
+      if (test.id === 'memoryTest') {
+        testScore = normalizeCommaWords(userAnswer) === test.correctAnswer ? 100 : 55;
+      } else if (test.id === 'attentionTest') {
+        testScore = evaluateAttentionInput(userAnswer);
+      } else {
+        testScore = userAnswer.toLowerCase() === test.correctAnswer ? 100 : 60;
+      }
+
+      test.score = testScore;
+      totalScore += testScore;
+
+      document.getElementById(test.id).style.display = 'none';
       currentTestIndex++;
 
       if (currentTestIndex < tests.length) {
-        document.getElementById(tests[currentTestIndex].id).style.display = "block";
+        const nextTest = tests[currentTestIndex];
+        document.getElementById(nextTest.id).style.display = 'block';
+        document.getElementById(nextTest.inputId).focus();
+
+        if (nextTest.id === 'attentionTest' && !sequencePlayed) {
+          playAnimalSequence();
+        }
+
+        document.getElementById('result').innerText = `Stage score: ${testScore}. Keep going!`;
       } else {
-        document.getElementById('submitBtn').style.display = "none";
-        document.getElementById('result').textContent = `Your Cognitive Score: ${totalScore}%`;
-        sessionStorage.setItem('cognitive_score', totalScore);
-        document.getElementById('finishTestBtn').style.display = "block";
+        const finalScore = totalScore / tests.length;
+        sessionStorage.setItem('cognitive_score_score', finalScore.toFixed(2));
+        document.getElementById('result').innerHTML = `
+          <div class="alert alert-success">
+            <strong>Cognitive Score:</strong> ${finalScore.toFixed(2)} / 100
+          </div>`;
+        document.getElementById('submitBtn').style.display = 'none';
+        document.getElementById('finishTestBtn').style.display = 'block';
       }
-    });
+    }
+
+    document.getElementById('submitBtn').addEventListener('click', submitCurrentTest);
 
     document.getElementById('finishTestBtn').addEventListener('click', function() {
       window.location.href = '/dyslexia-prediction';
     });
+
+    document.addEventListener('keydown', (event) => {
+      if (event.key !== 'Enter') return;
+      const btn = document.getElementById('submitBtn');
+      if (btn && btn.style.display !== 'none') {
+        event.preventDefault();
+        btn.click();
+      }
+    });
+
+    loadMemoryChallenge();
+    loadRandomQuestion('problem');
+    loadRandomQuestion('language');
   </script>
 </body>
 </html>
