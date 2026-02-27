@@ -22,22 +22,14 @@
   <div class="container">
     <h1 class="text-center mb-3">Reading Speed Test</h1>
     <p class="text-muted">To prevent false high scores, the test validates minimum reading time and a quick comprehension check.</p>
-    <div class="camera-block">
-      <div id="videoShell" class="video-shell">
-        <video id="webcam" autoplay playsinline muted></video>
-        <canvas id="faceOverlay"></canvas>
-      </div>
-      <div id="trackingHint">Tip: keep your full face centered in the guide zone for accurate tracking.</div>
-      <div class="d-flex gap-2 mt-2 mb-2">
-        <button id="startCameraBtn" class="btn btn-outline-primary btn-sm">Start Camera Tracking</button>
-        <button id="stopCameraBtn" class="btn btn-outline-secondary btn-sm" style="display:none;">Stop Camera</button>
-      </div>
-      <div id="cameraStatus" class="alert alert-warning py-2 mt-2" style="display:none;"></div>
-      <div id="trackingPanel" class="alert alert-info py-2" style="display:none;"></div>
-      <small id="testStateLabel" class="text-muted">State: idle</small>
-    </div>
 
+    <video id="webcam" autoplay playsinline muted></video>
+    <div id="cameraStatus" class="alert alert-warning py-2 mt-2" style="display:none;">State: idle</div>
+    <div id="trackingPanel" class="alert alert-info py-2" style="display:none;"></div>
     <small class="text-muted d-block mb-2">Privacy note: this test uses <strong>video only</strong> for focus/face estimation. It does <strong>not</strong> capture audio.</small>
+
+    <button id="startCameraBtn" class="btn btn-outline-primary btn-sm mb-3">Start Camera Tracking</button>
+
     <div class="mb-3">
       <p>Read the following text naturally:</p>
       <div id="textToRead"></div>
@@ -50,37 +42,16 @@
     </div>
 
     <button id="startBtn" class="btn btn-primary w-100">Start Reading Test</button>
-    <button id="stopBtn" class="btn btn-danger w-100 mt-3" style="display:none;">Stop Reading</button>
-    <div id="result" class="mt-4 text-center" style="font-size:1.08em;"></div>
-    <button id="finishTestBtn" class="btn btn-info w-100 mt-3" style="display:none;">Finish Test</button>
+    <button id="stopBtn" class="btn btn-danger w-100 mt-3" style="display: none;">Stop Reading</button>
+    <div id="result" class="mt-4 text-center" style="font-size: 1.08em;"></div>
+    <button id="finishTestBtn" class="btn btn-info w-100 mt-3" style="display: none;">Finish Test</button>
   </div>
 
   <script>
     const passages = [
-      {
-        text: "Maya loves visiting the library after school. She picks a new book every week and reads with her grandmother in the evening. Reading together helps her learn new words and understand stories better.",
-        question: "Who reads with Maya in the evening?",
-        options: ["Her teacher", "Her grandmother", "Her brother"],
-        answer: "Her grandmother"
-      },
-      {
-        text: "Arjun planted tomato seeds in a small garden behind his house. Every morning he watered the plants and checked for new leaves. After a few weeks, tiny green tomatoes appeared.",
-        question: "What did Arjun plant?",
-        options: ["Tomato seeds", "Rice seeds", "Rose flowers"],
-        answer: "Tomato seeds"
-      },
-      {
-        text: "The school science club built a small weather station. Students measured temperature, wind, and rainfall each day. They compared the data and learned how weather changes over time.",
-        question: "What did students measure daily?",
-        options: ["Only temperature", "Temperature, wind and rainfall", "Only rainfall"],
-        answer: "Temperature, wind and rainfall"
-      },
-      {
-        text: "On Sunday, Aisha and her brother cleaned their room. They sorted books, folded clothes, and arranged toys on shelves. Their room looked bright, neat, and easy to study in.",
-        question: "What did they arrange on shelves?",
-        options: ["Shoes", "Toys", "Food"],
-        answer: "Toys"
-      }
+      { text: "Maya loves visiting the library after school. She picks a new book every week and reads with her grandmother in the evening. Reading together helps her learn new words and understand stories better.", question: "Who reads with Maya in the evening?", options: ["Her teacher", "Her grandmother", "Her brother"], answer: "Her grandmother" },
+      { text: "Arjun planted tomato seeds in a small garden behind his house. Every morning he watered the plants and checked for new leaves. After a few weeks, tiny green tomatoes appeared.", question: "What did Arjun plant?", options: ["Tomato seeds", "Rice seeds", "Rose flowers"], answer: "Tomato seeds" },
+      { text: "The school science club built a small weather station. Students measured temperature, wind, and rainfall each day. They compared the data and learned how weather changes over time.", question: "What did students measure daily?", options: ["Only temperature", "Temperature, wind and rainfall", "Only rainfall"], answer: "Temperature, wind and rainfall" }
     ];
 
     const MAX_VALID_WPM = 420;
@@ -96,7 +67,7 @@
     let testState = STATE.IDLE;
 
     let selectedPassage;
-    let videoStream = null;
+    let startTime, endTime, focusTime = 0, tracking = false, videoStream = null, stopPressed = false;
     let pendingMetrics = null;
     let submitLocked = false;
 
@@ -124,38 +95,20 @@
     let lookAwayAlerts = 0;
     let eyeMovementScore = 0;
 
-    let smoothedCenter = null;
-    let lastRawCenter = null;
-    let recentConfidences = [];
-    let detectorWarmupPromise = null;
-
-    function randomPick(items) { return items[Math.floor(Math.random() * items.length)]; }
-
-    function setState(next) {
-      testState = next;
-      document.getElementById('testStateLabel').textContent = `State: ${next}`;
-
-      const startBtn = document.getElementById('startBtn');
-      const stopBtn = document.getElementById('stopBtn');
-      const finishBtn = document.getElementById('finishTestBtn');
-      const submitBtn = document.getElementById('submitAnswerBtn');
-
-      startBtn.disabled = next === STATE.RUNNING;
-      startBtn.style.display = next === STATE.RUNNING ? 'none' : 'block';
-      stopBtn.style.display = next === STATE.RUNNING ? 'block' : 'none';
-      stopBtn.disabled = next !== STATE.RUNNING;
-      submitBtn.disabled = next === STATE.FINISHED;
-
-      if (next === STATE.SUBMITTED || next === STATE.FINISHED) {
-        finishBtn.style.display = 'block';
-      }
-    }
+    function randomPick(items){ return items[Math.floor(Math.random()*items.length)]; }
 
     function loadPassage() {
       selectedPassage = randomPick(passages);
       document.getElementById('textToRead').innerText = selectedPassage.text;
       document.getElementById('questionBlock').style.display = 'none';
       document.getElementById('result').innerText = '';
+    }
+
+    function setCameraStatus(message, type='warning') {
+      const cameraStatus = document.getElementById('cameraStatus');
+      cameraStatus.style.display = 'block';
+      cameraStatus.className = `alert alert-${type} py-2 mt-2`;
+      cameraStatus.textContent = message;
     }
 
     function renderQuestion() {
@@ -168,16 +121,16 @@
         const id = `opt_${i}`;
         optionsHost.innerHTML += `<div class="form-check"><input class="form-check-input" type="radio" name="answer" id="${id}" value="${opt}"><label class="form-check-label" for="${id}">${opt}</label></div>`;
       });
-      const submitBtn = document.getElementById('submitAnswerBtn');
-      submitBtn.style.display = 'inline-block';
-      submitBtn.disabled = false;
+      document.getElementById('submitAnswerBtn').style.display = 'inline-block';
+      document.getElementById('submitAnswerBtn').disabled = false;
     }
 
-    function updateStatus(type, message) {
-      const cameraStatus = document.getElementById('cameraStatus');
-      cameraStatus.style.display = 'block';
-      cameraStatus.className = `alert alert-${type} py-2 mt-2`;
-      cameraStatus.textContent = message;
+    function stopFaceTracking() {
+      if (faceTrackTimer) {
+        clearInterval(faceTrackTimer);
+        faceTrackTimer = null;
+      }
+      lastFaceCenter = null;
     }
 
     function updateTrackingPanel() {
@@ -226,101 +179,21 @@
       }
     }
 
-    function drawOverlay(face, roi, stable = true) {
-      const video = document.getElementById('webcam');
-      const canvas = document.getElementById('faceOverlay');
-      const ctx = canvas.getContext('2d');
-      const width = video.videoWidth || 1;
-      const height = video.videoHeight || 1;
-      if (canvas.width !== width || canvas.height !== height) {
-        canvas.width = width;
-        canvas.height = height;
-      }
-
-      ctx.clearRect(0, 0, width, height);
-
-      // ROI box used directly in logic (not just for visuals).
-      ctx.strokeStyle = 'rgba(21,111,247,0.9)';
-      ctx.lineWidth = 2;
-      ctx.strokeRect(roi.x, roi.y, roi.width, roi.height);
-
-      if (face) {
-        ctx.strokeStyle = stable ? 'rgba(27,180,103,0.95)' : 'rgba(220,53,69,0.95)';
-        ctx.lineWidth = 3;
-        ctx.strokeRect(face.x, face.y, face.width, face.height);
-        ctx.fillStyle = stable ? 'rgba(27,180,103,0.14)' : 'rgba(220,53,69,0.14)';
-        ctx.fillRect(face.x, face.y, face.width, face.height);
-      }
-    }
-
-    function getRoi(video) {
-      const w = video.videoWidth || 1;
-      const h = video.videoHeight || 1;
-      const roiW = w * 0.78;
-      const roiH = h * 0.82;
-      return {
-        x: (w - roiW) / 2,
-        y: (h - roiH) / 2,
-        width: roiW,
-        height: roiH,
-      };
-    }
-
-    function toFaceObject(face) {
-      if (face.boundingBox) {
-        const box = face.boundingBox;
-        const conf = typeof face.confidence === 'number' ? face.confidence : 0.9;
-        return { x: box.x, y: box.y, width: box.width, height: box.height, confidence: conf };
-      }
-      const [x1, y1] = face.topLeft || [0, 0];
-      const [x2, y2] = face.bottomRight || [0, 0];
-      const p = Array.isArray(face.probability) ? face.probability[0] : face.probability;
-      return {
-        x: Number(x1),
-        y: Number(y1),
-        width: Math.max(Number(x2) - Number(x1), 1),
-        height: Math.max(Number(y2) - Number(y1), 1),
-        confidence: Number.isFinite(p) ? Number(p) : 0.85,
-      };
-    }
-
-    function smoothCenter(rawCenter) {
-      if (!smoothedCenter) {
-        smoothedCenter = { ...rawCenter };
-        return smoothedCenter;
-      }
-      const alpha = 0.28;
-      smoothedCenter = {
-        x: (alpha * rawCenter.x) + ((1 - alpha) * smoothedCenter.x),
-        y: (alpha * rawCenter.y) + ((1 - alpha) * smoothedCenter.y),
-      };
-      return smoothedCenter;
-    }
-
-    function averageConfidence(next) {
-      recentConfidences.push(next);
-      if (recentConfidences.length > 6) recentConfidences.shift();
-      return recentConfidences.reduce((acc, c) => acc + c, 0) / recentConfidences.length;
-    }
-
-    async function loadExternalScript(src) {
-      return new Promise((resolve, reject) => {
-        const existing = document.querySelector(`script[data-src="${src}"]`);
-        if (existing) {
-          if (existing.dataset.loaded === '1') return resolve();
-          existing.addEventListener('load', () => resolve(), { once: true });
-          existing.addEventListener('error', () => reject(new Error(src)), { once: true });
-          return;
-        }
-        const script = document.createElement('script');
-        script.src = src;
-        script.async = true;
-        script.dataset.src = src;
-        script.onload = () => { script.dataset.loaded = '1'; resolve(); };
-        script.onerror = () => reject(new Error(src));
-        document.head.appendChild(script);
-      });
-    }
+      stopFaceTracking();
+      faceTrackTimer = setInterval(async () => {
+        if (!tracking || !faceDetector || video.readyState < 2) return;
+        try {
+          const faces = await faceDetector.detect(video);
+          if (!faces.length) {
+            faceMissingStreak += 1;
+            lookAwaySeconds += 1;
+            if (faceMissingStreak === 2) {
+              lookAwayAlerts += 1;
+              setCameraStatus('Looking away detected. Please keep your face toward the screen.', 'danger');
+            }
+            updateTrackingPanel();
+            return;
+          }
 
     async function initDetectionEngine() {
       if (detectionEngine !== 'none') return true;
@@ -350,32 +223,22 @@
       return detectorWarmupPromise;
     }
 
-    async function detectFace(video) {
-      if (detectionEngine === 'shape' && faceDetector) {
-        const faces = await faceDetector.detect(video);
-        return faces.length ? toFaceObject(faces[0]) : null;
+    async function requestCameraStream() {
+      const constraintsPrimary = { video: { facingMode: 'user', width: { ideal: 960 }, height: { ideal: 540 } }, audio: false };
+      const constraintsFallback = { video: true, audio: false };
+      if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+        try { return await navigator.mediaDevices.getUserMedia(constraintsPrimary); }
+        catch (_e) { return await navigator.mediaDevices.getUserMedia(constraintsFallback); }
       }
-      if (detectionEngine === 'blazeface' && blazeModel) {
-        const faces = await blazeModel.estimateFaces(video, false);
-        return faces.length ? toFaceObject(faces[0]) : null;
-      }
-      return null;
+      return await new Promise((resolve, reject) => {
+        const legacy = navigator.getUserMedia || navigator.webkitGetUserMedia;
+        if (!legacy) return reject(new Error('No getUserMedia API'));
+        legacy.call(navigator, constraintsFallback, resolve, reject);
+      });
     }
 
-    function stopDetection() {
-      detectionActive = false;
-      if (detectionRaf) {
-        cancelAnimationFrame(detectionRaf);
-        detectionRaf = null;
-      }
-    }
-
-    async function detectionTick(timestamp) {
-      if (!detectionActive || testState !== STATE.RUNNING) return;
+    async function startWebcam() {
       const video = document.getElementById('webcam');
-      const cameraStatus = document.getElementById('cameraStatus');
-      cameraStatus.style.display = 'none';
-      cameraStatus.textContent = '';
       faceVisibleSeconds = 0;
       eyeMovementScore = 0;
       lookAwaySeconds = 0;
@@ -388,10 +251,13 @@
       if (!mediaSupported) {
         tracking = true;
         trackFocusTime();
-        cameraStatus.style.display = 'block';
-        cameraStatus.textContent = 'Camera API is unavailable in this browser. Continuing test without camera/face tracking.';
+        setCameraStatus('Camera API is unavailable in this browser. Continuing test without camera/face tracking.', 'warning');
         updateTrackingPanel();
-        return;
+        return false;
+      }
+
+      if (location.protocol !== 'https:' && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
+        setCameraStatus('Camera can be blocked on non-secure pages. Use localhost/https for reliable camera access.', 'warning');
       }
       lastDetectionTick = timestamp;
 
@@ -411,14 +277,7 @@
       };
 
       try {
-        if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-          videoStream = await navigator.mediaDevices.getUserMedia(constraints);
-        } else {
-          videoStream = await new Promise((resolve, reject) => {
-            const legacy = navigator.getUserMedia || navigator.webkitGetUserMedia;
-            legacy.call(navigator, constraints, resolve, reject);
-          });
-        }
+        videoStream = await requestCameraStream();
         video.srcObject = videoStream;
         video.style.display = 'block';
         try { await video.play(); } catch (_e) {}
@@ -427,44 +286,31 @@
 
         const faceTrackingEnabled = await setupFaceTracking(video);
         if (faceTrackingEnabled) {
-          cameraStatus.style.display = 'block';
-          cameraStatus.className = 'alert alert-success py-2 mt-2';
-          cameraStatus.textContent = 'Camera active. Face/eye movement proxy tracking is enabled.';
-          updateTrackingPanel();
+          setCameraStatus('Camera active. Face/eye movement proxy tracking is enabled.', 'success');
         } else {
-          awayNow = true;
-          unstableSamples += 1;
-          drawOverlay(null, roi, false);
+          setCameraStatus('Camera active. Face detector unsupported; using focus-time fallback.', 'warning');
         }
-      } catch (_error) {
+        updateTrackingPanel();
+        return true;
+      } catch (error) {
         tracking = true;
         trackFocusTime();
-        cameraStatus.style.display = 'block';
-        cameraStatus.className = 'alert alert-warning py-2 mt-2';
-        cameraStatus.textContent = 'Camera access blocked/denied or unavailable. Test will continue without camera tracking.';
+        setCameraStatus(`Camera access blocked/denied (${error.name || 'error'}). Test will continue without camera tracking.`, 'warning');
         updateTrackingPanel();
-      } catch (_error) {
-        updateStatus('warning', 'Temporary face detection issue. Trying to recover…');
+        return false;
       }
 
       detectionRaf = requestAnimationFrame(detectionTick);
     }
 
-    async function startDetection() {
-      if (testState !== STATE.RUNNING || detectionActive) return;
-      const video = document.getElementById('webcam');
-      if (video.readyState < 2) return;
-
-      const ok = await initDetectionEngine();
-      if (!ok) {
-        updateStatus('warning', 'Face detection model unavailable. Verify internet/browser support and retry camera.');
-        return;
+    function stopWebcam() {
+      if (videoStream) {
+        videoStream.getTracks().forEach(track => track.stop());
+        videoStream = null;
       }
-
-      updateStatus('success', `Camera active. ${detectionEngine === 'shape' ? 'Native' : 'ML'} face tracking running.`);
-      detectionActive = true;
-      lastDetectionTick = 0;
-      detectionRaf = requestAnimationFrame(detectionTick);
+      document.getElementById('webcam').style.display = 'none';
+      tracking = false;
+      stopFaceTracking();
     }
 
     async function ensureCameraReady() {
@@ -523,27 +369,24 @@
       detectionEngine = 'none';
     }
 
-    async function startTestFlow() {
-      if (testState === STATE.RUNNING) return;
-      resetMetrics();
-      setState(STATE.RUNNING);
-      document.getElementById('result').innerText = '';
-      document.getElementById('finishTestBtn').style.display = 'none';
-      document.getElementById('questionBlock').style.display = 'none';
+    document.getElementById('startCameraBtn').addEventListener('click', async function() {
+      this.disabled = true;
+      setCameraStatus('Starting camera...', 'info');
+      await startWebcam();
+      this.disabled = false;
+    });
 
-      // Start test immediately; camera setup runs in background so permission prompts do not block test start.
-      startTimer();
-      updateStatus('info', 'Reading test started. Camera tracking will attach automatically when ready.');
-      ensureCameraReady()
-        .then(async (cameraOk) => {
-          if (cameraOk && testState === STATE.RUNNING) {
-            await startDetection();
-          }
-        })
-        .catch(() => {
-          updateStatus('warning', 'Camera setup is delayed. Test continues and you can retry camera tracking.');
-        });
-    }
+    document.getElementById('startBtn').addEventListener('click', async function() {
+      focusTime = 0;
+      startTime = Date.now();
+      document.getElementById('startBtn').style.display = 'none';
+      document.getElementById('stopBtn').style.display = 'block';
+      document.getElementById('stopBtn').disabled = false;
+      document.getElementById('result').innerText = '';
+      stopPressed = false;
+      if (!videoStream) await startWebcam();
+      else { tracking = true; trackFocusTime(); }
+    });
 
     function stopRunningPhase() {
       if (testState !== STATE.RUNNING) return;
@@ -619,7 +462,6 @@
         document.getElementById('result').innerText = 'Please select an answer before finishing submission.';
         return;
       }
-
       const correct = chosen.value === selectedPassage.answer;
       const rawWpm = (pendingMetrics.wordCount / pendingMetrics.elapsedSeconds) * 60;
       const wordsPerMinute = Math.min(rawWpm, MAX_VALID_WPM);
@@ -653,10 +495,7 @@
       setState(STATE.FINISHED);
     });
 
-    document.getElementById('finishTestBtn').addEventListener('click', () => {
-      stopRunningPhase();
-      cleanupCamera();
-      setState(STATE.FINISHED);
+    document.getElementById('finishTestBtn').addEventListener('click', function() {
       window.location.href = '/dyslexia-prediction';
     });
 
