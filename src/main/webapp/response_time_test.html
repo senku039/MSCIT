@@ -17,8 +17,8 @@
       padding: 20px;
     }
     .test-card {
-      max-width: 900px;
-      margin: 100px auto;
+      max-width: 920px;
+      margin: 90px auto;
       background: rgba(9, 20, 61, 0.78);
       border: 1px solid rgba(201, 216, 255, 0.35);
       border-radius: 16px;
@@ -27,15 +27,15 @@
       box-shadow: 0 18px 36px rgba(1, 10, 34, 0.34);
     }
     #result { font-size: 1.05rem; margin-top: 1rem; min-height: 2rem; }
-    #reactionBtn { min-width: 180px; }
+    #reactionBtn { min-width: 200px; }
   </style>
 </head>
 <body>
   <button class="global-back-btn" type="button" onclick="window.location.href='index.html'">← Back</button>
   <div class="test-card">
     <h1 class="mb-3">Response Time Test</h1>
-    <p class="text-light">Complete 3 rounds and we will use your average response time.</p>
-    <div class="alert alert-info py-2" id="roundInfo">Round 1 of 3</div>
+    <p class="text-light">Dynamic reaction challenge: 5 rounds with changing wait times. Avoid clicking too early.</p>
+    <div class="alert alert-info py-2" id="roundInfo">Round 1 of 5</div>
     <button id="startBtn" class="btn btn-primary">Start Round</button>
     <button id="reactionBtn" class="btn btn-danger" style="display: none;">Wait...</button>
     <div id="result"></div>
@@ -43,15 +43,23 @@
   </div>
 
   <script>
-    const TOTAL_ROUNDS = 3;
+    const TOTAL_ROUNDS = 5;
     let currentRound = 1;
     let startTime = 0;
     let timeout = null;
     let ready = false;
+    let roundStarted = false;
     const times = [];
+    let falseStarts = 0;
 
     function updateRound() {
       document.getElementById('roundInfo').textContent = `Round ${currentRound} of ${TOTAL_ROUNDS}`;
+    }
+
+    function getDynamicDelay(round) {
+      const baseMin = Math.max(700, 1600 - (round * 120));
+      const baseMax = Math.max(1400, 2800 - (round * 140));
+      return Math.random() * (baseMax - baseMin) + baseMin;
     }
 
     document.getElementById('startBtn').addEventListener('click', function() {
@@ -61,15 +69,17 @@
 
       clearTimeout(timeout);
       ready = false;
+      roundStarted = true;
       result.innerText = 'Get ready...';
-      reactionBtn.style.display = 'none';
+      reactionBtn.style.display = 'inline-block';
+      reactionBtn.className = 'btn btn-danger';
+      reactionBtn.innerText = 'Wait...';
       startBtn.disabled = true;
 
-      const randomTime = Math.random() * 2200 + 1200;
+      const randomTime = getDynamicDelay(currentRound);
       timeout = setTimeout(() => {
         startTime = Date.now();
         ready = true;
-        reactionBtn.style.display = 'inline-block';
         reactionBtn.classList.remove('btn-danger');
         reactionBtn.classList.add('btn-success');
         reactionBtn.innerText = 'Click Now!';
@@ -77,18 +87,30 @@
     });
 
     document.getElementById('reactionBtn').addEventListener('click', function() {
-      if (!ready) return;
-      ready = false;
+      const reactionBtn = document.getElementById('reactionBtn');
+      const startBtn = document.getElementById('startBtn');
+      const result = document.getElementById('result');
 
+      if (!roundStarted) return;
+
+      if (!ready) {
+        falseStarts += 1;
+        clearTimeout(timeout);
+        reactionBtn.style.display = 'none';
+        startBtn.disabled = false;
+        result.innerHTML = `<span class="text-warning">Too early! False starts: ${falseStarts}</span>`;
+        roundStarted = false;
+        return;
+      }
+
+      ready = false;
+      roundStarted = false;
       const t = Math.max((Date.now() - startTime) / 1000, 0.05);
       times.push(t);
 
-      const reactionBtn = document.getElementById('reactionBtn');
-      const startBtn = document.getElementById('startBtn');
       reactionBtn.style.display = 'none';
       startBtn.disabled = false;
-
-      document.getElementById('result').innerText = `Round ${currentRound}: ${t.toFixed(3)} seconds`;
+      result.innerText = `Round ${currentRound}: ${t.toFixed(3)} seconds`;
 
       currentRound += 1;
       if (currentRound <= TOTAL_ROUNDS) {
@@ -96,9 +118,17 @@
         startBtn.textContent = 'Start Next Round';
       } else {
         const avg = times.reduce((a, b) => a + b, 0) / times.length;
-        sessionStorage.setItem('response_time_score', avg.toFixed(3));
+        const variance = times.reduce((sum, t) => sum + Math.pow(t - avg, 2), 0) / times.length;
+        const stdDev = Math.sqrt(variance);
+        const adjusted = Math.min(3, avg + (falseStarts * 0.12) + (stdDev * 0.15));
+
+        sessionStorage.setItem('response_time_score', adjusted.toFixed(3));
+        sessionStorage.setItem('response_time_avg_raw', avg.toFixed(3));
+        sessionStorage.setItem('response_time_consistency', stdDev.toFixed(3));
+        sessionStorage.setItem('response_false_starts', String(falseStarts));
+
         document.getElementById('roundInfo').textContent = 'Completed';
-        document.getElementById('result').innerHTML = `<div class="alert alert-success">Average response time: <strong>${avg.toFixed(3)} sec</strong><br><small>Lower is better.</small></div>`;
+        result.innerHTML = `<div class="alert alert-success">Average reaction: <strong>${avg.toFixed(3)} sec</strong><br>Consistency spread: <strong>${stdDev.toFixed(3)}</strong><br>False starts: <strong>${falseStarts}</strong><br><small>Saved score: ${adjusted.toFixed(3)} sec (lower is better)</small></div>`;
         startBtn.style.display = 'none';
         document.getElementById('finishTestBtn').style.display = 'inline-block';
       }

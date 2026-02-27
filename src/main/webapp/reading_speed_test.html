@@ -177,7 +177,7 @@
       document.getElementById('trackingPanel').style.display = 'none';
       stopFaceTracking();
 
-      const mediaSupported = Boolean(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
+      const mediaSupported = Boolean((navigator.mediaDevices && navigator.mediaDevices.getUserMedia) || navigator.getUserMedia || navigator.webkitGetUserMedia);
       if (!mediaSupported) {
         tracking = true;
         trackFocusTime();
@@ -187,10 +187,33 @@
         return;
       }
 
+      if (location.protocol !== 'https:' && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
+        cameraStatus.style.display = 'block';
+        cameraStatus.className = 'alert alert-warning py-2 mt-2';
+        cameraStatus.textContent = 'Camera may be blocked on non-secure pages. Use localhost/https for reliable camera access.';
+      }
+
+      const constraints = {
+        video: {
+          facingMode: 'user',
+          width: { ideal: 960 },
+          height: { ideal: 540 }
+        },
+        audio: false
+      };
+
       try {
-        videoStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
+        if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+          videoStream = await navigator.mediaDevices.getUserMedia(constraints);
+        } else {
+          videoStream = await new Promise((resolve, reject) => {
+            const legacy = navigator.getUserMedia || navigator.webkitGetUserMedia;
+            legacy.call(navigator, constraints, resolve, reject);
+          });
+        }
         video.srcObject = videoStream;
         video.style.display = 'block';
+        try { await video.play(); } catch (_e) {}
         tracking = true;
         trackFocusTime();
 
@@ -211,7 +234,7 @@
         trackFocusTime();
         cameraStatus.style.display = 'block';
         cameraStatus.className = 'alert alert-warning py-2 mt-2';
-        cameraStatus.textContent = 'Camera access blocked/denied. Test will continue without camera tracking.';
+        cameraStatus.textContent = 'Camera access blocked/denied or unavailable. Test will continue without camera tracking.';
         updateTrackingPanel();
       }
     }
