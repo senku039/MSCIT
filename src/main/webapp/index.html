@@ -196,7 +196,7 @@
                 <li class="nav-item"><a class="nav-link active" href="index.html">Home</a></li>
                 <li class="nav-item"><a class="nav-link" href="dyslexia-prediction.html">Dyslexia Test</a></li>
                 <li class="nav-item"><a class="nav-link" href="handwriting_analysis.html">Handwriting Analysis</a></li>
-                <li class="nav-item"><a id="loginLink" class="nav-link" href="login.html">Login</a></li>
+                <li class="nav-item"><a id="loginLink" class="nav-link" href="/login">Login</a></li>
                 <li class="nav-item"><span id="userWelcome" class="navbar-text text-light small"></span></li>
                 <li class="nav-item"><button id="logoutBtn" class="btn btn-outline-light btn-sm d-none" type="button">Logout</button></li>
             </ul>
@@ -312,8 +312,12 @@
   }
 
   function resolveLoginPath() {
-    if (location.protocol === 'file:') return 'login.html';
-    return '/login.html';
+    if (location.protocol === 'file:') {
+      const normalizedPath = location.pathname.replace(/\\/g, '/').toLowerCase();
+      if (normalizedPath.includes('/src/main/webapp/index.html')) return 'login.html';
+      return 'src/main/webapp/login.html';
+    }
+    return '/login';
   }
 
   if (logoutBtn) {

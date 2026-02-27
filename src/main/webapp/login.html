@@ -289,8 +289,12 @@
     }
 
     function resolveHomePath() {
-      if (location.protocol === 'file:') return 'index.html';
-      return '/index.html';
+      if (location.protocol === 'file:') {
+        const normalizedPath = location.pathname.replace(/\\/g, '/').toLowerCase();
+        if (normalizedPath.includes('/src/main/webapp/login.html')) return 'index.html';
+        return 'src/main/webapp/index.html';
+      }
+      return '/home';
     }
 
     document.getElementById('backHomeLink').setAttribute('href', resolveHomePath());
