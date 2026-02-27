@@ -22,10 +22,11 @@
       <div id="roundInfo" class="fw-semibold text-primary">Level 1 / 2 — Letters</div>
       <small class="text-muted">Read left-to-right and type in order</small>
     </div>
-    <div id="symbolGrid" class="grid"></div>
+
+    <div id="viewer" class="viewer">Press <strong>Start Level</strong> to begin sequence playback.</div>
 
     <button id="startBtn" class="btn btn-primary w-100">Start Level</button>
-    <textarea id="answer" class="form-control mt-3" rows="3" placeholder="Type items separated by spaces (e.g., b d p q)"></textarea>
+    <textarea id="answer" class="form-control mt-3" rows="3" placeholder="Format: first=cat | order=cat,dog,lion,rabbit"></textarea>
     <button id="submitBtn" class="btn btn-success w-100 mt-2" disabled>Submit Level</button>
 
     <div id="result" class="mt-3"></div>
@@ -40,29 +41,67 @@
 
     let currentLevel = 0;
     let sequence = [];
-    const preparedSequences = LEVELS.map((level) => shuffle(level.items));
     let startedAt = null;
     const levelScores = [];
 
-    function normalize(text) {
-      return text.toLowerCase().replace(/[^a-z\s]/g, ' ').trim().split(/\s+/).filter(Boolean);
-    }
-
-    function shuffle(items) {
+    function pickRandom(items, n) {
       const copy = [...items];
       for (let i = copy.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
         [copy[i], copy[j]] = [copy[j], copy[i]];
       }
-      return copy;
+      return copy.slice(0, n);
     }
 
-    function buildLevel(levelIndex) {
-      const level = LEVELS[levelIndex];
-      sequence = preparedSequences[levelIndex];
-      const host = document.getElementById('symbolGrid');
-      host.innerHTML = sequence.map((x) => `<div class="tile">${x}</div>`).join('');
-      document.getElementById('roundInfo').textContent = `Level ${levelIndex + 1} / ${LEVELS.length} — ${level.name}`;
+    function updateRoundInfo() {
+      document.getElementById('roundInfo').textContent = `Level ${currentLevel + 1} / ${LEVELS.length} — ${LEVELS[currentLevel].name}`;
+    }
+
+    function playSequence() {
+      sequence = pickRandom(animals, 4);
+      const viewer = document.getElementById('viewer');
+      let idx = 0;
+
+      function showNext() {
+        if (idx >= sequence.length) {
+          viewer.innerHTML = '<strong>Sequence done.</strong><br>Type first animal and full order.';
+          document.getElementById('submitBtn').disabled = false;
+          return;
+        }
+
+        const animal = sequence[idx];
+        viewer.innerHTML = `<img src="${animal.url}" alt="Frame ${idx + 1}"><div class='mt-2 text-muted'>Frame ${idx + 1} / ${sequence.length}</div>`;
+        idx += 1;
+        setTimeout(showNext, 1200);
+      }
+
+      showNext();
+    }
+
+    function parseAnswer(value) {
+      const input = value.toLowerCase();
+      const first = (input.split('first=')[1] || '').split('|')[0].trim();
+      const orderPart = (input.split('order=')[1] || '').trim();
+      const order = orderPart.split(',').map((x) => x.trim()).filter(Boolean);
+      return { first, order };
+    }
+
+    function scoreLevel(answerText, elapsed) {
+      const parsed = parseAnswer(answerText);
+      const targetOrder = sequence.map((a) => a.label);
+
+      let accuracy = 0;
+      if (parsed.first === targetOrder[0]) accuracy += 35;
+
+      let orderCorrect = 0;
+      for (let i = 0; i < Math.min(parsed.order.length, targetOrder.length); i++) {
+        if (parsed.order[i] === targetOrder[i]) orderCorrect += 1;
+      }
+      accuracy += (orderCorrect / targetOrder.length) * 65;
+
+      const speedPenalty = Math.min((elapsed / 16) * 18, 18);
+      const namingScore = Math.max(0, Math.min(100, accuracy - speedPenalty));
+      return { accuracy, namingScore };
     }
 
     function renderFinalSummary() {
@@ -78,46 +117,43 @@
         <div class="alert alert-success">
           <strong>Rapid Naming Score:</strong> ${avgScore.toFixed(2)}/100<br>
           <strong>Average Accuracy:</strong> ${avgAccuracy.toFixed(2)}%<br>
-          <strong>Average Time / Level:</strong> ${avgTime.toFixed(2)} sec<br>
-          <strong>Levels Completed:</strong> ${LEVELS.length} (Letters + Words)
+          <strong>Average Time / Level:</strong> ${avgTime.toFixed(2)} sec
         </div>`;
       document.getElementById('submitBtn').disabled = true;
       document.getElementById('startBtn').disabled = true;
       document.getElementById('finishTestBtn').style.display = 'block';
+      document.getElementById('viewer').innerHTML = '✅ Completed';
     }
 
     document.getElementById('startBtn').addEventListener('click', () => {
-      buildLevel(currentLevel);
-      startedAt = Date.now();
-      document.getElementById('submitBtn').disabled = false;
+      updateRoundInfo();
       document.getElementById('startBtn').disabled = true;
-      document.getElementById('result').innerHTML = `<span class="text-primary">Level ${currentLevel + 1} started. Type the sequence then submit.</span>`;
+      document.getElementById('submitBtn').disabled = true;
+      document.getElementById('result').innerHTML = `<span class="text-primary">Level ${currentLevel + 1} started. Watch carefully.</span>`;
+      startedAt = Date.now();
+      playSequence();
     });
 
     document.getElementById('submitBtn').addEventListener('click', () => {
       if (!startedAt) return;
+      const answerText = document.getElementById('answer').value.trim();
+      if (!answerText) {
+        document.getElementById('result').innerHTML = `<span class='text-danger'>Please type your answer first.</span>`;
+        return;
+      }
 
       const elapsed = Math.max((Date.now() - startedAt) / 1000, 1);
-      const typed = normalize(document.getElementById('answer').value);
-      const target = sequence;
-      const min = Math.min(typed.length, target.length);
-      let correct = 0;
-      for (let i = 0; i < min; i++) if (typed[i] === target[i]) correct++;
+      const scored = scoreLevel(answerText, elapsed);
+      levelScores.push({ accuracy: scored.accuracy, elapsed, namingScore: scored.namingScore });
 
-      const accuracy = (correct / target.length) * 100;
-      const speedPenalty = Math.min((elapsed / 18) * 18, 18);
-      const namingScore = Math.max(0, Math.min(100, accuracy - speedPenalty));
-
-      levelScores.push({ accuracy, elapsed, namingScore });
       currentLevel += 1;
-
       if (currentLevel >= LEVELS.length) {
         renderFinalSummary();
         return;
       }
 
-      document.getElementById('answer').value = '';
       startedAt = null;
+      document.getElementById('answer').value = '';
       document.getElementById('submitBtn').disabled = true;
       document.getElementById('startBtn').disabled = false;
       document.getElementById('startBtn').textContent = 'Start Next Level';
@@ -127,7 +163,7 @@
           Accuracy: ${accuracy.toFixed(2)}% | Time: ${elapsed.toFixed(2)} sec.
           Click <strong>Start Next Level</strong> for Level ${currentLevel + 1} (${LEVELS[currentLevel].name}).
         </div>`;
-      buildLevel(currentLevel);
+      updateRoundInfo();
     });
 
     document.getElementById('finishTestBtn').addEventListener('click', () => {
