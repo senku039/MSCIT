@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Login | Dyslexia Screening Platform</title>
+  <title>Login | Dyslexia Awareness</title>
   <link rel="stylesheet" href="/theme.css">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -183,16 +183,14 @@
             <button id="togglePassword" type="button" class="btn btn-outline-secondary">Show</button>
             <div class="invalid-feedback">Password must be at least 8 characters.</div>
           </div>
-          <div id="capsHint" class="caps mt-1">Caps Lock is ON.</div>
-        </div>
 
-        <div class="d-flex justify-content-between align-items-center mb-3">
-          <div class="form-check">
-            <input id="rememberMe" class="form-check-input" type="checkbox">
-            <label for="rememberMe" class="form-check-label">Remember me</label>
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <div class="form-check">
+              <input id="rememberMe" class="form-check-input" type="checkbox">
+              <label for="rememberMe" class="form-check-label">Remember me</label>
+            </div>
+            <a href="#" id="forgotLink" class="forgot-link">Forgot password?</a>
           </div>
-          <a href="#" id="forgotLink" class="text-decoration-none">Forgot password?</a>
-        </div>
 
         <button id="loginBtn" class="btn btn-login text-white w-100" type="submit">Sign In</button>
         <div id="loginStatus" class="helper mt-2"></div>
@@ -212,6 +210,76 @@
       { email: 'admin@dyslexia.app', password: 'Admin@1234', name: 'Admin' },
       { email: 'student@dyslexia.app', password: 'Student@1234', name: 'Student' },
     ];
+
+    function safeGet(storage, key) {
+      try { return storage.getItem(key); } catch (_e) { return null; }
+    }
+    function safeSet(storage, key, value) {
+      try { storage.setItem(key, value); } catch (_e) {}
+    }
+    function safeRemove(storage, key) {
+      try { storage.removeItem(key); } catch (_e) {}
+    }
+
+    function readAuthUser() {
+      const raw = safeGet(sessionStorage, 'auth_user') || safeGet(localStorage, 'auth_user');
+      if (!raw) return null;
+      try { return JSON.parse(raw); } catch (_e) { return null; }
+    }
+
+    function writeAuthUser(user) {
+      const serialized = JSON.stringify(user);
+      safeSet(sessionStorage, 'auth_user', serialized);
+      safeSet(localStorage, 'auth_user', serialized);
+    }
+
+    function getCustomUsers() {
+      try {
+        return JSON.parse(safeGet(localStorage, 'custom_users') || '[]');
+      } catch (_e) {
+        return [];
+      }
+    }
+
+    function setCustomUsers(users) {
+      safeSet(localStorage, 'custom_users', JSON.stringify(users));
+    }
+
+    function resolveHomePath() {
+      const normalizedPath = location.pathname.replace(/\\/g, '/').toLowerCase();
+      if (location.protocol === 'file:') {
+        if (normalizedPath.includes('/src/main/webapp/login.html')) return 'index.html';
+        return 'src/main/webapp/index.html';
+      }
+      // static/live-server path
+      if (normalizedPath.includes('/src/main/webapp/')) return '/src/main/webapp/index.html';
+      // flask route
+      if (normalizedPath.endsWith('/login') || normalizedPath == '/login') return '/home';
+      return '/index.html';
+    }
+
+    document.getElementById('backHomeLink').setAttribute('href', resolveHomePath());
+
+    const signinTab = document.getElementById('signinTab');
+    const signupTab = document.getElementById('signupTab');
+    const signinPanel = document.getElementById('signinPanel');
+    const signupPanel = document.getElementById('signupPanel');
+
+    signinTab.addEventListener('click', () => {
+      signinTab.classList.add('active');
+      signupTab.classList.remove('active');
+      signinPanel.classList.remove('hidden');
+      signupPanel.classList.add('hidden');
+      document.getElementById('signupStatus').textContent = '';
+    });
+
+    signupTab.addEventListener('click', () => {
+      signupTab.classList.add('active');
+      signinTab.classList.remove('active');
+      signupPanel.classList.remove('hidden');
+      signinPanel.classList.add('hidden');
+      statusEl.textContent = '';
+    });
 
     const emailEl = document.getElementById('email');
     const passwordEl = document.getElementById('password');
@@ -250,7 +318,41 @@
 
     document.getElementById('forgotLink').addEventListener('click', (event) => {
       event.preventDefault();
-      alert('Password reset is enabled by admin setup. For now, use demo account:\nstudent@dyslexia.app / Student@1234');
+      alert('Use demo account: student@dyslexia.app / Student@1234');
+    });
+
+    document.getElementById('signupForm').addEventListener('submit', (event) => {
+      event.preventDefault();
+      const nameEl = document.getElementById('newName');
+      const newEmailEl = document.getElementById('newEmail');
+      const newPassEl = document.getElementById('newPassword');
+      const signupStatus = document.getElementById('signupStatus');
+
+      if (!nameEl.checkValidity() || !newEmailEl.checkValidity() || !newPassEl.checkValidity()) {
+        signupStatus.textContent = 'Please fill all fields correctly.';
+        signupStatus.style.color = '#b45309';
+        return;
+      }
+
+      const email = newEmailEl.value.trim().toLowerCase();
+      const allUsers = [...DEMO_USERS, ...getCustomUsers()];
+      if (allUsers.some((u) => u.email.toLowerCase() === email)) {
+        signupStatus.textContent = 'Account already exists. Please sign in.';
+        signupStatus.style.color = '#b42318';
+        return;
+      }
+
+      const customUsers = getCustomUsers();
+      customUsers.push({ name: nameEl.value.trim(), email, password: newPassEl.value });
+      setCustomUsers(customUsers);
+
+      signupStatus.textContent = 'Account created. Please sign in now.';
+      signupStatus.style.color = '#166534';
+      emailEl.value = email;
+      passwordEl.value = '';
+      signinTab.click();
+      statusEl.textContent = 'Account created. You can sign in now.';
+      statusEl.style.color = '#166534';
     });
 
     document.getElementById('createAccountLink').addEventListener('click', (event) => {
@@ -260,36 +362,38 @@
 
     document.getElementById('loginForm').addEventListener('submit', (event) => {
       event.preventDefault();
-      event.stopPropagation();
 
       const email = emailEl.value.trim().toLowerCase();
       const password = passwordEl.value;
-      const valid = emailEl.checkValidity() && passwordEl.checkValidity();
+      const emailValid = emailEl.checkValidity();
+      const passValid = passwordEl.checkValidity();
 
-      emailEl.classList.toggle('is-invalid', !emailEl.checkValidity());
-      passwordEl.classList.toggle('is-invalid', !passwordEl.checkValidity());
+      emailEl.classList.toggle('is-invalid', !emailValid);
+      passwordEl.classList.toggle('is-invalid', !passValid);
 
-      if (!valid) {
+      if (!emailValid || !passValid) {
         statusEl.textContent = 'Please correct the highlighted fields.';
         statusEl.style.color = '#b45309';
         return;
       }
 
-      const matched = DEMO_USERS.find((user) => user.email === email && user.password === password);
+      const allUsers = [...DEMO_USERS, ...getCustomUsers()];
+      const matched = allUsers.find((user) => user.email.toLowerCase() === email && user.password === password);
       if (!matched) {
         statusEl.textContent = 'Invalid credentials. Try student@dyslexia.app / Student@1234';
         statusEl.style.color = '#b91c1c';
         return;
       }
 
-      if (rememberEl.checked) localStorage.setItem('remembered_email', email);
-      else localStorage.removeItem('remembered_email');
+      if (rememberEl.checked) safeSet(localStorage, 'remembered_email', email);
+      else safeRemove(localStorage, 'remembered_email');
 
-      sessionStorage.setItem('auth_user', JSON.stringify({ email: matched.email, name: matched.name }));
+      writeAuthUser({ email: matched.email, name: matched.name || 'User' });
       statusEl.textContent = 'Login successful. Redirecting...';
       statusEl.style.color = '#166534';
       setTimeout(() => { navigateToHome(); }, 350);
     });
   </script>
+  <script src="/assets/enter-key-helper.js"></script>
 </body>
 </html>
