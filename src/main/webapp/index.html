@@ -192,10 +192,13 @@
         <a class="navbar-brand fw-bold" href="index.html">Dyslexia Awareness</a>
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"><span class="navbar-toggler-icon"></span></button>
         <div class="collapse navbar-collapse" id="navbarNav">
-            <ul class="navbar-nav ms-auto">
+            <ul class="navbar-nav ms-auto align-items-lg-center gap-lg-2">
                 <li class="nav-item"><a class="nav-link active" href="index.html">Home</a></li>
                 <li class="nav-item"><a class="nav-link" href="dyslexia-prediction.html">Dyslexia Test</a></li>
                 <li class="nav-item"><a class="nav-link" href="handwriting_analysis.html">Handwriting Analysis</a></li>
+                <li class="nav-item"><a id="loginLink" class="nav-link" href="login.html">Login</a></li>
+                <li class="nav-item"><span id="userWelcome" class="navbar-text text-light small"></span></li>
+                <li class="nav-item"><button id="logoutBtn" class="btn btn-outline-light btn-sm d-none" type="button">Logout</button></li>
             </ul>
         </div>
     </div>
@@ -286,5 +289,48 @@
 </section>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+(function(){
+  const loginLink = document.getElementById('loginLink');
+  const welcome = document.getElementById('userWelcome');
+  const logoutBtn = document.getElementById('logoutBtn');
+
+  function safeGet(key) {
+    try { return sessionStorage.getItem(key); } catch (_e) { return null; }
+  }
+  function safeRemove(key) {
+    try { sessionStorage.removeItem(key); } catch (_e) {}
+  }
+
+  let user = null;
+  try { user = JSON.parse(safeGet('auth_user') || 'null'); } catch (_e) {}
+
+  if (user && user.name) {
+    welcome.textContent = `Signed in as ${user.name}`;
+    if (loginLink) loginLink.classList.add('d-none');
+    if (logoutBtn) logoutBtn.classList.remove('d-none');
+  }
+
+  function resolveLoginPath() {
+    const normalizedPath = location.pathname.replace(/\\/g, '/').toLowerCase();
+    if (location.protocol === 'file:') {
+      if (normalizedPath.includes('/src/main/webapp/index.html')) return 'login.html';
+      return 'src/main/webapp/login.html';
+    }
+    // static/live-server path
+    if (normalizedPath.includes('/src/main/webapp/')) return '/src/main/webapp/login.html';
+    // flask route
+    if (normalizedPath === '/home') return '/login';
+    return '/login.html';
+  }
+
+  if (logoutBtn) {
+    logoutBtn.addEventListener('click', () => {
+      safeRemove('auth_user');
+      window.location.href = resolveLoginPath();
+    });
+  }
+})();
+</script>
 </body>
 </html>
