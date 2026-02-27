@@ -156,9 +156,14 @@
       initializeReadingPage();
     });
 
+    initializeReadingPage();
+
     document.getElementById('startCameraBtn').onclick = function (e) {
       e.preventDefault();
       console.log('Start Camera button clicked');
+      if (location.protocol === 'file:') {
+        setCameraStatus('Camera requires http://127.0.0.1 or https. Please run via Flask server, not file://.', 'warning');
+      }
 
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
         alert('Camera API not supported');
@@ -265,7 +270,6 @@
     document.getElementById('finishTestBtn').onclick = function() {
       window.location.href = '/dyslexia-prediction';
     };
-  </script>
   </script>
   <!-- <script src="/assets/enter-key-helper.js"></script> -->
 </body>
