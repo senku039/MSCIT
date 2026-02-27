@@ -276,6 +276,18 @@
       try { storage.removeItem(key); } catch (_e) {}
     }
 
+    function readAuthUser() {
+      const raw = safeGet(sessionStorage, 'auth_user') || safeGet(localStorage, 'auth_user');
+      if (!raw) return null;
+      try { return JSON.parse(raw); } catch (_e) { return null; }
+    }
+
+    function writeAuthUser(user) {
+      const serialized = JSON.stringify(user);
+      safeSet(sessionStorage, 'auth_user', serialized);
+      safeSet(localStorage, 'auth_user', serialized);
+    }
+
     function getCustomUsers() {
       try {
         return JSON.parse(safeGet(localStorage, 'custom_users') || '[]');
@@ -335,7 +347,7 @@
       rememberEl.checked = true;
     }
 
-    if (safeGet(sessionStorage, 'auth_user')) {
+    if (readAuthUser()) {
       window.location.href = resolveHomePath();
     }
 
@@ -416,7 +428,7 @@
       if (rememberEl.checked) safeSet(localStorage, 'remembered_email', email);
       else safeRemove(localStorage, 'remembered_email');
 
-      safeSet(sessionStorage, 'auth_user', JSON.stringify({ email: matched.email, name: matched.name || 'User' }));
+      writeAuthUser({ email: matched.email, name: matched.name || 'User' });
       statusEl.textContent = 'Login successful. Redirecting...';
       statusEl.style.color = '#166534';
       setTimeout(() => { window.location.href = resolveHomePath(); }, 300);

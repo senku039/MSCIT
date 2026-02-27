@@ -302,8 +302,13 @@
     try { sessionStorage.removeItem(key); } catch (_e) {}
   }
 
-  let user = null;
-  try { user = JSON.parse(safeGet('auth_user') || 'null'); } catch (_e) {}
+  function readAuthUser() {
+    const raw = safeGet('auth_user') || (function(){ try { return localStorage.getItem('auth_user'); } catch(_e){ return null; } })();
+    if (!raw) return null;
+    try { return JSON.parse(raw); } catch (_e) { return null; }
+  }
+
+  let user = readAuthUser();
 
   if (user && user.name) {
     welcome.textContent = `Signed in as ${user.name}`;
@@ -332,6 +337,7 @@
   if (logoutBtn) {
     logoutBtn.addEventListener('click', () => {
       safeRemove('auth_user');
+      try { localStorage.removeItem('auth_user'); } catch (_e) {}
       window.location.href = resolveLoginPath();
     });
   }

@@ -373,77 +373,75 @@
     async function detectionTick(timestamp) {
       if (!detectionActive || testState !== STATE.RUNNING) return;
       const video = document.getElementById('webcam');
-      const roi = getRoi(video);
+      const cameraStatus = document.getElementById('cameraStatus');
+      cameraStatus.style.display = 'none';
+      cameraStatus.textContent = '';
+      faceVisibleSeconds = 0;
+      eyeMovementScore = 0;
+      lookAwaySeconds = 0;
+      lookAwayAlerts = 0;
+      faceMissingStreak = 0;
+      document.getElementById('trackingPanel').style.display = 'none';
+      stopFaceTracking();
 
-      if (!lastDetectionTick) lastDetectionTick = timestamp;
-      const delta = timestamp - lastDetectionTick;
-      if (delta < DETECT_SAMPLE_MS) {
-        detectionRaf = requestAnimationFrame(detectionTick);
+      const mediaSupported = Boolean((navigator.mediaDevices && navigator.mediaDevices.getUserMedia) || navigator.getUserMedia || navigator.webkitGetUserMedia);
+      if (!mediaSupported) {
+        tracking = true;
+        trackFocusTime();
+        cameraStatus.style.display = 'block';
+        cameraStatus.textContent = 'Camera API is unavailable in this browser. Continuing test without camera/face tracking.';
+        updateTrackingPanel();
         return;
       }
       lastDetectionTick = timestamp;
 
+      if (location.protocol !== 'https:' && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
+        cameraStatus.style.display = 'block';
+        cameraStatus.className = 'alert alert-warning py-2 mt-2';
+        cameraStatus.textContent = 'Camera may be blocked on non-secure pages. Use localhost/https for reliable camera access.';
+      }
+
+      const constraints = {
+        video: {
+          facingMode: 'user',
+          width: { ideal: 960 },
+          height: { ideal: 540 }
+        },
+        audio: false
+      };
+
       try {
-        const face = await detectFace(video);
-        const frameArea = Math.max((video.videoWidth || 1) * (video.videoHeight || 1), 1);
-        detectionSamples += 1;
+        if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+          videoStream = await navigator.mediaDevices.getUserMedia(constraints);
+        } else {
+          videoStream = await new Promise((resolve, reject) => {
+            const legacy = navigator.getUserMedia || navigator.webkitGetUserMedia;
+            legacy.call(navigator, constraints, resolve, reject);
+          });
+        }
+        video.srcObject = videoStream;
+        video.style.display = 'block';
+        try { await video.play(); } catch (_e) {}
+        tracking = true;
+        trackFocusTime();
 
-        let awayNow = true;
-        if (face) {
-          const center = { x: face.x + (face.width / 2), y: face.y + (face.height / 2) };
-          const smooth = smoothCenter(center);
-          const confAvg = averageConfidence(face.confidence);
-          const areaRatio = (face.width * face.height) / frameArea;
-          const roiMarginX = roi.width * 0.08;
-          const roiMarginY = roi.height * 0.08;
-          const inRoi = smooth.x >= (roi.x - roiMarginX) && smooth.x <= (roi.x + roi.width + roiMarginX)
-            && smooth.y >= (roi.y - roiMarginY) && smooth.y <= (roi.y + roi.height + roiMarginY);
-          const largeEnough = areaRatio >= MIN_FACE_AREA_RATIO;
-          const confGood = confAvg >= MIN_CONFIDENCE;
-
-          awayNow = !(inRoi && largeEnough && confGood);
-
-          // Count face presence whenever a face is detected; away-state is tracked separately.
-          facePresenceMs += delta;
-          if (!awayNow) {
-            stableFaceSamples += 1;
-          } else {
-            unstableSamples += 1;
-          }
-
-          if (lastRawCenter) {
-            const dx = Math.abs(center.x - lastRawCenter.x);
-            const dy = Math.abs(center.y - lastRawCenter.y);
-            eyeMovementScore += Math.min(((dx + dy) / Math.max(face.width + face.height, 1)) * 100, 10);
-          }
-          lastRawCenter = center;
-
-          drawOverlay(face, roi, !awayNow);
+        const faceTrackingEnabled = await setupFaceTracking(video);
+        if (faceTrackingEnabled) {
+          cameraStatus.style.display = 'block';
+          cameraStatus.className = 'alert alert-success py-2 mt-2';
+          cameraStatus.textContent = 'Camera active. Face/eye movement proxy tracking is enabled.';
+          updateTrackingPanel();
         } else {
           awayNow = true;
           unstableSamples += 1;
           drawOverlay(null, roi, false);
         }
-
-        if (awayNow) {
-          continuousAwayDurationMs += delta;
-          maxContinuousAwayMs = Math.max(maxContinuousAwayMs, continuousAwayDurationMs);
-
-          // Ignore short drops < 300ms to prevent flicker penalties.
-          if (continuousAwayDurationMs > AWAY_GRACE_MS) {
-            lookingAwayMs += delta;
-          }
-          if (continuousAwayDurationMs > AWAY_TRIGGER_MS && (continuousAwayDurationMs - delta) <= AWAY_TRIGGER_MS) {
-            lookAwayAlerts += 1;
-            updateStatus('danger', 'Face detected but not centered. Please move into the blue guide box.');
-          }
-        } else {
-          if (continuousAwayDurationMs > AWAY_TRIGGER_MS / 2) {
-            updateStatus('success', 'Face stable. Continue reading naturally.');
-          }
-          continuousAwayDurationMs = 0;
-        }
-
+      } catch (_error) {
+        tracking = true;
+        trackFocusTime();
+        cameraStatus.style.display = 'block';
+        cameraStatus.className = 'alert alert-warning py-2 mt-2';
+        cameraStatus.textContent = 'Camera access blocked/denied or unavailable. Test will continue without camera tracking.';
         updateTrackingPanel();
       } catch (_error) {
         updateStatus('warning', 'Temporary face detection issue. Trying to recover…');
