@@ -4,37 +4,483 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Register</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-start: #e8eef8;
+      --bg-end: #dbe7f4;
+      --card-bg: #ffffff;
+      --ink: #0f172a;
+      --muted: #64748b;
+      --line: #d6e1ef;
+      --input-bg: #f8fafc;
+      --focus: rgba(59, 130, 246, 0.25);
+      --brand-a: #1d4ed8;
+      --brand-b: #4338ca;
+      --error-bg: #fef2f2;
+      --error-border: #fecaca;
+      --error-ink: #b91c1c;
+      --success-bg: #ecfdf3;
+      --success-border: #86efac;
+      --success-ink: #166534;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Inter", system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      color: var(--ink);
+      background: linear-gradient(135deg, var(--bg-start), var(--bg-end));
+      padding: 28px;
+      display: grid;
+      place-items: center;
+    }
+
+    .auth-shell {
+      width: min(1120px, 100%);
+      min-height: min(760px, calc(100vh - 56px));
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      border-radius: 20px;
+      overflow: hidden;
+      background: var(--card-bg);
+      box-shadow: 0 28px 56px rgba(15, 23, 42, 0.16);
+      animation: rise 420ms ease-out both;
+    }
+
+    .brand-panel {
+      position: relative;
+      padding: 42px;
+      color: #e8f0ff;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      background:
+        linear-gradient(145deg, rgba(15, 23, 42, 0.72), rgba(30, 64, 175, 0.52)),
+        url('https://images.unsplash.com/photo-1509062522246-3755977927d7?auto=format&fit=crop&w=1600&q=80') center/cover no-repeat;
+      box-shadow: inset -18px 0 32px rgba(15, 23, 42, 0.22);
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 7px 14px;
+      border-radius: 999px;
+      width: fit-content;
+      border: 1px solid rgba(219, 234, 254, 0.38);
+      background: rgba(15, 23, 42, 0.24);
+      font-size: 0.83rem;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+    }
+
+    .brand-content h1 {
+      margin: 18px 0 10px;
+      font-size: clamp(2rem, 3.2vw, 2.65rem);
+      line-height: 1.1;
+      letter-spacing: -0.03em;
+    }
+
+    .brand-content p {
+      margin: 0;
+      color: rgba(226, 237, 255, 0.94);
+      line-height: 1.6;
+      max-width: 36ch;
+      font-size: 1rem;
+    }
+
+    .brand-points {
+      margin: 26px 0 0;
+      padding: 0;
+      list-style: none;
+      display: grid;
+      gap: 10px;
+    }
+
+    .brand-points li {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 0.95rem;
+      color: rgba(226, 237, 255, 0.95);
+    }
+
+    .brand-points li::before {
+      content: "";
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: #93c5fd;
+      box-shadow: 0 0 0 3px rgba(147, 197, 253, 0.24);
+      flex-shrink: 0;
+    }
+
+    .form-panel {
+      display: grid;
+      place-items: center;
+      padding: 34px;
+      background: #f8fbff;
+    }
+
+    .form-card {
+      width: min(100%, 460px);
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      box-shadow: 0 14px 32px rgba(30, 41, 59, 0.08);
+      padding: 28px;
+    }
+
+    .form-title { margin: 0; font-size: 1.85rem; letter-spacing: -0.02em; }
+    .form-sub { margin: 8px 0 22px; color: var(--muted); font-size: 0.95rem; }
+
+    .alert-card {
+      margin-bottom: 14px;
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-size: 0.89rem;
+      border: 1px solid;
+    }
+
+    .alert-card.error { border-color: var(--error-border); background: var(--error-bg); color: var(--error-ink); }
+    .alert-card.success { border-color: var(--success-border); background: var(--success-bg); color: var(--success-ink); }
+
+    .field { margin-bottom: 14px; }
+    .label { display: block; font-weight: 600; font-size: 0.88rem; margin-bottom: 7px; color: #334155; }
+
+    .input-wrap {
+      position: relative;
+      border-radius: 10px;
+      border: 1px solid #cfdceb;
+      background: var(--input-bg);
+      transition: border-color 200ms ease, box-shadow 200ms ease, transform 200ms ease;
+    }
+
+    .input-wrap:focus-within {
+      border-color: #60a5fa;
+      box-shadow: 0 0 0 4px var(--focus);
+      transform: translateY(-1px);
+    }
+
+    .input {
+      width: 100%;
+      height: 48px;
+      border: 0;
+      outline: 0;
+      border-radius: 10px;
+      background: transparent;
+      font-size: 0.97rem;
+      color: var(--ink);
+      padding: 0 40px 0 12px;
+    }
+
+    .input::placeholder { color: #94a3b8; }
+
+    .inline-help { min-height: 16px; margin-top: 5px; color: #dc2626; font-size: 0.77rem; }
+
+    .icon-btn {
+      position: absolute;
+      top: 50%;
+      right: 8px;
+      transform: translateY(-50%);
+      border: 0;
+      background: transparent;
+      color: #64748b;
+      width: 30px;
+      height: 30px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background-color 200ms ease, color 200ms ease;
+    }
+
+    .icon-btn:hover { background: rgba(148, 163, 184, 0.2); color: #334155; }
+    .icon-btn:focus-visible { outline: 2px solid #3b82f6; outline-offset: 2px; }
+
+    .strength {
+      display: grid;
+      gap: 6px;
+      margin-top: 4px;
+      margin-bottom: 2px;
+    }
+
+    .strength-track {
+      width: 100%;
+      height: 6px;
+      border-radius: 999px;
+      background: #e2e8f0;
+      overflow: hidden;
+    }
+
+    .strength-fill {
+      height: 100%;
+      width: 0;
+      border-radius: inherit;
+      transition: width 200ms ease, background-color 200ms ease;
+      background: #f97316;
+    }
+
+    .strength-label {
+      font-size: 0.8rem;
+      color: #64748b;
+    }
+
+    .btn {
+      margin-top: 14px;
+      width: 100%;
+      height: 48px;
+      border: 0;
+      border-radius: 10px;
+      color: #fff;
+      font-size: 0.95rem;
+      font-weight: 700;
+      letter-spacing: 0.01em;
+      background: linear-gradient(120deg, var(--brand-a), var(--brand-b));
+      box-shadow: 0 10px 20px rgba(29, 78, 216, 0.35);
+      cursor: pointer;
+      transition: transform 200ms ease, box-shadow 200ms ease, opacity 200ms ease;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 9px;
+    }
+
+    .btn:hover { transform: translateY(-1px); box-shadow: 0 14px 22px rgba(29, 78, 216, 0.28); }
+    .btn:active { transform: translateY(0); box-shadow: 0 8px 16px rgba(29, 78, 216, 0.3); }
+    .btn:focus-visible { outline: 2px solid #2563eb; outline-offset: 2px; }
+    .btn:disabled { opacity: 0.72; cursor: not-allowed; box-shadow: none; transform: none; }
+
+    .spinner {
+      width: 15px;
+      height: 15px;
+      border-radius: 50%;
+      border: 2px solid rgba(255, 255, 255, 0.4);
+      border-top-color: #fff;
+      display: none;
+      animation: spin .9s linear infinite;
+    }
+
+    .btn.loading .spinner { display: inline-block; }
+
+    .foot {
+      margin: 14px 0 0;
+      color: var(--muted);
+      font-size: 0.9rem;
+      text-align: center;
+    }
+
+    .foot a { color: #4338ca; text-decoration: none; font-weight: 600; }
+    .foot a:hover, .foot a:focus-visible { text-decoration: underline; }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @keyframes rise { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+
+    @media (max-width: 980px) {
+      body { padding: 18px; }
+      .auth-shell {
+        grid-template-columns: 1fr;
+        min-height: auto;
+      }
+
+      .form-panel { order: 1; padding: 18px; }
+      .brand-panel { order: 2; min-height: 280px; padding: 28px; }
+      .form-card { max-width: 560px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 1ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 1ms !important;
+        scroll-behavior: auto !important;
+      }
+    }
+  </style>
 </head>
-<body class="bg-light">
-  <div class="container py-5">
-    <div class="row justify-content-center">
-      <div class="col-md-5">
-        <div class="card shadow-sm">
-          <div class="card-body p-4">
-            <h3 class="mb-3">Create Account</h3>
-            {% if error %}
-            <div class="alert alert-danger" role="alert">{{ error }}</div>
-            {% endif %}
-            {% if success %}
-            <div class="alert alert-success" role="alert">{{ success }} You can now <a href="{{ url_for('api.login_page') }}">login</a>.</div>
-            {% endif %}
-            <form method="post" action="{{ url_for('api.register_page') }}">
-              <div class="mb-3">
-                <label for="email" class="form-label">Email</label>
-                <input id="email" name="email" type="email" class="form-control" required>
-              </div>
-              <div class="mb-3">
-                <label for="password" class="form-label">Password</label>
-                <input id="password" name="password" type="password" class="form-control" required>
-              </div>
-              <button type="submit" class="btn btn-primary w-100">Register</button>
-            </form>
-            <p class="mt-3 mb-0 small"><a href="{{ url_for('api.login_page') }}">Back to login</a></p>
-          </div>
-        </div>
+<body>
+  <main class="auth-shell" aria-labelledby="register-title">
+    <section class="brand-panel" aria-hidden="true">
+      <div class="brand-content">
+        <span class="badge">Dyslexia Screening Suite</span>
+        <h1>Create Your Account</h1>
+        <p>Set up your profile to start guided screening workflows and keep your progress tracked in one secure workspace.</p>
+        <ul class="brand-points">
+          <li>Continue multi-level reading tests</li>
+          <li>View handwriting analysis results</li>
+          <li>Track screening progress</li>
+        </ul>
       </div>
-    </div>
-  </div>
+    </section>
+
+    <section class="form-panel">
+      <div class="form-card">
+        <h2 id="register-title" class="form-title">Create Account</h2>
+        <p class="form-sub">Join the platform in a few quick steps.</p>
+
+        {% if error %}
+        <div class="alert-card error" role="alert" aria-live="polite">{{ error }}</div>
+        {% endif %}
+        {% if success %}
+        <div class="alert-card success" role="status" aria-live="polite">{{ success }} You can now <a href="{{ url_for('api.login_page') }}">login</a>.</div>
+        {% endif %}
+
+        <form id="registerForm" method="post" action="{{ url_for('api.register_page') }}" novalidate>
+          <div class="field">
+            <label class="label" for="email">Email</label>
+            <div class="input-wrap">
+              <input id="email" name="email" class="input" type="email" autocomplete="email" placeholder="you@example.com" autofocus required aria-describedby="emailHelp">
+            </div>
+            <div id="emailHelp" class="inline-help" aria-live="polite"></div>
+          </div>
+
+          <div class="field">
+            <label class="label" for="password">Password</label>
+            <div class="input-wrap">
+              <input id="password" name="password" class="input" type="password" autocomplete="new-password" placeholder="Create password" required aria-describedby="passwordHelp strengthLabel">
+              <button id="togglePassword" class="icon-btn" type="button" aria-label="Show password" aria-pressed="false">
+                <span id="eyeIcon" aria-hidden="true">👁</span>
+              </button>
+            </div>
+            <div class="strength" aria-live="polite">
+              <div class="strength-track" aria-hidden="true"><div id="strengthFill" class="strength-fill"></div></div>
+              <div id="strengthLabel" class="strength-label">Password strength: —</div>
+            </div>
+            <div id="passwordHelp" class="inline-help" aria-live="polite"></div>
+          </div>
+
+          <div class="field">
+            <label class="label" for="confirm_password">Confirm Password</label>
+            <div class="input-wrap">
+              <input id="confirm_password" name="confirm_password" class="input" type="password" autocomplete="new-password" placeholder="Re-enter password" required aria-describedby="confirmHelp">
+            </div>
+            <div id="confirmHelp" class="inline-help" aria-live="polite"></div>
+          </div>
+
+          <button id="submitBtn" class="btn" type="submit">
+            <span id="spinner" class="spinner" aria-hidden="true"></span>
+            <span id="btnText">Create Account</span>
+          </button>
+        </form>
+
+        <p class="foot"><a href="{{ url_for('api.login_page') }}">Back to login</a></p>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    (function () {
+      const form = document.getElementById('registerForm');
+      const email = document.getElementById('email');
+      const password = document.getElementById('password');
+      const confirm = document.getElementById('confirm_password');
+      const emailHelp = document.getElementById('emailHelp');
+      const passwordHelp = document.getElementById('passwordHelp');
+      const confirmHelp = document.getElementById('confirmHelp');
+      const strengthFill = document.getElementById('strengthFill');
+      const strengthLabel = document.getElementById('strengthLabel');
+      const togglePassword = document.getElementById('togglePassword');
+      const eyeIcon = document.getElementById('eyeIcon');
+      const submitBtn = document.getElementById('submitBtn');
+      const btnText = document.getElementById('btnText');
+
+      function validateEmail() {
+        const value = email.value.trim();
+        if (!value) {
+          emailHelp.textContent = 'Email is required.';
+          email.setAttribute('aria-invalid', 'true');
+          return false;
+        }
+        if (!email.checkValidity()) {
+          emailHelp.textContent = 'Please enter a valid email address.';
+          email.setAttribute('aria-invalid', 'true');
+          return false;
+        }
+        emailHelp.textContent = '';
+        email.setAttribute('aria-invalid', 'false');
+        return true;
+      }
+
+      function scorePassword(value) {
+        let score = 0;
+        if (value.length >= 8) score += 1;
+        if (/[A-Z]/.test(value)) score += 1;
+        if (/[0-9]/.test(value)) score += 1;
+        if (/[^A-Za-z0-9]/.test(value)) score += 1;
+        return score;
+      }
+
+      function updateStrength() {
+        const value = password.value;
+        const score = scorePassword(value);
+        const widths = ['0%', '25%', '50%', '75%', '100%'];
+        const labels = ['—', 'Weak', 'Fair', 'Good', 'Strong'];
+        const colors = ['#e2e8f0', '#f97316', '#f59e0b', '#22c55e', '#16a34a'];
+
+        strengthFill.style.width = widths[score];
+        strengthFill.style.backgroundColor = colors[score];
+        strengthLabel.textContent = `Password strength: ${labels[score]}`;
+      }
+
+      function validatePassword() {
+        if (!password.value) {
+          passwordHelp.textContent = 'Password is required.';
+          password.setAttribute('aria-invalid', 'true');
+          return false;
+        }
+        if (password.value.length < 8) {
+          passwordHelp.textContent = 'Use at least 8 characters.';
+          password.setAttribute('aria-invalid', 'true');
+          return false;
+        }
+        passwordHelp.textContent = '';
+        password.setAttribute('aria-invalid', 'false');
+        return true;
+      }
+
+      function validateConfirm() {
+        if (!confirm.value) {
+          confirmHelp.textContent = 'Please confirm your password.';
+          confirm.setAttribute('aria-invalid', 'true');
+          return false;
+        }
+        if (confirm.value !== password.value) {
+          confirmHelp.textContent = 'Passwords do not match.';
+          confirm.setAttribute('aria-invalid', 'true');
+          return false;
+        }
+        confirmHelp.textContent = '';
+        confirm.setAttribute('aria-invalid', 'false');
+        return true;
+      }
+
+      email.addEventListener('blur', validateEmail);
+      password.addEventListener('input', updateStrength);
+      password.addEventListener('blur', validatePassword);
+      confirm.addEventListener('blur', validateConfirm);
+
+      togglePassword.addEventListener('click', function () {
+        const showing = password.type === 'text';
+        password.type = showing ? 'password' : 'text';
+        this.setAttribute('aria-pressed', String(!showing));
+        this.setAttribute('aria-label', showing ? 'Show password' : 'Hide password');
+        eyeIcon.textContent = showing ? '👁' : '🙈';
+      });
+
+      form.addEventListener('submit', function (event) {
+        const valid = validateEmail() && validatePassword() && validateConfirm();
+        if (!valid || submitBtn.disabled) {
+          event.preventDefault();
+          return;
+        }
+
+        submitBtn.disabled = true;
+        submitBtn.classList.add('loading');
+        btnText.textContent = 'Creating account...';
+      });
+    })();
+  </script>
 </body>
 </html>
