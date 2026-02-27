@@ -93,25 +93,11 @@
 
     function randomPick(items){ return items[Math.floor(Math.random() * items.length)]; }
 
-    function loadPassage() {
+    function loadPassage(force = false) {
+      const textHost = document.getElementById('textToRead');
+      if (!force && textHost.innerText.trim()) return;
       selectedPassage = randomPick(passages);
-      document.getElementById('textToRead').innerText = selectedPassage.text;
-      document.getElementById('questionBlock').style.display = 'none';
-      document.getElementById('result').innerText = '';
-    }
-
-    function setCameraStatus(message, type='warning') {
-      const cameraStatus = document.getElementById('cameraStatus');
-      cameraStatus.style.display = 'block';
-      cameraStatus.className = `alert alert-${type} py-2 mt-2`;
-      cameraStatus.textContent = message;
-    }
-
-    function setCameraStatus(message, type='warning') {
-      const cameraStatus = document.getElementById('cameraStatus');
-      cameraStatus.style.display = 'block';
-      cameraStatus.className = `alert alert-${type} py-2 mt-2`;
-      cameraStatus.textContent = message;
+      textHost.innerText = selectedPassage.text;
     }
 
     function setCameraStatus(message, type='secondary') {
@@ -242,10 +228,11 @@
         try {
           const devices = await navigator.mediaDevices.enumerateDevices();
           if (!devices.some((d) => d.kind === 'videoinput')) {
-            setCameraStatus('No camera device detected on this system.', 'warning');
-            return false;
+            setCameraStatus('Camera device not listed yet. Attempting to request camera permission...', 'info');
           }
-        } catch (_e) {}
+        } catch (_e) {
+          setCameraStatus('Could not pre-check camera devices. Attempting to start camera...', 'info');
+        }
       }
 
       if (location.protocol !== 'https:' && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
@@ -325,14 +312,6 @@
       testState = 'stopped';
       document.getElementById('stopBtn').disabled = true;
       stopFocusTimer();
-
-    function buildTrackingQuality(metrics) {
-      const total = Math.max(metrics.elapsedSeconds, 1);
-      const presenceRatio = metrics.faceVisibleSeconds / total;
-      const awayPenalty = Math.min(metrics.maxContinuousAwaySeconds / total, 1) * 0.25;
-      const unstablePenalty = Math.min(metrics.unstableRate, 1) * 0.2;
-      return Math.max(0, Math.min(1, presenceRatio - awayPenalty - unstablePenalty));
-    }
 
     function finalizeSubmission() {
       const wordCount = document.getElementById('textToRead').innerText.trim().split(/\s+/).filter(Boolean).length;
@@ -416,13 +395,17 @@
       window.location.href = '/dyslexia-prediction';
     });
 
-    document.addEventListener('DOMContentLoaded', () => {
+    function initializeReadingPage() {
       loadPassage();
-      setState(STATE.IDLE);
-      updateTrackingPanel();
-      // Warm detector before test starts to avoid 5-10s startup delay.
-      setTimeout(() => { initDetectionEngine().catch(() => {}); }, 250);
-    });
+      if (testState === 'idle') {
+        document.getElementById('startBtn').style.display = 'block';
+        document.getElementById('stopBtn').style.display = 'none';
+      }
+    }
+
+    initializeReadingPage();
+    document.addEventListener('DOMContentLoaded', initializeReadingPage);
+    window.addEventListener('pageshow', () => initializeReadingPage());
   </script>
   <script src="/assets/enter-key-helper.js"></script>
 </body>
