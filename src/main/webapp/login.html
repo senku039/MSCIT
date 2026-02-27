@@ -255,7 +255,7 @@
       <hr class="divider">
       <div class="d-flex justify-content-between align-items-center">
         <small class="help-text">Demo: student@dyslexia.app</small>
-        <a id="backHomeLink" href="/index.html" class="text-decoration-none">Back to Home</a>
+        <a id="backHomeLink" href="index.html" class="text-decoration-none">Back to Home</a>
       </div>
     </section>
   </div>
@@ -289,12 +289,16 @@
     }
 
     function resolveHomePath() {
+      const normalizedPath = location.pathname.replace(/\\/g, '/').toLowerCase();
       if (location.protocol === 'file:') {
-        const normalizedPath = location.pathname.replace(/\\/g, '/').toLowerCase();
         if (normalizedPath.includes('/src/main/webapp/login.html')) return 'index.html';
         return 'src/main/webapp/index.html';
       }
-      return '/home';
+      // static/live-server path
+      if (normalizedPath.includes('/src/main/webapp/')) return '/src/main/webapp/index.html';
+      // flask route
+      if (normalizedPath.endsWith('/login') || normalizedPath == '/login') return '/home';
+      return '/index.html';
     }
 
     document.getElementById('backHomeLink').setAttribute('href', resolveHomePath());
