@@ -26,8 +26,19 @@
       padding: 28px;
     }
     .question-title { color: #172a65; font-weight: 700; }
-    .animal-card img { height: 170px; object-fit: cover; border-radius: 12px; width: 100%; }
     .helper-text { color: #4e5e8f; font-size: 0.95rem; }
+    .sequence-box {
+      min-height: 120px;
+      border: 1px solid #cfdbfb;
+      border-radius: 12px;
+      background: #f5f8ff;
+      display: grid;
+      place-items: center;
+      margin-bottom: 10px;
+      font-size: 1.8rem;
+      font-weight: 700;
+      color: #1f3a83;
+    }
   </style>
 </head>
 <body>
@@ -37,29 +48,36 @@
 
     <div id="taskContainer">
       <div id="memoryTest" class="mb-4">
-        <h3 class="question-title">Memory Test</h3>
+        <h3 class="question-title">1) Memory Recall</h3>
         <p class="helper-text mb-1">Remember these words:</p>
         <p class="fw-semibold" id="memoryWords"></p>
-        <input type="text" id="memoryInput" class="form-control" placeholder="Type the words you remember" required>
+        <input type="text" id="memoryInput" class="form-control" placeholder="Type all words in order (comma separated)" required>
       </div>
 
       <div id="attentionTest" class="mb-4" style="display: none;">
-        <h3 class="question-title">Attention Test</h3>
-        <p class="helper-text">Find the animals in the images below:</p>
-        <div class="row" id="animalImages"></div>
-        <input type="text" id="attentionInput" class="form-control mt-3" placeholder="Type the animals you found (comma separated)" required>
+        <h3 class="question-title">2) Which item came first?</h3>
+        <p class="helper-text">Press start, watch the sequence, and type the first item shown.</p>
+        <div class="sequence-box" id="sequenceBox">Ready</div>
+        <button id="playSequenceBtn" class="btn btn-outline-primary mb-2" type="button">Play Sequence</button>
+        <input type="text" id="attentionInput" class="form-control" placeholder="Type the first item" required>
       </div>
 
       <div id="problemSolvingTest" class="mb-4" style="display: none;">
-        <h3 class="question-title">Problem-Solving Test</h3>
+        <h3 class="question-title">3) Problem-Solving</h3>
         <p id="problemQuestion" class="helper-text">Loading question...</p>
         <input type="text" id="problemInput" class="form-control" placeholder="Your answer" required>
       </div>
 
       <div id="languageTest" class="mb-4" style="display: none;">
-        <h3 class="question-title">Language Test</h3>
+        <h3 class="question-title">4) Language Completion</h3>
         <p id="languageQuestion" class="helper-text">Loading question...</p>
         <input type="text" id="languageInput" class="form-control" placeholder="Your answer" required>
+      </div>
+
+      <div id="patternTest" class="mb-4" style="display: none;">
+        <h3 class="question-title">5) Pattern Challenge</h3>
+        <p id="patternQuestion" class="helper-text">Loading question...</p>
+        <input type="text" id="patternInput" class="form-control" placeholder="Type the next value" required>
       </div>
     </div>
 
@@ -70,32 +88,33 @@
 
   <script>
     const memoryWordSets = [
-      ["apple", "banana", "orange"],
-      ["river", "planet", "mirror"],
-      ["garden", "pencil", "rocket"],
-      ["camera", "window", "tiger"]
+      ["apple", "banana", "orange", "river"],
+      ["garden", "pencil", "rocket", "tiger"],
+      ["camera", "window", "planet", "mirror"],
+      ["forest", "school", "yellow", "bridge"]
     ];
 
-    const imageLinks = [
-      { label: "cat", url: "https://upload.wikimedia.org/wikipedia/commons/4/4d/Cat_November_2010-1a.jpg" },
-      { label: "elephant", url: "https://upload.wikimedia.org/wikipedia/commons/3/37/African_Bush_Elephant.jpg" },
-      { label: "dog", url: "https://images.unsplash.com/photo-1517849845537-4d257902454a?auto=format&fit=crop&w=500&q=80" },
-      { label: "horse", url: "https://images.unsplash.com/photo-1553284965-83fd3e82fa5a?auto=format&fit=crop&w=500&q=80" },
-      { label: "lion", url: "https://images.unsplash.com/photo-1546182990-dffeafbe841d?auto=format&fit=crop&w=500&q=80" },
-      { label: "rabbit", url: "https://images.unsplash.com/photo-1585110396000-c9ffd4e4b308?auto=format&fit=crop&w=500&q=80" }
-    ];
+    const attentionItems = ["Cat", "Sun", "Car", "Tree", "Moon", "Book", "Fish", "Clock"];
+    let currentSequence = [];
 
     const problemQuestions = [
-      { question: "If you have 3 apples and eat 1, how many are left?", answer: "2" },
-      { question: "What is 6 + 7?", answer: "13" },
-      { question: "A farmer has 10 sheep and 3 run away. How many remain?", answer: "7" },
-      { question: "What is 9 - 4?", answer: "5" }
+      { question: "If 3 notebooks cost 90, how much do 5 notebooks cost?", answer: "150" },
+      { question: "What is 36 divided by 6?", answer: "6" },
+      { question: "A train has 48 seats and 19 are filled. How many are empty?", answer: "29" },
+      { question: "What is 14 + 9?", answer: "23" }
     ];
 
     const languageQuestions = [
-      { question: 'Complete: "The cat ___ on the mat."', answer: "sat" },
-      { question: 'Fill in: "She ___ a beautiful song."', answer: "sang" },
+      { question: 'Complete: "The child ___ quickly to school."', answer: "ran" },
+      { question: 'Fill in: "They ___ a new game yesterday."', answer: "played" },
       { question: 'Complete: "Birds ___ in the sky."', answer: "fly" }
+    ];
+
+    const patternQuestions = [
+      { question: "2, 4, 8, 16, __", answer: "32" },
+      { question: "5, 10, 15, 20, __", answer: "25" },
+      { question: "1, 1, 2, 3, 5, __", answer: "8" },
+      { question: "9, 7, 5, 3, __", answer: "1" }
     ];
 
     function pickRandom(list, count = 1) {
@@ -108,10 +127,11 @@
     }
 
     const tests = [
-      { id: 'memoryTest', inputId: 'memoryInput', correctAnswer: '' },
-      { id: 'attentionTest', inputId: 'attentionInput', correctAnswer: '' },
-      { id: 'problemSolvingTest', inputId: 'problemInput', correctAnswer: '' },
-      { id: 'languageTest', inputId: 'languageInput', correctAnswer: '' }
+      { id: 'memoryTest', inputId: 'memoryInput', correctAnswer: '', weight: 20 },
+      { id: 'attentionTest', inputId: 'attentionInput', correctAnswer: '', weight: 20 },
+      { id: 'problemSolvingTest', inputId: 'problemInput', correctAnswer: '', weight: 20 },
+      { id: 'languageTest', inputId: 'languageInput', correctAnswer: '', weight: 20 },
+      { id: 'patternTest', inputId: 'patternInput', correctAnswer: '', weight: 20 }
     ];
 
     let currentTestIndex = 0;
@@ -120,15 +140,28 @@
     function loadMemoryChallenge() {
       const words = pickRandom(memoryWordSets, 1)[0];
       document.getElementById('memoryWords').textContent = words.join(', ');
-      tests[0].correctAnswer = words.join(', ');
+      tests[0].correctAnswer = words.join(',').toLowerCase();
     }
 
-    function displayRandomImages() {
-      const selected = pickRandom(imageLinks, 3);
-      document.getElementById('animalImages').innerHTML = selected
-        .map((item) => `<div class="col-md-4 mb-3 animal-card"><img src="${item.url}" alt="${item.label}" loading="lazy"></div>`)
-        .join('');
-      tests[1].correctAnswer = selected.map((item) => item.label).sort().join(',');
+    function loadAttentionChallenge() {
+      currentSequence = pickRandom(attentionItems, 4);
+      tests[1].correctAnswer = currentSequence[0].toLowerCase();
+      document.getElementById('sequenceBox').textContent = 'Ready';
+    }
+
+    function playSequence() {
+      const box = document.getElementById('sequenceBox');
+      let i = 0;
+      box.textContent = '...';
+      const timer = setInterval(() => {
+        if (i >= currentSequence.length) {
+          clearInterval(timer);
+          box.textContent = 'Type the first item now';
+          return;
+        }
+        box.textContent = currentSequence[i];
+        i += 1;
+      }, 700);
     }
 
     function loadRandomQuestion() {
@@ -143,13 +176,21 @@
       tests[3].correctAnswer = selected.answer.toLowerCase();
     }
 
-    function initializeTests() {
-      loadMemoryChallenge();
-      displayRandomImages();
-      loadRandomQuestion();
-      loadRandomLanguageQuestion();
+    function loadPatternQuestion() {
+      const selected = pickRandom(patternQuestions, 1)[0];
+      document.getElementById('patternQuestion').innerText = selected.question;
+      tests[4].correctAnswer = selected.answer.toLowerCase();
     }
 
+    function initializeTests() {
+      loadMemoryChallenge();
+      loadAttentionChallenge();
+      loadRandomQuestion();
+      loadRandomLanguageQuestion();
+      loadPatternQuestion();
+    }
+
+    document.getElementById('playSequenceBtn').addEventListener('click', playSequence);
     document.addEventListener("DOMContentLoaded", initializeTests);
 
     document.getElementById('submitBtn').addEventListener('click', function() {
@@ -158,16 +199,21 @@
       const userAnswer = input.value.trim().toLowerCase();
       const correctAnswer = currentTest.correctAnswer;
 
+      if (!userAnswer) {
+        document.getElementById('result').textContent = 'Please enter an answer before continuing.';
+        return;
+      }
+
       let isCorrect = false;
-      if (currentTest.id === 'attentionTest') {
-        const normalizedUser = userAnswer.split(',').map((x) => x.trim()).filter(Boolean).sort().join(',');
-        isCorrect = normalizedUser === correctAnswer;
+      if (currentTest.id === 'memoryTest') {
+        const normalized = userAnswer.split(',').map(x => x.trim()).filter(Boolean).join(',');
+        isCorrect = normalized === correctAnswer;
       } else {
         isCorrect = userAnswer === correctAnswer;
       }
 
       if (isCorrect) {
-        totalScore += 25;
+        totalScore += currentTest.weight;
         document.getElementById('result').textContent = "✅ Correct!";
       } else {
         document.getElementById('result').textContent = `❌ Incorrect. Correct answer: ${currentTest.correctAnswer}`;
@@ -191,5 +237,6 @@
       window.location.href = '/dyslexia-prediction';
     });
   </script>
+  <script src="/assets/enter-key-helper.js"></script>
 </body>
 </html>
