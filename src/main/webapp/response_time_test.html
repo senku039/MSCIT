@@ -8,99 +8,176 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <style>
     body {
-      font-family: Arial, sans-serif;
+      font-family: 'Inter', Arial, sans-serif;
       min-height: 100vh;
       color: #fff;
       background:
-        linear-gradient(140deg, rgba(8, 24, 84, 0.78), rgba(52, 31, 115, 0.74)),
+        radial-gradient(circle at 10% 18%, rgba(37,99,235,.28), transparent 38%),
+        radial-gradient(circle at 86% 16%, rgba(20,184,166,.22), transparent 34%),
+        linear-gradient(140deg, rgba(8,24,84,.84), rgba(52,31,115,.8)),
         url('https://images.unsplash.com/photo-1484480974693-6ca0a78fb36b?auto=format&fit=crop&w=1700&q=80') center/cover fixed;
       padding: 20px;
     }
     .test-card {
-      max-width: min(1180px, 96vw);
-      margin: clamp(20px, 5vh, 90px) auto;
-      background: rgba(9, 20, 61, 0.78);
+      max-width: min(980px, 96vw);
+      margin: clamp(20px, 4vh, 76px) auto;
+      background: rgba(9, 20, 61, 0.8);
       border: 1px solid rgba(201, 216, 255, 0.35);
-      border-radius: 16px;
-      padding: clamp(18px, 2.3vw, 36px);
+      border-radius: 18px;
+      padding: clamp(18px, 2.4vw, 36px);
       text-align: center;
       box-shadow: 0 18px 36px rgba(1, 10, 34, 0.34);
+      backdrop-filter: blur(6px);
     }
-    #result { font-size: clamp(1rem, 1.2vw, 1.15rem); margin-top: 1rem; min-height: 2rem; }
-    #reactionBtn { min-width: 180px; }
+    .signal-box {
+      min-height: 180px;
+      display: grid;
+      place-items: center;
+      border-radius: 14px;
+      background: rgba(255,255,255,.08);
+      border: 1px solid rgba(191,219,254,.3);
+      margin: 14px 0;
+    }
+    #promptSymbol { font-size: clamp(2.8rem, 7vw, 4.2rem); }
+    .key-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 10px; margin: 14px 0 6px; }
+    .key-btn { font-weight: 700; border-radius: 12px; }
+    #result { font-size: 1.02rem; margin-top: 1rem; min-height: 2rem; }
   </style>
 </head>
 <body>
   <button class="global-back-btn" type="button" onclick="window.location.href='index.html'">← Back</button>
   <div class="test-card">
-    <h1 class="mb-3">Response Time Test</h1>
-    <p class="text-light">Complete 3 rounds and we will use your average response time.</p>
-    <div class="alert alert-info py-2" id="roundInfo">Round 1 of 3</div>
+    <h1 class="mb-2">Response Time · Signal Sprint</h1>
+    <p class="text-light">Match the symbol quickly. Use keyboard (<strong>W A S L</strong>) or click buttons.</p>
+    <div class="alert alert-info py-2" id="roundInfo">Round 1 of 3 · Cue 1 of 4</div>
+
+    <div class="signal-box">
+      <div id="promptSymbol">⏳</div>
+      <small id="promptText" class="text-light">Press Start Round to begin.</small>
+    </div>
+
     <button id="startBtn" class="btn btn-primary">Start Round</button>
-    <button id="reactionBtn" class="btn btn-danger" style="display: none;">Wait...</button>
+
+    <div class="key-grid" id="keyGrid" style="display:none;">
+      <button class="btn btn-outline-light key-btn" data-key="w">⬆️ (W)</button>
+      <button class="btn btn-outline-light key-btn" data-key="a">⬅️ (A)</button>
+      <button class="btn btn-outline-light key-btn" data-key="s">⬇️ (S)</button>
+      <button class="btn btn-outline-light key-btn" data-key="l">➡️ (L)</button>
+    </div>
+
     <div id="result"></div>
     <button id="finishTestBtn" class="btn btn-success mt-3" style="display:none;">Finish Test</button>
   </div>
 
   <script>
     const TOTAL_ROUNDS = 3;
-    let currentRound = 1;
-    let startTime = 0;
-    let timeout = null;
-    let ready = false;
-    const times = [];
+    const CUES_PER_ROUND = 4;
+    const SYMBOLS = [
+      { key: 'w', symbol: '⬆️', label: 'UP' },
+      { key: 'a', symbol: '⬅️', label: 'LEFT' },
+      { key: 's', symbol: '⬇️', label: 'DOWN' },
+      { key: 'l', symbol: '➡️', label: 'RIGHT' },
+    ];
 
-    function updateRound() {
-      document.getElementById('roundInfo').textContent = `Round ${currentRound} of ${TOTAL_ROUNDS}`;
+    let currentRound = 1;
+    let cueIndex = 0;
+    let waitingForInput = false;
+    let startedAt = 0;
+    let activePrompt = null;
+    let roundTimes = [];
+    const allTimes = [];
+
+    function updateRoundLabel() {
+      document.getElementById('roundInfo').textContent = `Round ${currentRound} of ${TOTAL_ROUNDS} · Cue ${Math.min(cueIndex + 1, CUES_PER_ROUND)} of ${CUES_PER_ROUND}`;
+    }
+
+    function randomPrompt() {
+      return SYMBOLS[Math.floor(Math.random() * SYMBOLS.length)];
+    }
+
+    function showPrompt() {
+      activePrompt = randomPrompt();
+      document.getElementById('promptSymbol').textContent = activePrompt.symbol;
+      document.getElementById('promptText').textContent = `Press ${activePrompt.label}`;
+      startedAt = Date.now();
+      waitingForInput = true;
+    }
+
+    function nextCue() {
+      if (cueIndex >= CUES_PER_ROUND) {
+        const avgRound = roundTimes.reduce((a, b) => a + b, 0) / roundTimes.length;
+        document.getElementById('result').innerHTML = `<div class='alert alert-info'>Round ${currentRound} complete · Avg ${avgRound.toFixed(3)}s</div>`;
+        currentRound += 1;
+        cueIndex = 0;
+        roundTimes = [];
+        if (currentRound > TOTAL_ROUNDS) {
+          finishGame();
+          return;
+        }
+        document.getElementById('startBtn').style.display = 'inline-block';
+        document.getElementById('startBtn').textContent = 'Start Next Round';
+        document.getElementById('keyGrid').style.display = 'none';
+        document.getElementById('promptSymbol').textContent = '⏳';
+        document.getElementById('promptText').textContent = 'Prepare for next round.';
+        updateRoundLabel();
+        return;
+      }
+
+      updateRoundLabel();
+      setTimeout(showPrompt, 700 + Math.random() * 900);
+    }
+
+    function handleResponse(key) {
+      if (!waitingForInput || !activePrompt) return;
+      if (key !== activePrompt.key) {
+        document.getElementById('result').innerHTML = `<span class='text-warning'>Wrong key. Match the shown direction!</span>`;
+        return;
+      }
+
+      waitingForInput = false;
+      const t = Math.max((Date.now() - startedAt) / 1000, 0.05);
+      roundTimes.push(t);
+      allTimes.push(t);
+      cueIndex += 1;
+      document.getElementById('result').innerHTML = `<span class='text-success'>Good! ${t.toFixed(3)} sec</span>`;
+      nextCue();
+    }
+
+    function finishGame() {
+      const avg = allTimes.reduce((a, b) => a + b, 0) / allTimes.length;
+      sessionStorage.setItem('response_time_score', avg.toFixed(3));
+      document.getElementById('roundInfo').textContent = 'Completed';
+      document.getElementById('result').innerHTML = `<div class='alert alert-success'>Average response time: <strong>${avg.toFixed(3)} sec</strong><br><small>Lower is better.</small></div>`;
+      document.getElementById('startBtn').style.display = 'none';
+      document.getElementById('keyGrid').style.display = 'none';
+      document.getElementById('finishTestBtn').style.display = 'inline-block';
+      document.getElementById('promptSymbol').textContent = '✅';
+      document.getElementById('promptText').textContent = 'Signal Sprint complete.';
     }
 
     document.getElementById('startBtn').addEventListener('click', function() {
-      const startBtn = document.getElementById('startBtn');
-      const reactionBtn = document.getElementById('reactionBtn');
-      const result = document.getElementById('result');
-
-      clearTimeout(timeout);
-      ready = false;
-      result.innerText = 'Get ready...';
-      reactionBtn.style.display = 'none';
-      startBtn.disabled = true;
-
-      const randomTime = Math.random() * 2200 + 1200;
-      timeout = setTimeout(() => {
-        startTime = Date.now();
-        ready = true;
-        reactionBtn.style.display = 'inline-block';
-        reactionBtn.classList.remove('btn-danger');
-        reactionBtn.classList.add('btn-success');
-        reactionBtn.innerText = 'Click Now!';
-      }, randomTime);
+      this.style.display = 'none';
+      document.getElementById('keyGrid').style.display = 'grid';
+      document.getElementById('result').innerText = 'Watch for the cue...';
+      nextCue();
     });
 
-    document.getElementById('reactionBtn').addEventListener('click', function() {
-      if (!ready) return;
-      ready = false;
+    document.querySelectorAll('.key-btn').forEach((btn) => {
+      btn.addEventListener('click', () => handleResponse(btn.dataset.key));
+    });
 
-      const t = Math.max((Date.now() - startTime) / 1000, 0.05);
-      times.push(t);
-
-      const reactionBtn = document.getElementById('reactionBtn');
-      const startBtn = document.getElementById('startBtn');
-      reactionBtn.style.display = 'none';
-      startBtn.disabled = false;
-
-      document.getElementById('result').innerText = `Round ${currentRound}: ${t.toFixed(3)} seconds`;
-
-      currentRound += 1;
-      if (currentRound <= TOTAL_ROUNDS) {
-        updateRound();
-        startBtn.textContent = 'Start Next Round';
-      } else {
-        const avg = times.reduce((a, b) => a + b, 0) / times.length;
-        sessionStorage.setItem('response_time_score', avg.toFixed(3));
-        document.getElementById('roundInfo').textContent = 'Completed';
-        document.getElementById('result').innerHTML = `<div class="alert alert-success">Average response time: <strong>${avg.toFixed(3)} sec</strong><br><small>Lower is better.</small></div>`;
-        startBtn.style.display = 'none';
-        document.getElementById('finishTestBtn').style.display = 'inline-block';
+    document.addEventListener('keydown', (event) => {
+      const key = event.key.toLowerCase();
+      if (event.key === 'Enter') {
+        const startBtn = document.getElementById('startBtn');
+        if (startBtn.style.display !== 'none' && !startBtn.disabled) {
+          event.preventDefault();
+          startBtn.click();
+          return;
+        }
+      }
+      if (['w', 'a', 's', 'l'].includes(key)) {
+        handleResponse(key);
       }
     });
 
@@ -108,7 +185,7 @@
       window.location.href = '/dyslexia-prediction';
     });
 
-    updateRound();
+    updateRoundLabel();
   </script>
 </body>
 </html>
