@@ -48,6 +48,8 @@
   </div>
 
   <script>
+    (function () {
+
     const passages = [
       { text: "Maya loves visiting the library after school. She picks a new book every week and reads with her grandmother in the evening. Reading together helps her learn new words and understand stories better.", question: "Who reads with Maya in the evening?", options: ["Her teacher", "Her grandmother", "Her brother"], answer: "Her grandmother" },
       { text: "Arjun planted tomato seeds in a small garden behind his house. Every morning he watered the plants and checked for new leaves. After a few weeks, tiny green tomatoes appeared.", question: "What did Arjun plant?", options: ["Tomato seeds", "Rice seeds", "Rose flowers"], answer: "Tomato seeds" },
@@ -270,7 +272,9 @@
     document.getElementById('finishTestBtn').onclick = function() {
       window.location.href = '/dyslexia-prediction';
     };
+
+    })();
   </script>
-  <!-- <script src="/assets/enter-key-helper.js"></script> -->
+  <script src="/assets/enter-key-helper.js"></script>
 </body>
 </html>
