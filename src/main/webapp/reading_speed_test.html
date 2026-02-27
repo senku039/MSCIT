@@ -669,6 +669,17 @@
       // Warm detector before test starts to avoid 5-10s startup delay.
       setTimeout(() => { initDetectionEngine().catch(() => {}); }, 250);
     });
+  
+    // Enter shortcut: start/submit/finish progression
+    document.addEventListener('keydown', (event) => {
+      if (event.key !== 'Enter') return;
+      const finishBtn = document.getElementById('finishTestBtn');
+      const submitBtn = document.getElementById('submitAnswerBtn');
+      const startBtn = document.getElementById('startBtn');
+      if (finishBtn && finishBtn.style.display !== 'none') { event.preventDefault(); finishBtn.click(); return; }
+      if (submitBtn && submitBtn.style.display !== 'none' && !submitBtn.disabled) { event.preventDefault(); submitBtn.click(); return; }
+      if (startBtn && startBtn.style.display !== 'none' && !startBtn.disabled) { event.preventDefault(); startBtn.click(); }
+    });
   </script>
 </body>
 </html>
