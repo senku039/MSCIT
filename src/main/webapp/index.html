@@ -324,6 +324,11 @@
     return '/login.html';
   }
 
+  if (!(user && user.name)) {
+    window.location.href = resolveLoginPath();
+    return;
+  }
+
   if (logoutBtn) {
     logoutBtn.addEventListener('click', () => {
       safeRemove('auth_user');
