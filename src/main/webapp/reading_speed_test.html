@@ -24,7 +24,7 @@
     <p class="text-muted">To prevent false high scores, the test validates minimum reading time and a quick comprehension check.</p>
 
     <video id="webcam" autoplay playsinline muted></video>
-    <div id="cameraStatus" class="alert alert-warning py-2 mt-2" style="display:none;">State: idle</div>
+    <div id="cameraStatus" class="alert alert-secondary py-2 mt-2">State: idle</div>
     <div id="trackingPanel" class="alert alert-info py-2" style="display:none;"></div>
     <small class="text-muted d-block mb-2">Privacy note: this test uses <strong>video only</strong> for focus/face estimation. It does <strong>not</strong> capture audio.</small>
 
@@ -102,6 +102,13 @@
       document.getElementById('textToRead').innerText = selectedPassage.text;
       document.getElementById('questionBlock').style.display = 'none';
       document.getElementById('result').innerText = '';
+    }
+
+    function setCameraStatus(message, type='warning') {
+      const cameraStatus = document.getElementById('cameraStatus');
+      cameraStatus.style.display = 'block';
+      cameraStatus.className = `alert alert-${type} py-2 mt-2`;
+      cameraStatus.textContent = message;
     }
 
     function setCameraStatus(message, type='warning') {
@@ -237,6 +244,34 @@
       });
     }
 
+    async function requestCameraStream() {
+      const constraintsTry = [
+        { video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } }, audio: false },
+        { video: { facingMode: 'user', width: { ideal: 960 }, height: { ideal: 540 } }, audio: false },
+        { video: true, audio: false }
+      ];
+
+      if (videoStream) {
+        videoStream.getTracks().forEach((track) => track.stop());
+        videoStream = null;
+      }
+
+      if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+        let lastErr = null;
+        for (const c of constraintsTry) {
+          try { return await navigator.mediaDevices.getUserMedia(c); }
+          catch (e) { lastErr = e; }
+        }
+        throw lastErr || new Error('Camera unavailable');
+      }
+
+      return await new Promise((resolve, reject) => {
+        const legacy = navigator.getUserMedia || navigator.webkitGetUserMedia;
+        if (!legacy) return reject(new Error('No getUserMedia API'));
+        legacy.call(navigator, { video: true, audio: false }, resolve, reject);
+      });
+    }
+
     async function startWebcam() {
       const video = document.getElementById('webcam');
       faceVisibleSeconds = 0;
@@ -254,6 +289,20 @@
         setCameraStatus('Camera API is unavailable in this browser. Continuing test without camera/face tracking.', 'warning');
         updateTrackingPanel();
         return false;
+      }
+
+      if (navigator.mediaDevices && navigator.mediaDevices.enumerateDevices) {
+        try {
+          const devices = await navigator.mediaDevices.enumerateDevices();
+          const hasCam = devices.some((d) => d.kind === 'videoinput');
+          if (!hasCam) {
+            tracking = true;
+            trackFocusTime();
+            setCameraStatus('No camera device detected on this system. Test will continue without camera tracking.', 'warning');
+            updateTrackingPanel();
+            return false;
+          }
+        } catch (_e) {}
       }
 
       if (location.protocol !== 'https:' && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
@@ -295,7 +344,7 @@
       } catch (error) {
         tracking = true;
         trackFocusTime();
-        setCameraStatus(`Camera access blocked/denied (${error.name || 'error'}). Test will continue without camera tracking.`, 'warning');
+        setCameraStatus(`Camera access issue (${error.name || 'error'}). Allow camera permission, close other apps using camera, then retry. Test will continue without camera tracking.`, 'warning');
         updateTrackingPanel();
         return false;
       }
@@ -344,29 +393,6 @@
         updateStatus('warning', 'Camera permission denied or unavailable.');
         return false;
       }
-    }
-
-    function cleanupCamera() {
-      stopDetection();
-      if (videoStream) {
-        videoStream.getTracks().forEach((track) => track.stop());
-        videoStream = null;
-      }
-      const video = document.getElementById('webcam');
-      video.srcObject = null;
-      document.getElementById('videoShell').style.display = 'none';
-      document.getElementById('trackingHint').style.display = 'none';
-      document.getElementById('startCameraBtn').style.display = 'inline-block';
-      document.getElementById('stopCameraBtn').style.display = 'none';
-
-      const canvas = document.getElementById('faceOverlay');
-      const ctx = canvas.getContext('2d');
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-      // Release detector references to avoid leaks between test sessions.
-      faceDetector = null;
-      blazeModel = null;
-      detectionEngine = 'none';
     }
 
     document.getElementById('startCameraBtn').addEventListener('click', async function() {
@@ -507,5 +533,6 @@
       setTimeout(() => { initDetectionEngine().catch(() => {}); }, 250);
     });
   </script>
+  <script src="/assets/enter-key-helper.js"></script>
 </body>
 </html>
