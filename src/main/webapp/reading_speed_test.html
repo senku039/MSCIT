@@ -8,9 +8,13 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <style>
     body { background: url('/IMAGES/kids.jpg') no-repeat center center/cover; font-family: Arial, sans-serif; padding: 20px; }
-    .container { max-width: 920px; margin-top: 50px; background: rgba(255,255,255,.95); padding: 30px; border-radius: 12px; box-shadow: 0 10px 24px rgba(0,0,0,.18); }
-    #textToRead { height: 220px; overflow-y: auto; border: 1px solid #ccd6f3; border-radius: 10px; padding: 14px; margin-bottom: 18px; background: #f8fbff; }
-    video { width: 100%; max-height: 220px; display: none; border-radius: 10px; }
+    .container { max-width: min(1260px, 96vw); margin-top: clamp(16px, 3vh, 44px); background: rgba(255,255,255,.95); padding: clamp(18px, 2.4vw, 36px); border-radius: 12px; box-shadow: 0 10px 24px rgba(0,0,0,.18); }
+    #textToRead { height: clamp(240px, 38vh, 420px); overflow-y: auto; border: 1px solid #ccd6f3; border-radius: 10px; padding: 14px; margin-bottom: 18px; background: #f8fbff; }
+    .camera-block { border: 1px solid #ccd6f3; border-radius: 12px; background: #f8fbff; padding: 12px; margin-bottom: 10px; }
+    .video-shell { position: relative; width: 100%; max-height: 46vh; min-height: clamp(220px, 30vh, 360px); display: none; }
+    video { width: 100%; height: 100%; object-fit: cover; border-radius: 10px; display: block; }
+    #faceOverlay { position: absolute; inset: 0; width: 100%; height: 100%; border-radius: 10px; pointer-events: none; }
+    #trackingHint { font-size: .88rem; color: #5f6b86; margin-top: 6px; display: none; }
   </style>
 </head>
 <body>
@@ -54,6 +58,15 @@
 
     const MAX_VALID_WPM = 420;
     const MIN_VALID_FOCUS_SECONDS = 5;
+    const DETECT_SAMPLE_MS = 140;
+    const AWAY_TRIGGER_MS = 500;
+    const AWAY_GRACE_MS = 300;
+    const MIN_FACE_AREA_RATIO = 0.008;
+    const MIN_CONFIDENCE = 0.2;
+
+    // State machine required for stable integration with the wider project.
+    const STATE = { IDLE: 'idle', RUNNING: 'running', SUBMITTED: 'submitted', FINISHED: 'finished' };
+    let testState = STATE.IDLE;
 
     let selectedPassage;
     let startTime;
@@ -205,6 +218,7 @@
 
       const elapsedSeconds = Math.max((endTime - startTime) / 1000, 1);
       const wordCount = document.getElementById('textToRead').innerText.trim().split(/\s+/).filter(Boolean).length;
+      const elapsedSeconds = Math.max(elapsedMs / 1000, 1);
       const minExpectedSeconds = (wordCount / MAX_VALID_WPM) * 60;
       pendingMetrics = {
         elapsedSeconds,
@@ -226,7 +240,7 @@
       if (!pendingMetrics) return;
       const chosen = document.querySelector('input[name="answer"]:checked');
       if (!chosen) {
-        document.getElementById('result').innerText = 'Please pick an answer to finish validation.';
+        document.getElementById('result').innerText = 'Please select an answer before finishing submission.';
         return;
       }
 
