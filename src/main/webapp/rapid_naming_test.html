@@ -34,137 +34,108 @@
   </div>
 
   <script>
-    const LEVELS = [
-      { name: 'Letters', items: ['b', 'd', 'p', 'q', 'm', 'n', 'u', 'v', 'w'] },
-      { name: 'Words', items: ['was', 'saw', 'form', 'from', 'trail', 'trial', 'tap', 'pat', 'left'] },
+    const GRID_ROWS = 5;
+    const GRID_COLS = 10;
+    const TOTAL_ITEMS = GRID_ROWS * GRID_COLS;
+
+    const LETTER_POOL = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+    const WORD_POOL = [
+      'cat', 'dog', 'sun', 'book', 'table', 'apple', 'water', 'paper', 'happy', 'pencil',
+      'school', 'window', 'music', 'flower', 'rabbit', 'button', 'yellow', 'mother', 'garden', 'planet'
     ];
 
-    let currentLevel = 0;
-    let sequence = [];
-    let startedAt = null;
-    const levelScores = [];
+    let testStartedAt = null;
+    let timerHandle = null;
+    let currentSetType = 'letters';
 
-    function pickRandom(items, n) {
-      const copy = [...items];
-      for (let i = copy.length - 1; i > 0; i--) {
+    function pickRandomItems(pool, count) {
+      const out = [];
+      for (let i = 0; i < count; i += 1) {
+        out.push(pool[Math.floor(Math.random() * pool.length)]);
+      }
+      return out;
+    }
+
+    function shuffle(items) {
+      const arr = [...items];
+      for (let i = arr.length - 1; i > 0; i -= 1) {
         const j = Math.floor(Math.random() * (i + 1));
-        [copy[i], copy[j]] = [copy[j], copy[i]];
+        [arr[i], arr[j]] = [arr[j], arr[i]];
       }
-      return copy.slice(0, n);
+      return arr;
     }
 
-    function updateRoundInfo() {
-      document.getElementById('roundInfo').textContent = `Level ${currentLevel + 1} / ${LEVELS.length} — ${LEVELS[currentLevel].name}`;
-    }
+    function renderGrid() {
+      currentSetType = Math.random() < 0.5 ? 'letters' : 'words';
+      const source = currentSetType === 'letters' ? LETTER_POOL : WORD_POOL;
+      const items = shuffle(pickRandomItems(source, TOTAL_ITEMS));
 
-    function playSequence() {
-      sequence = pickRandom(animals, 4);
       const viewer = document.getElementById('viewer');
-      let idx = 0;
+      viewer.innerHTML = `<div class="grid" style="grid-template-columns: repeat(10, 1fr);">${items.map((item) => `<div class="tile">${item.toUpperCase()}</div>`).join('')}</div>`;
 
-      function showNext() {
-        if (idx >= sequence.length) {
-          viewer.innerHTML = '<strong>Sequence done.</strong><br>Type first animal and full order.';
-          document.getElementById('submitBtn').disabled = false;
-          return;
-        }
+      document.getElementById('roundInfo').textContent = `Rapid Naming Set: ${currentSetType === 'letters' ? 'Letters' : 'Words'} (${TOTAL_ITEMS} items)`;
+    }
 
-        const animal = sequence[idx];
-        viewer.innerHTML = `<img src="${animal.url}" alt="Frame ${idx + 1}"><div class='mt-2 text-muted'>Frame ${idx + 1} / ${sequence.length}</div>`;
-        idx += 1;
-        setTimeout(showNext, 1200);
+    function formatTime(seconds) {
+      const mins = Math.floor(seconds / 60);
+      const secs = Math.floor(seconds % 60);
+      const tenths = Math.floor((seconds - Math.floor(seconds)) * 10);
+      return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}.${tenths}`;
+    }
+
+    function updateTimer() {
+      if (!testStartedAt) return;
+      const elapsed = (Date.now() - testStartedAt) / 1000;
+      document.getElementById('roundInfo').textContent = `Rapid Naming Set: ${currentSetType === 'letters' ? 'Letters' : 'Words'} (${TOTAL_ITEMS} items) • Time: ${formatTime(elapsed)}`;
+    }
+
+    function startTest() {
+      renderGrid();
+      testStartedAt = Date.now();
+      document.getElementById('result').innerHTML = '<span class="text-primary">Timer started. Read all items aloud, then click <strong>Finish Test</strong>.</span>';
+      document.getElementById('startBtn').disabled = true;
+      document.getElementById('startBtn').textContent = 'Test Running';
+      document.getElementById('submitBtn').disabled = false;
+      document.getElementById('finishTestBtn').style.display = 'none';
+
+      if (timerHandle) clearInterval(timerHandle);
+      updateTimer();
+      timerHandle = setInterval(updateTimer, 100);
+    }
+
+    function finishTest() {
+      if (!testStartedAt) return;
+      const elapsedSeconds = Math.max((Date.now() - testStartedAt) / 1000, 1);
+      const itemsPerMinute = (TOTAL_ITEMS / elapsedSeconds) * 60;
+
+      if (timerHandle) {
+        clearInterval(timerHandle);
+        timerHandle = null;
       }
 
-      showNext();
-    }
-
-    function parseAnswer(value) {
-      const input = value.toLowerCase();
-      const first = (input.split('first=')[1] || '').split('|')[0].trim();
-      const orderPart = (input.split('order=')[1] || '').trim();
-      const order = orderPart.split(',').map((x) => x.trim()).filter(Boolean);
-      return { first, order };
-    }
-
-    function scoreLevel(answerText, elapsed) {
-      const parsed = parseAnswer(answerText);
-      const targetOrder = sequence.map((a) => a.label);
-
-      let accuracy = 0;
-      if (parsed.first === targetOrder[0]) accuracy += 35;
-
-      let orderCorrect = 0;
-      for (let i = 0; i < Math.min(parsed.order.length, targetOrder.length); i++) {
-        if (parsed.order[i] === targetOrder[i]) orderCorrect += 1;
-      }
-      accuracy += (orderCorrect / targetOrder.length) * 65;
-
-      const speedPenalty = Math.min((elapsed / 16) * 18, 18);
-      const namingScore = Math.max(0, Math.min(100, accuracy - speedPenalty));
-      return { accuracy, namingScore };
-    }
-
-    function renderFinalSummary() {
-      const avgScore = levelScores.reduce((a, b) => a + b.namingScore, 0) / levelScores.length;
-      const avgAccuracy = levelScores.reduce((a, b) => a + b.accuracy, 0) / levelScores.length;
-      const avgTime = levelScores.reduce((a, b) => a + b.elapsed, 0) / levelScores.length;
-
-      sessionStorage.setItem('attention_score', avgScore.toFixed(2));
-      sessionStorage.setItem('rapid_naming_accuracy', avgAccuracy.toFixed(2));
-      sessionStorage.setItem('rapid_naming_seconds', avgTime.toFixed(2));
+      localStorage.setItem('rapid_naming_score', itemsPerMinute.toFixed(2));
+      sessionStorage.setItem('attention_score', itemsPerMinute.toFixed(2));
+      sessionStorage.setItem('rapid_naming_seconds', elapsedSeconds.toFixed(2));
 
       document.getElementById('result').innerHTML = `
         <div class="alert alert-success">
-          <strong>Rapid Naming Score:</strong> ${avgScore.toFixed(2)}/100<br>
-          <strong>Average Accuracy:</strong> ${avgAccuracy.toFixed(2)}%<br>
-          <strong>Average Time / Level:</strong> ${avgTime.toFixed(2)} sec
+          <strong>Total Time:</strong> ${elapsedSeconds.toFixed(2)} sec<br>
+          <strong>Items per Minute:</strong> ${itemsPerMinute.toFixed(2)}
         </div>`;
+
+      document.getElementById('roundInfo').textContent = `Completed • Total Time: ${formatTime(elapsedSeconds)}`;
       document.getElementById('submitBtn').disabled = true;
       document.getElementById('startBtn').disabled = true;
       document.getElementById('finishTestBtn').style.display = 'block';
-      document.getElementById('viewer').innerHTML = '✅ Completed';
     }
 
-    document.getElementById('startBtn').addEventListener('click', () => {
-      updateRoundInfo();
-      document.getElementById('startBtn').disabled = true;
-      document.getElementById('submitBtn').disabled = true;
-      document.getElementById('result').innerHTML = `<span class="text-primary">Level ${currentLevel + 1} started. Watch carefully.</span>`;
-      startedAt = Date.now();
-      playSequence();
-    });
+    document.getElementById('startBtn').textContent = 'Start Test';
+    document.getElementById('submitBtn').textContent = 'Finish Test';
+    document.getElementById('submitBtn').disabled = true;
+    document.getElementById('answer').style.display = 'none';
 
-    document.getElementById('submitBtn').addEventListener('click', () => {
-      if (!startedAt) return;
-      const answerText = document.getElementById('answer').value.trim();
-      if (!answerText) {
-        document.getElementById('result').innerHTML = `<span class='text-danger'>Please type your answer first.</span>`;
-        return;
-      }
-
-      const elapsed = Math.max((Date.now() - startedAt) / 1000, 1);
-      const scored = scoreLevel(answerText, elapsed);
-      levelScores.push({ accuracy: scored.accuracy, elapsed, namingScore: scored.namingScore });
-
-      currentLevel += 1;
-      if (currentLevel >= LEVELS.length) {
-        renderFinalSummary();
-        return;
-      }
-
-      startedAt = null;
-      document.getElementById('answer').value = '';
-      document.getElementById('submitBtn').disabled = true;
-      document.getElementById('startBtn').disabled = false;
-      document.getElementById('startBtn').textContent = 'Start Next Level';
-      document.getElementById('result').innerHTML = `
-        <div class="alert alert-info">
-          <strong>Level ${currentLevel} complete.</strong>
-          Accuracy: ${accuracy.toFixed(2)}% | Time: ${elapsed.toFixed(2)} sec.
-          Click <strong>Start Next Level</strong> for Level ${currentLevel + 1} (${LEVELS[currentLevel].name}).
-        </div>`;
-      updateRoundInfo();
-    });
+    document.getElementById('startBtn').addEventListener('click', startTest);
+    document.getElementById('submitBtn').addEventListener('click', finishTest);
 
     document.getElementById('finishTestBtn').addEventListener('click', () => {
       window.location.href = '/dyslexia-prediction';
@@ -173,16 +144,23 @@
     document.addEventListener('keydown', (event) => {
       if (event.key !== 'Enter') return;
       event.preventDefault();
+
       const startBtn = document.getElementById('startBtn');
-      const submitBtn = document.getElementById('submitBtn');
-      const finishBtn = document.getElementById('finishTestBtn');
+      const finishBtn = document.getElementById('submitBtn');
+      const doneBtn = document.getElementById('finishTestBtn');
 
-      if (finishBtn.style.display !== 'none') { finishBtn.click(); return; }
-      if (!startBtn.disabled) { startBtn.click(); return; }
-      if (!submitBtn.disabled) { submitBtn.click(); }
+      if (doneBtn.style.display !== 'none') {
+        doneBtn.click();
+        return;
+      }
+      if (!startBtn.disabled) {
+        startBtn.click();
+        return;
+      }
+      if (!finishBtn.disabled) {
+        finishBtn.click();
+      }
     });
-
-    buildLevel(0);
   </script>
 </body>
 </html>
