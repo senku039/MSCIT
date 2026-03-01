@@ -304,11 +304,19 @@
     return local.charAt(0).toUpperCase() + local.slice(1);
   }
 
+  function redirectToLogin() {
+    const host = window.location.hostname || '127.0.0.1';
+    window.location.href = `${window.location.protocol}//${host}:5000/login`;
+  }
+
   fetch('/session-info', { credentials: 'include' })
-    .then((res) => res.json())
+    .then((res) => {
+      if (!res.ok) throw new Error('session endpoint unavailable');
+      return res.json();
+    })
     .then((data) => {
       if (!data || !data.authenticated) {
-        window.location.href = '/login';
+        redirectToLogin();
         return;
       }
       if (userWelcome) {
@@ -317,7 +325,7 @@
       }
     })
     .catch(() => {
-      window.location.href = '/login';
+      redirectToLogin();
     });
 })();
 </script>
