@@ -207,8 +207,8 @@
       event.preventDefault();
 
       const startBtn = document.getElementById('startBtn');
-      const submitBtn = document.getElementById('submitBtn');
-      const finishBtn = document.getElementById('finishTestBtn');
+      const finishBtn = document.getElementById('submitBtn');
+      const doneBtn = document.getElementById('finishTestBtn');
 
       if (finishBtn.style.display !== 'none') { finishBtn.click(); return; }
       if (!submitBtn.disabled && submitBtn.style.display !== 'none') { submitBtn.click(); return; }
