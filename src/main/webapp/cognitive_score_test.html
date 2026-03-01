@@ -82,8 +82,9 @@
           <h3 class="m-0">Stage 2 · Animal Sequence</h3>
           <span class="badge-soft" id="sequenceHint">Watch carefully</span>
         </div>
-        <p class="helper-text">Images appear one by one. After playback, type only the full animal order (comma separated).</p>
+        <p class="helper-text">Images appear one by one. After playback, type the full animal order (comma separated).</p>
         <div id="sequenceBoard" class="sequence-board">Press <strong>Submit &amp; Next</strong> to start playback.</div>
+        <button id="rewatchBtn" type="button" class="btn btn-outline-primary btn-sm mb-2" style="display:none;">Rewatch Sequence (1 left)</button>
         <input type="text" id="attentionInput" class="form-control mt-2" placeholder="Example: cat,dog,lion,rabbit" required>
       </div>
 
@@ -113,26 +114,34 @@
       ["castle", "orange", "ocean", "lantern"]
     ];
 
-    const imageLinks = [
-      { label: "cat", url: "https://upload.wikimedia.org/wikipedia/commons/4/4d/Cat_November_2010-1a.jpg" },
+    const sequenceItems = [
+      { label: "cat", url: "https://upload.wikimedia.org/wikipedia/commons/3/3a/Cat03.jpg" },
       { label: "elephant", url: "https://upload.wikimedia.org/wikipedia/commons/3/37/African_Bush_Elephant.jpg" },
-      { label: "dog", url: "https://images.unsplash.com/photo-1517849845537-4d257902454a?auto=format&fit=crop&w=900&q=80" },
-      { label: "horse", url: "https://images.unsplash.com/photo-1553284965-83fd3e82fa5a?auto=format&fit=crop&w=900&q=80" },
-      { label: "lion", url: "https://images.unsplash.com/photo-1546182990-dffeafbe841d?auto=format&fit=crop&w=900&q=80" },
-      { label: "rabbit", url: "https://images.unsplash.com/photo-1585110396000-c9ffd4e4b308?auto=format&fit=crop&w=900&q=80" }
+      { label: "dog", url: "https://upload.wikimedia.org/wikipedia/commons/6/6e/Golde33443.jpg" },
+      { label: "horse", url: "https://upload.wikimedia.org/wikipedia/commons/d/de/Nokota_Horses_cropped.jpg" },
+      { label: "lion", url: "https://upload.wikimedia.org/wikipedia/commons/7/73/Lion_waiting_in_Namibia.jpg" },
+      { label: "rabbit", url: "https://upload.wikimedia.org/wikipedia/commons/6/6b/Talbingo_Rabbit.jpg" }
     ];
 
     const problemQuestions = [
       { question: "Find next number: 3, 6, 12, 24, ?", answer: "48" },
       { question: "If all Bloops are Razzles and all Razzles are Lazzles, are all Bloops Lazzles? (yes/no)", answer: "yes" },
       { question: "A bag has 5 red and 3 blue balls. Probability of picking red (fraction)?", answer: "5/8" },
-      { question: "Rearrange letters to form a word: N E I R B A (hint: body part)", answer: "brain" }
+      { question: "Rearrange letters to form a word: N E I R B A (hint: body part)", answer: "brain" },
+      { question: "Find next number: 5, 10, 20, 40, ?", answer: "80" },
+      { question: "Which is larger: 3/4 or 2/3? (answer: 3/4 or 2/3)", answer: "3/4" },
+      { question: "If today is Monday, what day comes after 3 days?", answer: "thursday" },
+      { question: "Unscramble: T E H A R (hint: Earth)", answer: "earth" }
     ];
 
     const languageQuestions = [
-      { question: 'Complete: "The scientist carefully ___ the result."', answer: "recorded" },
-      { question: 'Fill in: "She ___ a beautiful melody yesterday."', answer: "sang" },
-      { question: 'Complete: "Ideas ___ when we practice daily."', answer: "grow" }
+      { question: 'Fill in: "The boy ___ to school."', answer: "went" },
+      { question: 'Fill in: "She drinks a glass of ___."', answer: "water" },
+      { question: 'Fill in: "Birds can ___."', answer: "fly" },
+      { question: 'Fill in: "We ___ dinner at night."', answer: "eat" },
+      { question: 'Fill in: "A baby cat is a ___."', answer: "kitten" },
+      { question: 'Fill in: "The sun rises in the ___."', answer: "east" },
+      { question: 'Fill in: "I ___ my teeth every morning."', answer: "brush" }
     ];
 
     function pickRandom(list, count = 1) {
@@ -155,11 +164,16 @@
     let totalScore = 0;
     let animalSequence = [];
     let sequencePlayed = false;
+    let memoryRecallReady = false;
+    let rewatchUsed = false;
+    let sequenceBusy = false;
 
     function loadMemoryChallenge() {
       const words = pickRandom(memoryWordSets, 1)[0];
       document.getElementById('memoryWords').textContent = words.join(', ');
       tests[0].correctAnswer = words.map((w) => w.toLowerCase()).sort().join(',');
+      memoryRecallReady = false;
+      document.getElementById('memoryInput').disabled = true;
 
       let timer = 8;
       const timerEl = document.getElementById('memoryTimer');
@@ -171,16 +185,28 @@
           clearInterval(interval);
           document.getElementById('memoryWords').textContent = '••• hidden •••';
           timerEl.textContent = 'Recall now';
+          memoryRecallReady = true;
+          const memoryInput = document.getElementById('memoryInput');
+          memoryInput.disabled = false;
+          memoryInput.focus();
         }
       }, 1000);
     }
 
     function playAnimalSequence() {
+      if (sequenceBusy) return;
+      sequenceBusy = true;
       const board = document.getElementById('sequenceBoard');
       const hint = document.getElementById('sequenceHint');
-      animalSequence = pickRandom(imageLinks, 4);
+      const rewatchBtn = document.getElementById('rewatchBtn');
+      if (!sequencePlayed) {
+        animalSequence = pickRandom(sequenceItems, 4);
+        rewatchUsed = false;
+      }
       tests[1].correctAnswer = animalSequence.map((a) => a.label).join(',');
       sequencePlayed = true;
+      rewatchBtn.style.display = rewatchUsed ? 'none' : 'inline-block';
+      rewatchBtn.disabled = true;
 
       let idx = 0;
       hint.textContent = 'Playing...';
@@ -189,20 +215,47 @@
         if (idx >= animalSequence.length) {
           board.innerHTML = '<strong>Sequence complete.</strong><br>Type the full order (a,b,c,d).';
           hint.textContent = 'Now answer';
+          sequenceBusy = false;
+          rewatchBtn.disabled = rewatchUsed;
           return;
         }
         const item = animalSequence[idx];
-        board.innerHTML = `<img src="${item.url}" alt="Animal frame ${idx + 1}" loading="lazy"><div class="mt-2 text-muted">Frame ${idx + 1} / ${animalSequence.length}</div>`;
+        board.innerHTML = `
+          <img src="${item.url}" alt="${item.label}" loading="eager"
+               onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+          <div style="display:none; font-size:1.1rem; color:#334155;">Image failed to load: ${item.label.toUpperCase()}</div>
+          <div class="fw-semibold mt-2">${item.label.toUpperCase()}</div>
+          <div class="mt-2 text-muted">Frame ${idx + 1} / ${animalSequence.length}</div>`;
         idx += 1;
-        setTimeout(showNext, 1250);
+        setTimeout(showNext, 1800);
       }
 
       showNext();
     }
 
+    function prepareQuestionDeck(source) {
+      const deck = [...source];
+      for (let i = deck.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [deck[i], deck[j]] = [deck[j], deck[i]];
+      }
+      return deck;
+    }
+
+    const problemDeck = prepareQuestionDeck(problemQuestions);
+    const languageDeck = prepareQuestionDeck(languageQuestions);
+    let problemPointer = 0;
+    let languagePointer = 0;
+
     function loadRandomQuestion(type) {
-      const source = type === 'problem' ? problemQuestions : languageQuestions;
-      const picked = pickRandom(source, 1)[0];
+      const isProblem = type === 'problem';
+      const sourceDeck = isProblem ? problemDeck : languageDeck;
+      const pointer = isProblem ? problemPointer : languagePointer;
+      const picked = sourceDeck[pointer % sourceDeck.length];
+
+      if (isProblem) problemPointer += 1;
+      else languagePointer += 1;
+
       if (type === 'problem') {
         document.getElementById('problemQuestion').textContent = picked.question;
         tests[2].correctAnswer = picked.answer.toLowerCase();
@@ -212,22 +265,8 @@
       }
     }
 
-    function normalizeCommaWords(text) {
-      return text.toLowerCase().split(',').map((x) => x.trim()).filter(Boolean).sort().join(',');
-    }
-
-    function evaluateAttentionInput(input) {
-      const normalizedOrder = input.toLowerCase().split(',').map((x) => x.trim()).filter(Boolean).join(',');
-      const order = tests[1].correctAnswer;
-      if (normalizedOrder === order) return 100;
-
-      const typed = normalizedOrder ? normalizedOrder.split(',') : [];
-      const target = order.split(',');
-      let correctSlots = 0;
-      for (let i = 0; i < Math.min(typed.length, target.length); i++) {
-        if (typed[i] === target[i]) correctSlots += 1;
-      }
-      return Math.round((correctSlots / target.length) * 100);
+    function tokenizeSet(text) {
+      return text.toLowerCase().split(',').map((x) => x.trim()).filter(Boolean);
     }
 
     function submitCurrentTest() {
@@ -235,18 +274,39 @@
       const currentInput = document.getElementById(test.inputId);
       const userAnswer = currentInput.value.trim();
 
+      if (test.id === 'memoryTest' && !memoryRecallReady) {
+        document.getElementById('result').innerText = 'Please wait until the words vanish, then answer the recall question.';
+        return;
+      }
+
       if (!userAnswer) {
         document.getElementById('result').innerText = 'Please enter an answer before proceeding.';
         return;
       }
 
       let testScore = 0;
+      let feedback = '';
       if (test.id === 'memoryTest') {
-        testScore = normalizeCommaWords(userAnswer) === test.correctAnswer ? 100 : 55;
+        const typedSet = tokenizeSet(userAnswer);
+        const expectedSet = tokenizeSet(test.correctAnswer);
+        const matched = expectedSet.filter((item) => typedSet.includes(item)).length;
+        const wrong = Math.max(typedSet.length - matched, 0);
+        testScore = Math.round((matched / Math.max(expectedSet.length, 1)) * 100);
+        feedback = `Memory: correct ${matched}/${expectedSet.length}, wrong entries ${wrong}.`;
       } else if (test.id === 'attentionTest') {
-        testScore = evaluateAttentionInput(userAnswer);
+        const typed = userAnswer.toLowerCase().split(',').map((x) => x.trim()).filter(Boolean);
+        const target = test.correctAnswer.split(',');
+        let correctSlots = 0;
+        for (let i = 0; i < Math.min(typed.length, target.length); i++) {
+          if (typed[i] === target[i]) correctSlots += 1;
+        }
+        const wrongSlots = target.length - correctSlots;
+        testScore = Math.round((correctSlots / target.length) * 100);
+        feedback = `Sequence: correct positions ${correctSlots}/${target.length}, wrong ${wrongSlots}.`;
       } else {
-        testScore = userAnswer.toLowerCase() === test.correctAnswer ? 100 : 60;
+        const isCorrect = userAnswer.toLowerCase() === test.correctAnswer;
+        testScore = isCorrect ? 100 : 60;
+        feedback = isCorrect ? 'Correct answer.' : `Wrong answer. Correct: ${test.correctAnswer}`;
       }
 
       test.score = testScore;
@@ -264,9 +324,10 @@
           playAnimalSequence();
         }
 
-        document.getElementById('result').innerText = `Stage score: ${testScore}. Keep going!`;
+        document.getElementById('result').innerText = `Stage score: ${testScore}. ${feedback}`;
       } else {
         const finalScore = totalScore / tests.length;
+        sessionStorage.setItem('cognitive_score', finalScore.toFixed(2));
         sessionStorage.setItem('cognitive_score_score', finalScore.toFixed(2));
         document.getElementById('result').innerHTML = `
           <div class="alert alert-success">
@@ -278,6 +339,12 @@
     }
 
     document.getElementById('submitBtn').addEventListener('click', submitCurrentTest);
+
+    document.getElementById('rewatchBtn').addEventListener('click', () => {
+      if (rewatchUsed || sequenceBusy) return;
+      rewatchUsed = true;
+      playAnimalSequence();
+    });
 
     document.getElementById('finishTestBtn').addEventListener('click', function() {
       window.location.href = '/dyslexia-prediction';

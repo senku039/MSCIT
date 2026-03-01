@@ -2,10 +2,27 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta http-equiv="refresh" content="0; url=/login" />
-  <title>Redirecting to Login</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Login Redirect</title>
+  <style>
+    body { font-family: Arial, sans-serif; display: grid; place-items: center; min-height: 100vh; margin: 0; background: #f3f6ff; color: #1b2b5a; }
+    .card { background: #fff; border: 1px solid #d8e3ff; border-radius: 12px; padding: 22px; max-width: 520px; box-shadow: 0 8px 24px rgba(20,40,90,.12); }
+    a { color: #2b6df6; font-weight: 700; }
+  </style>
 </head>
 <body>
-  <p>Redirecting to <a href="/login">/login</a>...</p>
+  <div class="card">
+    <h1>Opening Login...</h1>
+    <p>If you are running the Flask app, you will be redirected to the real login page.</p>
+    <p>If not redirected automatically, open <a id="loginLink" href="#">login page</a>.</p>
+  </div>
+
+  <script>
+    (function () {
+      const target = `${window.location.protocol}//${window.location.hostname || '127.0.0.1'}:5000/login`;
+      document.getElementById('loginLink').href = target;
+      window.location.replace(target);
+    })();
+  </script>
 </body>
 </html>
