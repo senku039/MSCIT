@@ -291,11 +291,42 @@
 <script>
 (function(){
   const logoutBtn = document.getElementById('logoutBtn');
+  const userWelcome = document.getElementById('userWelcome');
+
   if (logoutBtn) {
     logoutBtn.addEventListener('click', () => {
       window.location.href = '/logout';
     });
   }
+
+  function toDisplayName(email) {
+    const local = String(email || '').split('@')[0] || 'User';
+    return local.charAt(0).toUpperCase() + local.slice(1);
+  }
+
+  function redirectToLogin() {
+    const host = window.location.hostname || '127.0.0.1';
+    window.location.href = `${window.location.protocol}//${host}:5000/login`;
+  }
+
+  fetch('/session-info', { credentials: 'include' })
+    .then((res) => {
+      if (!res.ok) throw new Error('session endpoint unavailable');
+      return res.json();
+    })
+    .then((data) => {
+      if (!data || !data.authenticated) {
+        redirectToLogin();
+        return;
+      }
+      if (userWelcome) {
+        const displayName = toDisplayName(data.user_email);
+        userWelcome.textContent = `Hi, ${displayName}`;
+      }
+    })
+    .catch(() => {
+      redirectToLogin();
+    });
 })();
 </script>
 </body>

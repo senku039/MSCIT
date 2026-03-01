@@ -38,9 +38,15 @@
       border: 1px solid rgba(191,219,254,.3);
       margin: 14px 0;
     }
-    #promptSymbol { font-size: clamp(2.8rem, 7vw, 4.2rem); }
+    #promptSymbol { font-size: clamp(3.6rem, 9vw, 5.2rem); }
     .key-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 10px; margin: 14px 0 6px; }
-    .key-btn { font-weight: 700; border-radius: 12px; }
+    .key-btn {
+      font-weight: 800;
+      border-radius: 12px;
+      font-size: clamp(1.2rem, 2.4vw, 1.55rem);
+      padding: clamp(12px, 1.6vw, 16px) 10px;
+      min-height: 64px;
+    }
     #result { font-size: 1.02rem; margin-top: 1rem; min-height: 2rem; }
   </style>
 </head>
@@ -70,8 +76,8 @@
   </div>
 
   <script>
-    const TOTAL_ROUNDS = 3;
-    const CUES_PER_ROUND = 4;
+    const TOTAL_ROUNDS = 2;
+    const CUES_PER_ROUND = 3;
     const SYMBOLS = [
       { key: 'w', symbol: '⬆️', label: 'UP' },
       { key: 'a', symbol: '⬅️', label: 'LEFT' },
@@ -124,7 +130,7 @@
       }
 
       updateRoundLabel();
-      setTimeout(showPrompt, 700 + Math.random() * 900);
+      setTimeout(showPrompt, 500 + Math.random() * 700);
     }
 
     function handleResponse(key) {

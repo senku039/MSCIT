@@ -218,8 +218,10 @@ def rate_limited(func: Callable[..., Any]) -> Callable[..., Any]:
 
 
 @api_bp.route("/", methods=["GET"])
-def health() -> Any:
-    return jsonify({"status": "ok", "service": "dyslexia-prediction-api"})
+def entrypoint() -> Any:
+    if session.get("user_id") is not None:
+        return redirect(url_for("api.home_page"))
+    return redirect(url_for("api.login_page"))
 
 
 @api_bp.route("/ready", methods=["GET"])
@@ -234,6 +236,13 @@ def readiness() -> Any:
     payload = {"status": overall, "models": model_status, "dependencies": dependencies}
     code = 200 if overall == "ready" else 503
     return jsonify(payload), code
+
+
+@api_bp.route("/session-info", methods=["GET"])
+def session_info() -> Any:
+    user_id = session.get("user_id")
+    user_email = session.get("user_email", "")
+    return jsonify({"authenticated": user_id is not None, "user_email": user_email})
 
 
 @api_bp.route("/login", methods=["GET", "POST"])
@@ -366,6 +375,8 @@ def compatibility_html_route(page: str):
     filename = f"{page}.html"
     if filename not in _ALLOWED_PAGE_FILES:
         return jsonify({"error": "Endpoint not found."}), 404
+    if filename == "index.html":
+        return redirect(url_for("api.home_page"))
     return _serve_webapp_page(filename)
 
 
@@ -374,6 +385,8 @@ def compatibility_legacy_path(requested: str):
     filename = Path(requested).name
     if filename not in _ALLOWED_PAGE_FILES:
         return jsonify({"error": "Endpoint not found."}), 404
+    if filename == "index.html":
+        return redirect(url_for("api.home_page"))
     return _serve_webapp_page(filename)
 
 
