@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import base64
-from io import BytesIO
 import json
 import logging
 from functools import wraps
