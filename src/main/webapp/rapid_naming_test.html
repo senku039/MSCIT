@@ -17,16 +17,16 @@
   <button class="global-back-btn" type="button" onclick="window.location.href='index.html'">← Back</button>
   <div class="container">
     <h1 class="text-center mb-3">Rapid Naming Test (High Priority)</h1>
-    <p class="text-muted">Complete only <strong>2 levels</strong>: one for <strong>letters</strong> and one for <strong>words</strong>.</p>
+    <p class="text-muted">Complete <strong>2 typing levels</strong>: Level 1 letters only, Level 2 mixed letters + dyslexia-challenging words.</p>
     <div class="d-flex justify-content-between align-items-center">
-      <div id="roundInfo" class="fw-semibold text-primary">Level 1 / 2 — Letters</div>
-      <small class="text-muted">Type the items in order using spaces or commas</small>
+      <div id="roundInfo" class="fw-semibold text-primary">Level 1 / 2 — Letters (3×3)</div>
+      <small class="text-muted">Type in order (case-insensitive). Use spaces or commas.</small>
     </div>
 
     <div id="viewer" class="viewer">Press <strong>Start Level</strong> to begin.</div>
 
     <button id="startBtn" class="btn btn-primary w-100">Start Level</button>
-    <textarea id="answer" class="form-control mt-3" rows="3" placeholder="Example: A B C D ... or CAT,DOG,SUN,..."></textarea>
+    <textarea id="answer" class="form-control mt-3" rows="3" placeholder="Example: B D P, Q M N, U V W or WAS,SAW,FORM..."></textarea>
     <button id="submitBtn" class="btn btn-success w-100 mt-2" disabled>Submit Level</button>
 
     <div id="result" class="mt-3"></div>
@@ -34,31 +34,28 @@
   </div>
 
   <script>
-    const GRID_ROWS = 4;
-    const GRID_COLS = 4;
+    const GRID_ROWS = 3;
+    const GRID_COLS = 3;
     const ITEMS_PER_LEVEL = GRID_ROWS * GRID_COLS;
 
-    const LETTER_POOL = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
-    const WORD_POOL = ['cat', 'dog', 'sun', 'book', 'apple', 'water', 'paper', 'happy', 'music', 'flower', 'table', 'garden'];
+    const DIFFICULT_LETTERS = ['B', 'D', 'P', 'Q', 'M', 'N', 'U', 'V', 'W'];
+    const DIFFICULT_WORDS = ['was', 'saw', 'form', 'from', 'trial', 'trail', 'tap', 'pat', 'left', 'felt'];
 
     const LEVELS = [
       {
-        name: 'Level 1 / 2 — Letters',
-        helper: 'Type all 16 letters in order (left-to-right, top-to-bottom). Use spaces or commas.',
-        buildItems: () => Array.from({ length: ITEMS_PER_LEVEL }, () => LETTER_POOL[Math.floor(Math.random() * LETTER_POOL.length)])
+        name: 'Level 1 / 2 — Letters (3×3)',
+        helper: 'Type all 9 letters in order (left-to-right, top-to-bottom).',
+        buildItems: () => Array.from({ length: ITEMS_PER_LEVEL }, () => DIFFICULT_LETTERS[Math.floor(Math.random() * DIFFICULT_LETTERS.length)])
       },
       {
-        name: 'Level 2 / 2 — Mixed Letters + Words',
-        helper: 'Type all 16 items in order. This level mixes letters and words.',
+        name: 'Level 2 / 2 — Mixed Letters + Words (3×3)',
+        helper: 'Type all 9 mixed items in order (letters + dyslexia-challenging words).',
         buildItems: () => {
           const mixed = [];
           for (let i = 0; i < ITEMS_PER_LEVEL; i += 1) {
-            if (i % 2 === 0) mixed.push(LETTER_POOL[Math.floor(Math.random() * LETTER_POOL.length)]);
-            else mixed.push(WORD_POOL[Math.floor(Math.random() * WORD_POOL.length)]);
-          }
-          for (let i = mixed.length - 1; i > 0; i -= 1) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [mixed[i], mixed[j]] = [mixed[j], mixed[i]];
+            mixed.push(i % 2 === 0
+              ? DIFFICULT_LETTERS[Math.floor(Math.random() * DIFFICULT_LETTERS.length)]
+              : DIFFICULT_WORDS[Math.floor(Math.random() * DIFFICULT_WORDS.length)].toUpperCase());
           }
           return mixed;
         }
@@ -133,8 +130,9 @@
         if ((typedTokens[i] || '') === expected[i]) correctInPosition += 1;
       }
 
+      const wrongCount = expected.length - correctInPosition;
       const accuracy = (correctInPosition / expected.length) * 100;
-      levelResults.push({ elapsedSeconds, accuracy, correctInPosition, total: expected.length });
+      levelResults.push({ elapsedSeconds, accuracy, correctInPosition, wrongCount, total: expected.length });
 
       if (levelTimer) {
         clearInterval(levelTimer);
@@ -145,7 +143,8 @@
         <div class="alert alert-info">
           <strong>${LEVELS[currentLevelIndex].name} complete.</strong><br>
           Time: ${elapsedSeconds.toFixed(2)} sec<br>
-          Accuracy: ${accuracy.toFixed(2)}% (${correctInPosition}/${expected.length})
+          Correct: ${correctInPosition}/${expected.length} | Wrong: ${wrongCount}<br>
+          Accuracy: ${accuracy.toFixed(2)}%
         </div>`;
 
       currentLevelIndex += 1;
@@ -173,7 +172,7 @@
       const totalTime = levelResults.reduce((sum, item) => sum + item.elapsedSeconds, 0);
       const avgAccuracy = levelResults.reduce((sum, item) => sum + item.accuracy, 0) / Math.max(levelResults.length, 1);
       const itemsPerMinute = ((ITEMS_PER_LEVEL * LEVELS.length) / Math.max(totalTime, 1)) * 60;
-      const speedScore = Math.min((itemsPerMinute / 120) * 100, 100);
+      const speedScore = Math.min((itemsPerMinute / 90) * 100, 100);
       const finalScore = Math.max(0, Math.min(100, (avgAccuracy * 0.75) + (speedScore * 0.25)));
 
       localStorage.setItem('rapid_naming_score', finalScore.toFixed(2));
@@ -202,8 +201,20 @@
       window.location.href = '/dyslexia-prediction';
     });
 
+    document.getElementById('answer').addEventListener('keydown', (event) => {
+      if (event.key === 'Enter' && !event.ctrlKey && !event.metaKey) {
+        return; // allow typing new lines; do not stop or submit test
+      }
+      if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) {
+        event.preventDefault();
+        const submitBtn = document.getElementById('submitBtn');
+        if (!submitBtn.disabled && submitBtn.style.display !== 'none') submitBtn.click();
+      }
+    });
+
     document.addEventListener('keydown', (event) => {
       if (event.key !== 'Enter') return;
+      if (event.target && event.target.id === 'answer') return;
       event.preventDefault();
 
       const startBtn = document.getElementById('startBtn');

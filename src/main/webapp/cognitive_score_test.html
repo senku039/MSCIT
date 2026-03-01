@@ -82,7 +82,7 @@
           <h3 class="m-0">Stage 2 · Symbol Sequence</h3>
           <span class="badge-soft" id="sequenceHint">Watch carefully</span>
         </div>
-        <p class="helper-text">Symbols appear one by one. After playback, type only the full item order (comma separated).</p>
+        <p class="helper-text">Images appear one by one. After playback, type the full animal order (comma separated).</p>
         <div id="sequenceBoard" class="sequence-board">Press <strong>Submit &amp; Next</strong> to start playback.</div>
         <input type="text" id="attentionInput" class="form-control mt-2" placeholder="Example: cat,dog,lion,rabbit" required>
       </div>
@@ -114,12 +114,12 @@
     ];
 
     const sequenceItems = [
-      { label: "cat", symbol: "🐱" },
-      { label: "elephant", symbol: "🐘" },
-      { label: "dog", symbol: "🐶" },
-      { label: "horse", symbol: "🐴" },
-      { label: "lion", symbol: "🦁" },
-      { label: "rabbit", symbol: "🐰" }
+      { label: "cat", url: "https://upload.wikimedia.org/wikipedia/commons/3/3a/Cat03.jpg" },
+      { label: "elephant", url: "https://upload.wikimedia.org/wikipedia/commons/3/37/African_Bush_Elephant.jpg" },
+      { label: "dog", url: "https://upload.wikimedia.org/wikipedia/commons/6/6e/Golde33443.jpg" },
+      { label: "horse", url: "https://upload.wikimedia.org/wikipedia/commons/d/de/Nokota_Horses_cropped.jpg" },
+      { label: "lion", url: "https://upload.wikimedia.org/wikipedia/commons/7/73/Lion_waiting_in_Namibia.jpg" },
+      { label: "rabbit", url: "https://upload.wikimedia.org/wikipedia/commons/6/6b/Talbingo_Rabbit.jpg" }
     ];
 
     const problemQuestions = [
@@ -130,9 +130,9 @@
     ];
 
     const languageQuestions = [
-      { question: 'Complete: "The scientist carefully ___ the result."', answer: "recorded" },
-      { question: 'Fill in: "She ___ a beautiful melody yesterday."', answer: "sang" },
-      { question: 'Complete: "Ideas ___ when we practice daily."', answer: "grow" }
+      { question: 'Fill in: "The boy ___ to school."', answer: "went" },
+      { question: 'Fill in: "She drinks a glass of ___."', answer: "water" },
+      { question: 'Fill in: "Birds can ___."', answer: "fly" }
     ];
 
     function pickRandom(list, count = 1) {
@@ -199,7 +199,12 @@
           return;
         }
         const item = animalSequence[idx];
-        board.innerHTML = `<div style="font-size:5rem; line-height:1;">${item.symbol}</div><div class="fw-semibold mt-2">${item.label.toUpperCase()}</div><div class="mt-2 text-muted">Frame ${idx + 1} / ${animalSequence.length}</div>`;
+        board.innerHTML = `
+          <img src="${item.url}" alt="${item.label}" loading="eager"
+               onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+          <div style="display:none; font-size:1.1rem; color:#334155;">Image failed to load: ${item.label.toUpperCase()}</div>
+          <div class="fw-semibold mt-2">${item.label.toUpperCase()}</div>
+          <div class="mt-2 text-muted">Frame ${idx + 1} / ${animalSequence.length}</div>`;
         idx += 1;
         setTimeout(showNext, 1250);
       }
@@ -221,6 +226,10 @@
 
     function normalizeCommaWords(text) {
       return text.toLowerCase().split(',').map((x) => x.trim()).filter(Boolean).sort().join(',');
+    }
+
+    function tokenizeSet(text) {
+      return text.toLowerCase().split(',').map((x) => x.trim()).filter(Boolean);
     }
 
     function evaluateAttentionInput(input) {
@@ -253,12 +262,28 @@
       }
 
       let testScore = 0;
+      let feedback = '';
       if (test.id === 'memoryTest') {
-        testScore = normalizeCommaWords(userAnswer) === test.correctAnswer ? 100 : 55;
+        const typedSet = tokenizeSet(userAnswer);
+        const expectedSet = tokenizeSet(test.correctAnswer);
+        const matched = expectedSet.filter((item) => typedSet.includes(item)).length;
+        const wrong = Math.max(typedSet.length - matched, 0);
+        testScore = Math.round((matched / Math.max(expectedSet.length, 1)) * 100);
+        feedback = `Memory: correct ${matched}/${expectedSet.length}, wrong entries ${wrong}.`;
       } else if (test.id === 'attentionTest') {
-        testScore = evaluateAttentionInput(userAnswer);
+        const typed = userAnswer.toLowerCase().split(',').map((x) => x.trim()).filter(Boolean);
+        const target = test.correctAnswer.split(',');
+        let correctSlots = 0;
+        for (let i = 0; i < Math.min(typed.length, target.length); i++) {
+          if (typed[i] === target[i]) correctSlots += 1;
+        }
+        const wrongSlots = target.length - correctSlots;
+        testScore = Math.round((correctSlots / target.length) * 100);
+        feedback = `Sequence: correct positions ${correctSlots}/${target.length}, wrong ${wrongSlots}.`;
       } else {
-        testScore = userAnswer.toLowerCase() === test.correctAnswer ? 100 : 60;
+        const isCorrect = userAnswer.toLowerCase() === test.correctAnswer;
+        testScore = isCorrect ? 100 : 60;
+        feedback = isCorrect ? 'Correct answer.' : `Wrong answer. Correct: ${test.correctAnswer}`;
       }
 
       test.score = testScore;
@@ -276,7 +301,7 @@
           playAnimalSequence();
         }
 
-        document.getElementById('result').innerText = `Stage score: ${testScore}. Keep going!`;
+        document.getElementById('result').innerText = `Stage score: ${testScore}. ${feedback}`;
       } else {
         const finalScore = totalScore / tests.length;
         sessionStorage.setItem('cognitive_score', finalScore.toFixed(2));
