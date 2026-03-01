@@ -291,11 +291,34 @@
 <script>
 (function(){
   const logoutBtn = document.getElementById('logoutBtn');
+  const userWelcome = document.getElementById('userWelcome');
+
   if (logoutBtn) {
     logoutBtn.addEventListener('click', () => {
       window.location.href = '/logout';
     });
   }
+
+  function toDisplayName(email) {
+    const local = String(email || '').split('@')[0] || 'User';
+    return local.charAt(0).toUpperCase() + local.slice(1);
+  }
+
+  fetch('/session-info', { credentials: 'include' })
+    .then((res) => res.json())
+    .then((data) => {
+      if (!data || !data.authenticated) {
+        window.location.href = '/login';
+        return;
+      }
+      if (userWelcome) {
+        const displayName = toDisplayName(data.user_email);
+        userWelcome.textContent = `Hi, ${displayName}`;
+      }
+    })
+    .catch(() => {
+      window.location.href = '/login';
+    });
 })();
 </script>
 </body>
