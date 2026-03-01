@@ -218,8 +218,10 @@ def rate_limited(func: Callable[..., Any]) -> Callable[..., Any]:
 
 
 @api_bp.route("/", methods=["GET"])
-def health() -> Any:
-    return jsonify({"status": "ok", "service": "dyslexia-prediction-api"})
+def entrypoint() -> Any:
+    if session.get("user_id") is not None:
+        return redirect(url_for("api.home_page"))
+    return redirect(url_for("api.login_page"))
 
 
 @api_bp.route("/ready", methods=["GET"])
