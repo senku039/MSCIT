@@ -196,6 +196,21 @@
       updateProgress();
       showCurrentSentence();
     });
+  
+    // Enter shortcut: check/next actions
+    document.addEventListener('keydown', (event) => {
+      if (event.key !== 'Enter') return;
+      const active = document.activeElement;
+      if (active && active.tagName === 'TEXTAREA' && !event.ctrlKey) {
+        event.preventDefault();
+      }
+      const finishBtn = document.getElementById('finishTestBtn');
+      const nextBtn = document.getElementById('nextButton');
+      const checkBtn = document.getElementById('checkButton');
+      if (finishBtn && finishBtn.style.display !== 'none') { finishBtn.click(); return; }
+      if (nextBtn && !nextBtn.disabled) { nextBtn.click(); return; }
+      if (checkBtn && !checkBtn.disabled) { checkBtn.click(); }
+    });
   </script>
 </body>
 </html>

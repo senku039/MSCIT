@@ -15,6 +15,7 @@ This repository hosts the Dyslexia Early Detection System, a multi-modal assessm
 - API endpoints:
   - `POST /predict`
   - `POST /handwriting-analysis`
+  - `POST /image-analysis-upload`
 
 ## Secure backend layout
 

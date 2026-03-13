@@ -106,6 +106,15 @@
       updateProgress();
       loadNextWord();
     });
+  
+    // Enter shortcut: submit/next actions
+    document.addEventListener('keydown', (event) => {
+      if (event.key !== 'Enter') return;
+      const finishBtn = document.getElementById('finishTestBtn');
+      const submitBtn = document.getElementById('submitBtn');
+      if (finishBtn && finishBtn.style.display !== 'none') { event.preventDefault(); finishBtn.click(); return; }
+      if (submitBtn && !submitBtn.disabled) { event.preventDefault(); submitBtn.click(); }
+    });
   </script>
 </body>
 </html>
