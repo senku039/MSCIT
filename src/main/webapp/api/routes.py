@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import base64
-from io import BytesIO
 import json
 import logging
 from functools import wraps
@@ -11,7 +10,7 @@ from pathlib import Path
 from typing import Any, Callable
 
 import numpy as np
-from flask import Blueprint, current_app, jsonify, render_template, request, send_from_directory
+from flask import Blueprint, current_app, jsonify, redirect, render_template, request, send_from_directory, session, url_for
 
 from src.main.webapp.api.schemas import (
     SchemaValidationError,
@@ -19,6 +18,7 @@ from src.main.webapp.api.schemas import (
     validate_handwriting_response,
     validate_predict_response,
 )
+from src.main.webapp.auth import authenticate_user, create_user, login_required
 from src.main.webapp.utils.validators import validate_image_upload
 
 LOGGER = logging.getLogger(__name__)
@@ -217,8 +217,10 @@ def rate_limited(func: Callable[..., Any]) -> Callable[..., Any]:
 
 
 @api_bp.route("/", methods=["GET"])
-def health() -> Any:
-    return jsonify({"status": "ok", "service": "dyslexia-prediction-api"})
+def entrypoint() -> Any:
+    if session.get("user_id") is not None:
+        return redirect(url_for("api.home_page"))
+    return redirect(url_for("api.login_page"))
 
 
 @api_bp.route("/ready", methods=["GET"])
@@ -235,14 +237,63 @@ def readiness() -> Any:
     return jsonify(payload), code
 
 
-@api_bp.route("/login", methods=["GET"])
+@api_bp.route("/session-info", methods=["GET"])
+def session_info() -> Any:
+    user_id = session.get("user_id")
+    user_email = session.get("user_email", "")
+    return jsonify({"authenticated": user_id is not None, "user_email": user_email})
+
+
+@api_bp.route("/login", methods=["GET", "POST"])
 def login_page() -> Any:
-    return _serve_webapp_page("login.html")
+    if request.method == "GET":
+        if session.get("user_id") is not None:
+            return redirect(url_for("api.home_page"))
+        return render_template("login.html", error=None)
+
+    email = request.form.get("email", "")
+    password = request.form.get("password", "")
+    user, error = authenticate_user(email=email, password=password)
+
+    if error or not user:
+        return render_template("login.html", error=error or "Unable to login."), 401
+
+    session["user_id"] = user["id"]
+    session["user_email"] = user["email"]
+
+    next_path = request.args.get("next", "")
+    if next_path.startswith("/") and not next_path.startswith("//"):
+        return redirect(next_path)
+    return redirect(url_for("api.home_page"))
+
+
+@api_bp.route("/register", methods=["GET", "POST"])
+def register_page() -> Any:
+    if request.method == "GET":
+        if session.get("user_id") is not None:
+            return redirect(url_for("api.home_page"))
+        return render_template("register.html", error=None, success=None)
+
+    email = request.form.get("email", "")
+    password = request.form.get("password", "")
+    success, message = create_user(email=email, password=password)
+
+    if not success:
+        return render_template("register.html", error=message, success=None), 400
+
+    return render_template("register.html", error=None, success=message), 201
 
 
 @api_bp.route("/home", methods=["GET"])
+@login_required
 def home_page() -> Any:
     return _serve_webapp_page("index.html")
+
+
+@api_bp.route("/logout", methods=["GET", "POST"])
+def logout_page() -> Any:
+    session.clear()
+    return redirect(url_for("api.login_page"))
 
 
 @api_bp.route("/dyslexia-prediction", methods=["GET"])
@@ -334,6 +385,8 @@ def compatibility_html_route(page: str):
     filename = f"{page}.html"
     if filename not in _ALLOWED_PAGE_FILES:
         return jsonify({"error": "Endpoint not found."}), 404
+    if filename == "index.html":
+        return redirect(url_for("api.home_page"))
     return _serve_webapp_page(filename)
 
 
@@ -342,6 +395,8 @@ def compatibility_legacy_path(requested: str):
     filename = Path(requested).name
     if filename not in _ALLOWED_PAGE_FILES:
         return jsonify({"error": "Endpoint not found."}), 404
+    if filename == "index.html":
+        return redirect(url_for("api.home_page"))
     return _serve_webapp_page(filename)
 
 

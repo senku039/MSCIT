@@ -63,7 +63,8 @@
 <body>
   <button class="global-back-btn" type="button" onclick="window.location.href='index.html'">← Back</button>
   <div class="page-shell">
-    <h1 class="text-center mb-4">Cognitive Score Test</h1>
+    <h1 class="text-center mb-2 game-title">Cognitive Challenge Arena</h1>
+    <p class="text-center helper-text mb-4">A 4-stage smart challenge: memory recall, image-order reasoning, logic sprint, and language completion.</p>
 
     <div id="taskContainer" class="test-card">
       <div id="memoryTest" class="mb-4">
@@ -73,21 +74,25 @@
         <input type="text" id="memoryInput" class="form-control" placeholder="Type the words you remember" required>
       </div>
 
-      <div id="attentionTest" class="mb-4" style="display: none;">
-        <h3 class="question-title">Attention Test</h3>
-        <p class="helper-text">Find the animals in the images below:</p>
-        <div class="row" id="animalImages"></div>
-        <input type="text" id="attentionInput" class="form-control mt-3" placeholder="Type the animals you found (comma separated)" required>
+      <div id="attentionTest" class="mb-4 stage-card" style="display: none;">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <h3 class="m-0">Stage 2 · Symbol Sequence</h3>
+          <span class="badge-soft" id="sequenceHint">Watch carefully</span>
+        </div>
+        <p class="helper-text">Images appear one by one. After playback, type the full animal order (comma separated).</p>
+        <div id="sequenceBoard" class="sequence-board">Press <strong>Submit &amp; Next</strong> to start playback.</div>
+        <button id="rewatchBtn" type="button" class="btn btn-outline-primary btn-sm mb-2" style="display:none;">Rewatch Sequence (1 left)</button>
+        <input type="text" id="attentionInput" class="form-control mt-2" placeholder="Example: cat,dog,lion,rabbit" required>
       </div>
 
-      <div id="problemSolvingTest" class="mb-4" style="display: none;">
-        <h3 class="question-title">Problem-Solving Test</h3>
-        <p id="problemQuestion" class="helper-text">Loading question...</p>
+      <div id="problemSolvingTest" class="mb-4 stage-card" style="display: none;">
+        <h3>Stage 3 · Logic Sprint</h3>
+        <p id="problemQuestion" class="helper-text">Loading puzzle...</p>
         <input type="text" id="problemInput" class="form-control" placeholder="Your answer" required>
       </div>
 
-      <div id="languageTest" class="mb-4" style="display: none;">
-        <h3 class="question-title">Language Test</h3>
+      <div id="languageTest" class="mb-4 stage-card" style="display: none;">
+        <h3>Stage 4 · Language Precision</h3>
         <p id="languageQuestion" class="helper-text">Loading question...</p>
         <input type="text" id="languageInput" class="form-control" placeholder="Your answer" required>
       </div>
@@ -100,32 +105,40 @@
 
   <script>
     const memoryWordSets = [
-      ["apple", "banana", "orange"],
-      ["river", "planet", "mirror"],
-      ["garden", "pencil", "rocket"],
-      ["camera", "window", "tiger"]
+      ["apple", "rocket", "garden", "mirror"],
+      ["planet", "bridge", "camera", "window"],
+      ["forest", "pencil", "tiger", "silver"],
+      ["castle", "orange", "ocean", "lantern"]
     ];
 
-    const imageLinks = [
-      { label: "cat", url: "https://upload.wikimedia.org/wikipedia/commons/4/4d/Cat_November_2010-1a.jpg" },
+    const sequenceItems = [
+      { label: "cat", url: "https://upload.wikimedia.org/wikipedia/commons/3/3a/Cat03.jpg" },
       { label: "elephant", url: "https://upload.wikimedia.org/wikipedia/commons/3/37/African_Bush_Elephant.jpg" },
-      { label: "dog", url: "https://images.unsplash.com/photo-1517849845537-4d257902454a?auto=format&fit=crop&w=500&q=80" },
-      { label: "horse", url: "https://images.unsplash.com/photo-1553284965-83fd3e82fa5a?auto=format&fit=crop&w=500&q=80" },
-      { label: "lion", url: "https://images.unsplash.com/photo-1546182990-dffeafbe841d?auto=format&fit=crop&w=500&q=80" },
-      { label: "rabbit", url: "https://images.unsplash.com/photo-1585110396000-c9ffd4e4b308?auto=format&fit=crop&w=500&q=80" }
+      { label: "dog", url: "https://upload.wikimedia.org/wikipedia/commons/6/6e/Golde33443.jpg" },
+      { label: "horse", url: "https://upload.wikimedia.org/wikipedia/commons/d/de/Nokota_Horses_cropped.jpg" },
+      { label: "lion", url: "https://upload.wikimedia.org/wikipedia/commons/7/73/Lion_waiting_in_Namibia.jpg" },
+      { label: "rabbit", url: "https://upload.wikimedia.org/wikipedia/commons/6/6b/Talbingo_Rabbit.jpg" }
     ];
 
     const problemQuestions = [
-      { question: "If you have 3 apples and eat 1, how many are left?", answer: "2" },
-      { question: "What is 6 + 7?", answer: "13" },
-      { question: "A farmer has 10 sheep and 3 run away. How many remain?", answer: "7" },
-      { question: "What is 9 - 4?", answer: "5" }
+      { question: "Find next number: 3, 6, 12, 24, ?", answer: "48" },
+      { question: "If all Bloops are Razzles and all Razzles are Lazzles, are all Bloops Lazzles? (yes/no)", answer: "yes" },
+      { question: "A bag has 5 red and 3 blue balls. Probability of picking red (fraction)?", answer: "5/8" },
+      { question: "Rearrange letters to form a word: N E I R B A (hint: body part)", answer: "brain" },
+      { question: "Find next number: 5, 10, 20, 40, ?", answer: "80" },
+      { question: "Which is larger: 3/4 or 2/3? (answer: 3/4 or 2/3)", answer: "3/4" },
+      { question: "If today is Monday, what day comes after 3 days?", answer: "thursday" },
+      { question: "Unscramble: T E H A R (hint: Earth)", answer: "earth" }
     ];
 
     const languageQuestions = [
-      { question: 'Complete: "The cat ___ on the mat."', answer: "sat" },
-      { question: 'Fill in: "She ___ a beautiful song."', answer: "sang" },
-      { question: 'Complete: "Birds ___ in the sky."', answer: "fly" }
+      { question: 'Fill in: "The boy ___ to school."', answer: "went" },
+      { question: 'Fill in: "She drinks a glass of ___."', answer: "water" },
+      { question: 'Fill in: "Birds can ___."', answer: "fly" },
+      { question: 'Fill in: "We ___ dinner at night."', answer: "eat" },
+      { question: 'Fill in: "A baby cat is a ___."', answer: "kitten" },
+      { question: 'Fill in: "The sun rises in the ___."', answer: "east" },
+      { question: 'Fill in: "I ___ my teeth every morning."', answer: "brush" }
     ];
 
     function pickRandom(list, count = 1) {
@@ -179,10 +192,10 @@
     }
 
     const tests = [
-      { id: 'memoryTest', inputId: 'memoryInput', correctAnswer: '' },
-      { id: 'attentionTest', inputId: 'attentionInput', correctAnswer: '' },
-      { id: 'problemSolvingTest', inputId: 'problemInput', correctAnswer: '' },
-      { id: 'languageTest', inputId: 'languageInput', correctAnswer: '' }
+      { id: 'memoryTest', inputId: 'memoryInput', correctAnswer: '', score: 0 },
+      { id: 'attentionTest', inputId: 'attentionInput', correctAnswer: '', score: 0 },
+      { id: 'problemSolvingTest', inputId: 'problemInput', correctAnswer: '', score: 0 },
+      { id: 'languageTest', inputId: 'languageInput', correctAnswer: '', score: 0 }
     ];
 
     let currentTestIndex = 0;
@@ -204,16 +217,36 @@
       tests[1].correctAnswer = selected.map((item) => item.label).sort().join(',');
     }
 
-    function loadRandomQuestion() {
-      const selected = pickRandom(problemQuestions, 1)[0];
-      document.getElementById('problemQuestion').innerText = selected.question;
-      tests[2].correctAnswer = selected.answer.toLowerCase();
+    function prepareQuestionDeck(source) {
+      const deck = [...source];
+      for (let i = deck.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [deck[i], deck[j]] = [deck[j], deck[i]];
+      }
+      return deck;
     }
 
-    function loadRandomLanguageQuestion() {
-      const selected = pickRandom(languageQuestions, 1)[0];
-      document.getElementById('languageQuestion').innerText = selected.question;
-      tests[3].correctAnswer = selected.answer.toLowerCase();
+    const problemDeck = prepareQuestionDeck(problemQuestions);
+    const languageDeck = prepareQuestionDeck(languageQuestions);
+    let problemPointer = 0;
+    let languagePointer = 0;
+
+    function loadRandomQuestion(type) {
+      const isProblem = type === 'problem';
+      const sourceDeck = isProblem ? problemDeck : languageDeck;
+      const pointer = isProblem ? problemPointer : languagePointer;
+      const picked = sourceDeck[pointer % sourceDeck.length];
+
+      if (isProblem) problemPointer += 1;
+      else languagePointer += 1;
+
+      if (type === 'problem') {
+        document.getElementById('problemQuestion').textContent = picked.question;
+        tests[2].correctAnswer = picked.answer.toLowerCase();
+      } else {
+        document.getElementById('languageQuestion').textContent = picked.question;
+        tests[3].correctAnswer = picked.answer.toLowerCase();
+      }
     }
 
     async function initializeTests() {
@@ -224,27 +257,44 @@
       loadRandomLanguageQuestion();
     }
 
-    document.addEventListener("DOMContentLoaded", initializeTests);
+    function submitCurrentTest() {
+      const test = tests[currentTestIndex];
+      const currentInput = document.getElementById(test.inputId);
+      const userAnswer = currentInput.value.trim();
 
-    document.getElementById('submitBtn').addEventListener('click', function() {
-      const currentTest = tests[currentTestIndex];
-      const input = document.getElementById(currentTest.inputId);
-      const userAnswer = input.value.trim().toLowerCase();
-      const correctAnswer = currentTest.correctAnswer;
-
-      let isCorrect = false;
-      if (currentTest.id === 'attentionTest') {
-        const normalizedUser = userAnswer.split(',').map((x) => x.trim()).filter(Boolean).sort().join(',');
-        isCorrect = normalizedUser === correctAnswer;
-      } else {
-        isCorrect = userAnswer === correctAnswer;
+      if (test.id === 'memoryTest' && !memoryRecallReady) {
+        document.getElementById('result').innerText = 'Please wait until the words vanish, then answer the recall question.';
+        return;
       }
 
-      if (isCorrect) {
-        totalScore += 25;
-        document.getElementById('result').textContent = "✅ Correct!";
+      if (!userAnswer) {
+        document.getElementById('result').innerText = 'Please enter an answer before proceeding.';
+        return;
+      }
+
+      let testScore = 0;
+      let feedback = '';
+      if (test.id === 'memoryTest') {
+        const typedSet = tokenizeSet(userAnswer);
+        const expectedSet = tokenizeSet(test.correctAnswer);
+        const matched = expectedSet.filter((item) => typedSet.includes(item)).length;
+        const wrong = Math.max(typedSet.length - matched, 0);
+        testScore = Math.round((matched / Math.max(expectedSet.length, 1)) * 100);
+        feedback = `Memory: correct ${matched}/${expectedSet.length}, wrong entries ${wrong}.`;
+      } else if (test.id === 'attentionTest') {
+        const typed = userAnswer.toLowerCase().split(',').map((x) => x.trim()).filter(Boolean);
+        const target = test.correctAnswer.split(',');
+        let correctSlots = 0;
+        for (let i = 0; i < Math.min(typed.length, target.length); i++) {
+          if (typed[i] === target[i]) correctSlots += 1;
+        }
+        const wrongSlots = target.length - correctSlots;
+        testScore = Math.round((correctSlots / target.length) * 100);
+        feedback = `Sequence: correct positions ${correctSlots}/${target.length}, wrong ${wrongSlots}.`;
       } else {
-        document.getElementById('result').textContent = `❌ Incorrect. Correct answer: ${currentTest.correctAnswer}`;
+        const isCorrect = userAnswer.toLowerCase() === test.correctAnswer;
+        testScore = isCorrect ? 100 : 60;
+        feedback = isCorrect ? 'Correct answer.' : `Wrong answer. Correct: ${test.correctAnswer}`;
       }
 
       document.getElementById(currentTest.id).style.display = "none";
@@ -257,18 +307,52 @@
       currentTestIndex++;
 
       if (currentTestIndex < tests.length) {
-        document.getElementById(tests[currentTestIndex].id).style.display = "block";
+        const nextTest = tests[currentTestIndex];
+        document.getElementById(nextTest.id).style.display = 'block';
+        document.getElementById(nextTest.inputId).focus();
+
+        if (nextTest.id === 'attentionTest' && !sequencePlayed) {
+          playAnimalSequence();
+        }
+
+        document.getElementById('result').innerText = `Stage score: ${testScore}. ${feedback}`;
       } else {
-        document.getElementById('submitBtn').style.display = "none";
-        document.getElementById('result').textContent = `Your Cognitive Score: ${totalScore}%`;
-        sessionStorage.setItem('cognitive_score', totalScore);
-        document.getElementById('finishTestBtn').style.display = "block";
+        const finalScore = totalScore / tests.length;
+        sessionStorage.setItem('cognitive_score', finalScore.toFixed(2));
+        sessionStorage.setItem('cognitive_score_score', finalScore.toFixed(2));
+        document.getElementById('result').innerHTML = `
+          <div class="alert alert-success">
+            <strong>Cognitive Score:</strong> ${finalScore.toFixed(2)} / 100
+          </div>`;
+        document.getElementById('submitBtn').style.display = 'none';
+        document.getElementById('finishTestBtn').style.display = 'block';
       }
+    }
+
+    document.getElementById('submitBtn').addEventListener('click', submitCurrentTest);
+
+    document.getElementById('rewatchBtn').addEventListener('click', () => {
+      if (rewatchUsed || sequenceBusy) return;
+      rewatchUsed = true;
+      playAnimalSequence();
     });
 
     document.getElementById('finishTestBtn').addEventListener('click', function() {
       window.location.href = 'dyslexia-prediction.html';
     });
+
+    document.addEventListener('keydown', (event) => {
+      if (event.key !== 'Enter') return;
+      const btn = document.getElementById('submitBtn');
+      if (btn && btn.style.display !== 'none') {
+        event.preventDefault();
+        btn.click();
+      }
+    });
+
+    loadMemoryChallenge();
+    loadRandomQuestion('problem');
+    loadRandomQuestion('language');
   </script>
 </body>
 </html>
