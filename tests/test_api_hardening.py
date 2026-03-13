@@ -78,3 +78,37 @@ def test_handwriting_flow(monkeypatch):
     payload = response.get_json()
     assert payload["predicted_class"] == "Non_Dyslexic"
     assert payload["result_redirect"].startswith("/handwriting-result?data=")
+
+
+def test_predict_returns_503_without_model_extension():
+    app = create_app()
+    app.extensions.pop("model_service", None)
+    client = app.test_client()
+
+    payload = {
+        "Reading_Speed": 100,
+        "Spelling_Accuracy": 90,
+        "Writing_Errors": 1,
+        "Cognitive_Score": 88,
+        "Phonemic_Awareness_Errors": 1,
+        "Attention_Span": 90,
+        "Response_Time": 0.5,
+    }
+
+    response = client.post("/predict", json=payload)
+    assert response.status_code == 503
+
+
+def test_handwriting_returns_503_without_model_extension():
+    app = create_app()
+    app.extensions.pop("model_service", None)
+    client = app.test_client()
+
+    data = {"image": (
+        __import__("io").BytesIO(b"fake-bytes"),
+        "sample.jpg",
+        "image/jpeg",
+    )}
+
+    response = client.post("/handwriting-analysis", data=data, content_type="multipart/form-data")
+    assert response.status_code == 503
