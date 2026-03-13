@@ -1,28 +1,295 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Login Redirect</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login | Dyslexia Screening Platform</title>
+  <link rel="stylesheet" href="/theme.css">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
-    body { font-family: Arial, sans-serif; display: grid; place-items: center; min-height: 100vh; margin: 0; background: #f3f6ff; color: #1b2b5a; }
-    .card { background: #fff; border: 1px solid #d8e3ff; border-radius: 12px; padding: 22px; max-width: 520px; box-shadow: 0 8px 24px rgba(20,40,90,.12); }
-    a { color: #2b6df6; font-weight: 700; }
+    :root {
+      --ink: #11295f;
+      --muted: #53658f;
+      --card: #f7faff;
+      --line: #cddcf8;
+      --brand-a: #2563eb;
+      --brand-b: #7c3aed;
+    }
+
+    body {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      font-family: "Inter", system-ui, -apple-system, sans-serif;
+      background:
+        radial-gradient(circle at 14% 12%, rgba(103, 132, 255, .24), transparent 33%),
+        radial-gradient(circle at 86% 20%, rgba(64, 205, 241, .18), transparent 35%),
+        linear-gradient(130deg, #102b74 0%, #274fa8 54%, #2f66c0 100%);
+    }
+
+    .login-shell {
+      width: min(1060px, 96vw);
+      border-radius: 24px;
+      overflow: hidden;
+      border: 1px solid rgba(203, 221, 255, .58);
+      box-shadow: 0 28px 50px rgba(8, 21, 58, .34);
+      background: #fff;
+      display: grid;
+      grid-template-columns: 1.08fr 1fr;
+    }
+
+    .brand-pane {
+      color: #f2f8ff;
+      padding: 42px;
+      background:
+        linear-gradient(150deg, rgba(15, 39, 109, .9), rgba(53, 105, 224, .8)),
+        url('https://images.unsplash.com/photo-1503676260728-1c00da094a0b?auto=format&fit=crop&w=1800&q=80') center/cover no-repeat;
+      position: relative;
+    }
+
+    .brand-pane::after {
+      content: "";
+      position: absolute;
+      inset: auto 0 0 0;
+      height: 38%;
+      background: linear-gradient(to top, rgba(12, 31, 86, .52), transparent);
+      pointer-events: none;
+    }
+
+    .brand-content { position: relative; z-index: 1; }
+
+    .brand-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 14px;
+      border-radius: 999px;
+      border: 1px solid rgba(205, 224, 255, .45);
+      background: rgba(255, 255, 255, .14);
+      font-size: .84rem;
+      font-weight: 700;
+      margin-bottom: 14px;
+    }
+
+    .brand-pane h2 {
+      font-size: clamp(1.8rem, 2.5vw, 2.45rem);
+      line-height: 1.2;
+      margin-bottom: 12px;
+      font-weight: 800;
+    }
+
+    .brand-pane p,
+    .brand-pane li {
+      color: rgba(235, 245, 255, .98);
+      font-size: 1.04rem;
+      line-height: 1.5;
+    }
+
+    .form-pane {
+      padding: 36px 34px;
+      background: linear-gradient(180deg, #f9fbff, #f2f7ff);
+    }
+
+    .form-pane h3 {
+      color: var(--ink);
+      font-size: 2rem;
+      font-weight: 800;
+      margin-bottom: 2px;
+    }
+
+    .helper { color: var(--muted); font-size: .93rem; }
+    .form-label { font-weight: 700; color: #173777; margin-bottom: 6px; }
+
+    .form-control {
+      border-radius: 11px;
+      border-color: var(--line);
+      min-height: 46px;
+      transition: border-color .22s ease, box-shadow .22s ease, transform .22s ease;
+    }
+
+    .form-control:focus {
+      border-color: #82a4f4;
+      box-shadow: 0 0 0 .2rem rgba(59, 124, 246, .15);
+      transform: translateY(-1px);
+    }
+
+    .btn-login {
+      border: 0;
+      border-radius: 12px;
+      font-weight: 700;
+      padding: 12px 16px;
+      background: linear-gradient(130deg, var(--brand-a), var(--brand-b));
+      box-shadow: 0 10px 22px rgba(37, 99, 235, .3);
+      transition: transform .22s ease, box-shadow .22s ease;
+    }
+
+    .btn-login:hover { transform: translateY(-1px); box-shadow: 0 14px 28px rgba(37, 99, 235, .33); }
+
+    .caps { font-size: .82rem; color: #b45309; display: none; }
+    .trust-note {
+      margin-top: 10px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 1px solid var(--line);
+      background: #edf4ff;
+      color: #204586;
+      font-size: .86rem;
+      font-weight: 600;
+    }
+
+    .link-row { display: flex; justify-content: space-between; gap: 10px; font-size: .92rem; }
+
+    @media (max-width: 920px) {
+      .login-shell { grid-template-columns: 1fr; }
+      .brand-pane { padding: 28px; }
+      .form-pane { padding: 24px; }
+    }
   </style>
 </head>
 <body>
-  <div class="card">
-    <h1>Opening Login...</h1>
-    <p>If you are running the Flask app, you will be redirected to the real login page.</p>
-    <p>If not redirected automatically, open <a id="loginLink" href="#">login page</a>.</p>
+  <div class="login-shell">
+    <section class="brand-pane">
+      <div class="brand-content">
+        <div class="brand-chip">🔒 Secure Assessment Workspace</div>
+        <h2>Dyslexia Screening Portal</h2>
+        <p class="mb-4">Sign in to continue your multi-level assessment roadmap, view recommendations, and track progress.</p>
+        <ul>
+          <li>Secure session-based access</li>
+          <li>Save progress between assessment levels</li>
+          <li>Personalized recommendations and detailed analysis</li>
+        </ul>
+        <div class="mt-4 small">Need support? Contact: <strong>support@dyslexia-screening.local</strong></div>
+      </div>
+    </section>
+
+    <section class="form-pane">
+      <h3>Welcome Back</h3>
+      <p class="helper mb-3">Enter your account details to continue.</p>
+
+      <form id="loginForm" novalidate>
+        <div class="mb-3">
+          <label class="form-label" for="email">Email</label>
+          <input id="email" class="form-control" type="email" placeholder="you@example.com" required>
+          <div class="invalid-feedback">Please enter a valid email.</div>
+        </div>
+
+        <div class="mb-2">
+          <label class="form-label" for="password">Password</label>
+          <div class="input-group">
+            <input id="password" class="form-control" type="password" placeholder="Enter password" minlength="8" required>
+            <button id="togglePassword" type="button" class="btn btn-outline-secondary">Show</button>
+            <div class="invalid-feedback">Password must be at least 8 characters.</div>
+          </div>
+          <div id="capsHint" class="caps mt-1">Caps Lock is ON.</div>
+        </div>
+
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <div class="form-check">
+            <input id="rememberMe" class="form-check-input" type="checkbox">
+            <label for="rememberMe" class="form-check-label">Remember me</label>
+          </div>
+          <a href="#" id="forgotLink" class="text-decoration-none">Forgot password?</a>
+        </div>
+
+        <button id="loginBtn" class="btn btn-login text-white w-100" type="submit">Sign In</button>
+        <div id="loginStatus" class="helper mt-2"></div>
+        <div class="trust-note">🔐 Your session is protected and used only for your assessment journey.</div>
+      </form>
+
+      <hr class="my-4">
+      <div class="link-row">
+        <span class="helper">New user?</span>
+        <a href="#" id="createAccountLink" class="text-decoration-none">Create account</a>
+      </div>
+    </section>
   </div>
 
   <script>
-    (function () {
-      const target = `${window.location.protocol}//${window.location.hostname || '127.0.0.1'}:5000/login`;
-      document.getElementById('loginLink').href = target;
-      window.location.replace(target);
-    })();
+    const DEMO_USERS = [
+      { email: 'admin@dyslexia.app', password: 'Admin@1234', name: 'Admin' },
+      { email: 'student@dyslexia.app', password: 'Student@1234', name: 'Student' },
+    ];
+
+    const emailEl = document.getElementById('email');
+    const passwordEl = document.getElementById('password');
+    const rememberEl = document.getElementById('rememberMe');
+    const statusEl = document.getElementById('loginStatus');
+
+    const remembered = localStorage.getItem('remembered_email');
+    if (remembered) {
+      emailEl.value = remembered;
+      rememberEl.checked = true;
+    }
+
+    const navigateToHome = () => {
+      window.location.href = 'index.html';
+    };
+
+    const existing = sessionStorage.getItem('auth_user');
+    if (existing) {
+      try {
+        JSON.parse(existing);
+        navigateToHome();
+      } catch (_error) {
+        sessionStorage.removeItem('auth_user');
+      }
+    }
+
+    document.getElementById('togglePassword').addEventListener('click', function() {
+      const nextType = passwordEl.type === 'password' ? 'text' : 'password';
+      passwordEl.type = nextType;
+      this.textContent = nextType === 'password' ? 'Show' : 'Hide';
+    });
+
+    passwordEl.addEventListener('keyup', (event) => {
+      document.getElementById('capsHint').style.display = event.getModifierState('CapsLock') ? 'block' : 'none';
+    });
+
+    document.getElementById('forgotLink').addEventListener('click', (event) => {
+      event.preventDefault();
+      alert('Password reset is enabled by admin setup. For now, use demo account:\nstudent@dyslexia.app / Student@1234');
+    });
+
+    document.getElementById('createAccountLink').addEventListener('click', (event) => {
+      event.preventDefault();
+      alert('Account creation is managed by admin setup in this demo. Use demo account for now:\nstudent@dyslexia.app / Student@1234');
+    });
+
+    document.getElementById('loginForm').addEventListener('submit', (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+
+      const email = emailEl.value.trim().toLowerCase();
+      const password = passwordEl.value;
+      const valid = emailEl.checkValidity() && passwordEl.checkValidity();
+
+      emailEl.classList.toggle('is-invalid', !emailEl.checkValidity());
+      passwordEl.classList.toggle('is-invalid', !passwordEl.checkValidity());
+
+      if (!valid) {
+        statusEl.textContent = 'Please correct the highlighted fields.';
+        statusEl.style.color = '#b45309';
+        return;
+      }
+
+      const matched = DEMO_USERS.find((user) => user.email === email && user.password === password);
+      if (!matched) {
+        statusEl.textContent = 'Invalid credentials. Try student@dyslexia.app / Student@1234';
+        statusEl.style.color = '#b91c1c';
+        return;
+      }
+
+      if (rememberEl.checked) localStorage.setItem('remembered_email', email);
+      else localStorage.removeItem('remembered_email');
+
+      sessionStorage.setItem('auth_user', JSON.stringify({ email: matched.email, name: matched.name }));
+      statusEl.textContent = 'Login successful. Redirecting...';
+      statusEl.style.color = '#166534';
+      setTimeout(() => { navigateToHome(); }, 350);
+    });
   </script>
 </body>
 </html>
