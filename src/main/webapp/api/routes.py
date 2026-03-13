@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Any, Callable
 
 import numpy as np
-from flask import Blueprint, current_app, jsonify, redirect, render_template, request, send_from_directory, session, url_for
+from flask import Blueprint, current_app, jsonify, render_template, request, send_from_directory
 
 from src.main.webapp.api.schemas import (
     SchemaValidationError,
@@ -18,7 +18,6 @@ from src.main.webapp.api.schemas import (
     validate_handwriting_response,
     validate_predict_response,
 )
-from src.main.webapp.auth import authenticate_user, create_user, login_required
 from src.main.webapp.utils.validators import validate_image_upload
 
 LOGGER = logging.getLogger(__name__)
@@ -167,16 +166,22 @@ def _build_prediction_payload(prediction: float, feature_map: dict[str, float]) 
         "summary": summary,
         "recommendations": recommendations,
     }
+
+
 def _encode_payload(payload: dict[str, Any]) -> str:
     raw = json.dumps(payload, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
     return base64.urlsafe_b64encode(raw).decode("utf-8")
-
-
-
-
 def _serve_webapp_page(filename: str):
     webapp_dir = Path(__file__).resolve().parent.parent
     return send_from_directory(webapp_dir, filename)
+
+
+def _extension_or_503(name: str):
+    extension = current_app.extensions.get(name)
+    if extension is None:
+        LOGGER.error("Required extension '%s' is not configured.", name)
+    return extension
+
 
 def _get_client_id() -> str:
     return request.headers.get("X-Forwarded-For", request.remote_addr or "unknown").split(",")[0].strip()
@@ -201,6 +206,10 @@ def require_auth(func: Callable[..., Any]) -> Callable[..., Any]:
     return wrapper
 
 
+# Backward-compatible alias for older decorators used in some branches/history.
+login_required = require_auth
+
+
 def rate_limited(func: Callable[..., Any]) -> Callable[..., Any]:
     @wraps(func)
     def wrapper(*args: Any, **kwargs: Any):
@@ -208,7 +217,9 @@ def rate_limited(func: Callable[..., Any]) -> Callable[..., Any]:
             return current_app.make_default_options_response()
 
         client_id = _get_client_id()
-        rate_limiter = current_app.extensions["rate_limiter"]
+        rate_limiter = _extension_or_503("rate_limiter")
+        if rate_limiter is None:
+            return jsonify({"error": "Rate limiter unavailable."}), 503
         if not rate_limiter.is_allowed(client_id):
             return jsonify({"error": "Rate limit exceeded"}), 429
         return func(*args, **kwargs)
@@ -217,15 +228,22 @@ def rate_limited(func: Callable[..., Any]) -> Callable[..., Any]:
 
 
 @api_bp.route("/", methods=["GET"])
-def entrypoint() -> Any:
-    if session.get("user_id") is not None:
-        return redirect(url_for("api.home_page"))
-    return redirect(url_for("api.login_page"))
+def health() -> Any:
+    return jsonify({"status": "ok", "service": "dyslexia-prediction-api"})
 
 
 @api_bp.route("/ready", methods=["GET"])
 def readiness() -> Any:
-    model_service = current_app.extensions["model_service"]
+    model_service = _extension_or_503("model_service")
+    if model_service is None:
+        payload = {
+            "status": "degraded",
+            "models": {"dyslexia_model_loaded": False, "handwriting_model_loaded": False},
+            "dependencies": {"redis_enabled": bool(current_app.config.get("REDIS_URL", ""))},
+            "error": "Model service extension is not configured.",
+        }
+        return jsonify(payload), 503
+
     model_status = {
         "dyslexia_model_loaded": model_service.dyslexia_model is not None,
         "handwriting_model_loaded": model_service.handwriting_model is not None,
@@ -235,53 +253,6 @@ def readiness() -> Any:
     payload = {"status": overall, "models": model_status, "dependencies": dependencies}
     code = 200 if overall == "ready" else 503
     return jsonify(payload), code
-
-
-@api_bp.route("/session-info", methods=["GET"])
-def session_info() -> Any:
-    user_id = session.get("user_id")
-    user_email = session.get("user_email", "")
-    return jsonify({"authenticated": user_id is not None, "user_email": user_email})
-
-
-@api_bp.route("/login", methods=["GET", "POST"])
-def login_page() -> Any:
-    if request.method == "GET":
-        if session.get("user_id") is not None:
-            return redirect(url_for("api.home_page"))
-        return render_template("login.html", error=None)
-
-    email = request.form.get("email", "")
-    password = request.form.get("password", "")
-    user, error = authenticate_user(email=email, password=password)
-
-    if error or not user:
-        return render_template("login.html", error=error or "Unable to login."), 401
-
-    session["user_id"] = user["id"]
-    session["user_email"] = user["email"]
-
-    next_path = request.args.get("next", "")
-    if next_path.startswith("/") and not next_path.startswith("//"):
-        return redirect(next_path)
-    return redirect(url_for("api.home_page"))
-
-
-@api_bp.route("/register", methods=["GET", "POST"])
-def register_page() -> Any:
-    if request.method == "GET":
-        if session.get("user_id") is not None:
-            return redirect(url_for("api.home_page"))
-        return render_template("register.html", error=None, success=None)
-
-    email = request.form.get("email", "")
-    password = request.form.get("password", "")
-    success, message = create_user(email=email, password=password)
-
-    if not success:
-        return render_template("register.html", error=message, success=None), 400
-
-    return render_template("register.html", error=None, success=message), 201
 
 
 @api_bp.route("/home", methods=["GET"])
@@ -329,6 +300,18 @@ def legacy_image_analysis_page() -> Any:
 
 
 @api_bp.route("/image-analysis-upload", methods=["POST"])
+@require_auth
+@rate_limited
+def legacy_image_analysis_upload() -> Any:
+    return handwriting_analysis()
+
+
+@api_bp.route("/image-analysis", methods=["GET"], endpoint="legacy_image_analysis_alias")
+def legacy_image_analysis_page() -> Any:
+    return _serve_webapp_page("handwriting_analysis.html")
+
+
+@api_bp.route("/image-analysis-upload", methods=["POST"], endpoint="legacy_image_analysis_upload_alias")
 @require_auth
 @rate_limited
 def legacy_image_analysis_upload() -> Any:
@@ -409,7 +392,9 @@ def predict() -> Any:
 
     try:
         feature_values = [float(feature_map[feature]) for feature in expected_features]
-        model_service = current_app.extensions["model_service"]
+        model_service = _extension_or_503("model_service")
+        if model_service is None:
+            return jsonify({"error": "Prediction service unavailable."}), 503
         prediction = model_service.predict_dyslexia(feature_values)
     except (TypeError, ValueError) as error:
         return jsonify({"error": str(error)}), 400
@@ -461,30 +446,19 @@ def handwriting_analysis() -> Any:
         return jsonify({"error": "Uploaded file is empty."}), 400
 
     try:
-        model_service = current_app.extensions["model_service"]
-        prediction_result = model_service.predict_handwriting(image_bytes)
-        handwriting_meta: dict[str, Any] = {}
-        if isinstance(prediction_result, tuple) and len(prediction_result) == 3:
-            predicted_prob, predicted_class, handwriting_meta = prediction_result
-        else:
-            predicted_prob, predicted_class = prediction_result
-    except RuntimeError as error:
-        if "Handwriting model is unavailable" not in str(error):
-            LOGGER.exception("Unhandled handwriting prediction failure")
-            return jsonify({"error": "Handwriting analysis unavailable."}), 500
-
-        # Graceful fallback when handwriting model could not load at startup.
-        predicted_prob = 0.5
-        predicted_class = "Needs_Manual_Review"
-        handwriting_meta = {
-            "confidence": 0.25,
-            "image_quality_score": 0.5,
-            "decision_threshold": float(current_app.config.get("HANDWRITING_THRESHOLD", 0.5)),
-            "fallback_mode": "model_unavailable",
-        }
+        model_service = _extension_or_503("model_service")
+        if model_service is None:
+            return jsonify({"error": "Handwriting analysis unavailable."}), 503
+        predicted_prob, predicted_class = model_service.predict_handwriting(image_bytes)
     except Exception:
         LOGGER.exception("Unhandled handwriting prediction failure")
         return jsonify({"error": "Handwriting analysis unavailable."}), 500
+
+    if not np.isfinite(predicted_prob):
+        LOGGER.warning("Handwriting model returned non-finite probability; using safe fallback.")
+        predicted_prob = 0.0
+
+    predicted_prob = float(np.clip(predicted_prob, 0.0, 1.0))
 
     probability_percent = round(predicted_prob * 100, 2)
     model_confidence = float(handwriting_meta.get("confidence", 0.0))

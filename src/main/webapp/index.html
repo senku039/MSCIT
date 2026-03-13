@@ -196,8 +196,6 @@
                 <li class="nav-item"><a class="nav-link active" href="index.html">Home</a></li>
                 <li class="nav-item"><a class="nav-link" href="dyslexia-prediction.html">Dyslexia Test</a></li>
                 <li class="nav-item"><a class="nav-link" href="handwriting_analysis.html">Handwriting Analysis</a></li>
-                <li class="nav-item"><span id="userWelcome" class="navbar-text text-light small"></span></li>
-                <li class="nav-item"><button id="logoutBtn" class="btn btn-outline-light btn-sm" type="button">Logout</button></li>
             </ul>
         </div>
     </div>
@@ -288,46 +286,5 @@
 </section>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-<script>
-(function(){
-  const logoutBtn = document.getElementById('logoutBtn');
-  const userWelcome = document.getElementById('userWelcome');
-
-  if (logoutBtn) {
-    logoutBtn.addEventListener('click', () => {
-      window.location.href = '/logout';
-    });
-  }
-
-  function toDisplayName(email) {
-    const local = String(email || '').split('@')[0] || 'User';
-    return local.charAt(0).toUpperCase() + local.slice(1);
-  }
-
-  function redirectToLogin() {
-    const host = window.location.hostname || '127.0.0.1';
-    window.location.href = `${window.location.protocol}//${host}:5000/login`;
-  }
-
-  fetch('/session-info', { credentials: 'include' })
-    .then((res) => {
-      if (!res.ok) throw new Error('session endpoint unavailable');
-      return res.json();
-    })
-    .then((data) => {
-      if (!data || !data.authenticated) {
-        redirectToLogin();
-        return;
-      }
-      if (userWelcome) {
-        const displayName = toDisplayName(data.user_email);
-        userWelcome.textContent = `Hi, ${displayName}`;
-      }
-    })
-    .catch(() => {
-      redirectToLogin();
-    });
-})();
-</script>
 </body>
 </html>

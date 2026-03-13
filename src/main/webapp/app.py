@@ -46,9 +46,6 @@ def create_app() -> Flask:
     app.extensions["model_service"] = model_service
     app.extensions["rate_limiter"] = RateLimiter(app.config)
 
-    with app.app_context():
-        init_user_table()
-
     app.register_blueprint(api_bp)
 
     register_error_handlers(app)

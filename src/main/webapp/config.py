@@ -65,7 +65,6 @@ class BaseConfig:
 
     RATE_LIMIT_PER_MINUTE = int(os.getenv("RATE_LIMIT_PER_MINUTE", "60"))
     REDIS_URL = os.getenv("REDIS_URL", "")
-    USER_DB_PATH = os.getenv("USER_DB_PATH", str(BASE_DIR / "users.db"))
 
 
 class DevelopmentConfig(BaseConfig):
