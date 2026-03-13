@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Detailed Test Analysis</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body{margin:0;min-height:100vh;background:linear-gradient(145deg,rgba(11,26,75,.92),rgba(43,76,171,.88)),url('https://images.unsplash.com/photo-1513258496099-48168024aec0?auto=format&fit=crop&w=1800&q=80') center/cover fixed;color:#122149}
+    .wrap{max-width:min(1360px,96vw);margin:24px auto}
+    .glass{background:rgba(255,255,255,.94);border:1px solid rgba(212,225,255,.9);border-radius:18px;box-shadow:0 18px 40px rgba(7,17,49,.28)}
+    .metric{background:#fff;border:1px solid #dbe6ff;border-radius:12px;padding:10px 14px}
+  </style>
+</head>
+<body>
+  <div class="wrap container">
+    <a class="btn btn-light border mb-3" href="javascript:history.back()">← Back</a>
+    <div class="glass p-4 mb-3">
+      <h2 class="fw-bold">Detailed Screening Analysis (6 Core Tests)</h2>
+      <p class="text-muted mb-2">This page explains, in simple words, how each test affected your final screening result.</p>
+      <div class="d-flex flex-wrap gap-2">
+        <span id="riskMetric" class="metric"></span>
+        <span id="confidenceMetric" class="metric"></span>
+        <span id="componentMetric" class="metric"></span>
+      </div>
+    </div>
+
+    <div class="glass p-4 mb-3">
+      <h4 class="fw-bold text-primary">Per-Test Breakdown (Simple View)</h4>
+      <p class="text-muted mb-2">To compare different test types fairly, we convert each test to the same 0–100 risk scale. This is called normalization.</p>
+      <p class="text-muted mb-2"><strong>Priority used:</strong> Reading tests (highest), Language tests (next), Cognitive (medium), Support signals (lowest).</p>
+      <div class="table-responsive">
+        <table class="table table-bordered align-middle" id="breakdownTable">
+          <thead class="table-primary"><tr><th>Test</th><th>Your Score</th><th>Common Risk Scale (0-100)</th><th>What this means</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="row g-3">
+      <div class="col-md-6"><div class="glass p-4 h-100"><h4 class="fw-bold text-primary">Which areas had more impact?</h4><ul id="componentList" class="mb-0"></ul></div></div>
+      <div class="col-md-6"><div class="glass p-4 h-100"><h4 class="fw-bold text-primary">Personalized Next Steps</h4><ul id="nextSteps" class="mb-0"></ul></div></div>
+    </div>
+  </div>
+
+<script>
+function decodePayload(){const params=new URLSearchParams(window.location.search);const d=params.get('data');if(!d)return null;try{return JSON.parse(atob(d.replace(/-/g,'+').replace(/_/g,'/')));}catch{return null;}}
+const payload=decodePayload();
+if(!payload){document.body.innerHTML='<div class="container mt-5"><div class="alert alert-warning">No analysis payload found.</div></div>';}else{
+  document.getElementById('riskMetric').textContent = `Risk: ${payload.dyslexia_risk_level || payload.risk_level || 'Unknown'} (${payload.dyslexia_risk_score ?? payload.probability_percent ?? 0}/100)`;
+  document.getElementById('confidenceMetric').textContent = `Confidence: ${payload.confidence_level || 'Medium'}`;
+  const comp = payload.component_scores || {};
+  document.getElementById('componentMetric').textContent = `Reading component: ${comp.reading_component ?? 'n/a'}%`;
+
+  const tableBody = document.querySelector('#breakdownTable tbody');
+  (payload.test_breakdown || []).forEach((row) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${row.test}</td><td>${row.score}</td><td>${row.normalized_risk}%</td><td>${row.analysis}</td>`;
+    if (Number(row.normalized_risk) >= 60) tr.classList.add('table-danger');
+    else if (Number(row.normalized_risk) >= 35) tr.classList.add('table-warning');
+    tableBody.appendChild(tr);
+  });
+
+  const cList = document.getElementById('componentList');
+  const componentRows = [
+    ['Reading (priority high)', comp.reading_component],
+    ['Language (priority medium-high)', comp.language_component],
+    ['Cognitive (priority medium)', comp.cognitive_component],
+    ['Support/quality (priority support)', comp.support_component],
+  ];
+  componentRows.forEach(([label,val])=>{const li=document.createElement('li');li.textContent=`${label}: ${val ?? 'n/a'}% risk contribution`;cList.appendChild(li);});
+
+  const nextSteps = document.getElementById('nextSteps');
+  const recs = payload.recommendations || [];
+  if (!recs.length) recs.push('Continue regular reading practice and monitor progress over time.');
+  recs.forEach((r)=>{const li=document.createElement('li');li.textContent=r;nextSteps.appendChild(li);});
+}
+</script>
+</body>
+</html>

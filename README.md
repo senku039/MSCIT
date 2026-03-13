@@ -17,6 +17,7 @@ For a full architecture/workflow/algorithm/project-report write-up, see `PROJECT
 - API endpoints:
   - `POST /predict`
   - `POST /handwriting-analysis`
+  - `POST /image-analysis-upload`
 
 ## Secure backend layout
 
