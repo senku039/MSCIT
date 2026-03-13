@@ -206,6 +206,10 @@ def require_auth(func: Callable[..., Any]) -> Callable[..., Any]:
     return wrapper
 
 
+# Backward-compatible alias for older decorators used in some branches/history.
+login_required = require_auth
+
+
 def rate_limited(func: Callable[..., Any]) -> Callable[..., Any]:
     @wraps(func)
     def wrapper(*args: Any, **kwargs: Any):
@@ -288,6 +292,18 @@ def detailed_analysis_page() -> Any:
     return render_template("detailed_analysis.html")
 
 
+
+
+@api_bp.route("/image-analysis", methods=["GET"])
+def legacy_image_analysis_page() -> Any:
+    return _serve_webapp_page("handwriting_analysis.html")
+
+
+@api_bp.route("/image-analysis-upload", methods=["POST"])
+@require_auth
+@rate_limited
+def legacy_image_analysis_upload() -> Any:
+    return handwriting_analysis()
 
 
 @api_bp.route("/image-analysis", methods=["GET"])

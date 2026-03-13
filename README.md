@@ -61,6 +61,23 @@ Set these before production deployment:
 flask --app src.main.webapp.wsgi:app run --debug
 ```
 
+## Common startup fix
+
+If running `python -m src.main.webapp.app` fails with `ModuleNotFoundError: No module named 'sklearn'`, reinstall dependencies in your active virtualenv:
+
+```bash
+pip install -r requirements.txt
+```
+
+On Windows Command Prompt:
+
+```bat
+py -m venv .venv
+.venv\Scripts\activate
+py -m pip install -r requirements.txt
+py -m src.main.webapp.app
+```
+
 ## Running (production)
 
 Use a WSGI server such as Gunicorn:

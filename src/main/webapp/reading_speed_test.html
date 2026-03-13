@@ -99,7 +99,7 @@
   </style>
 </head>
 <body>
-  <button class="global-back-btn" type="button" onclick="window.location.href='index.html'">← Back</button>
+  <button class="global-back-btn" type="button" onclick="window.location.replace('/dyslexia-prediction')">← Back</button>
   <div class="container">
     <h1 class="text-center mb-3">Reading Speed Test</h1>
     <p class="text-muted">To prevent false high scores, the test validates minimum reading time and a quick comprehension check.</p>
@@ -259,33 +259,6 @@
         }
       }, 1000);
       return true;
-    }
-
-        if (awayNow) {
-          continuousAwayDurationMs += delta;
-          maxContinuousAwayMs = Math.max(maxContinuousAwayMs, continuousAwayDurationMs);
-
-          // Ignore short drops < 300ms to prevent flicker penalties.
-          if (continuousAwayDurationMs > AWAY_GRACE_MS) {
-            lookingAwayMs += delta;
-          }
-          if (continuousAwayDurationMs > AWAY_TRIGGER_MS && (continuousAwayDurationMs - delta) <= AWAY_TRIGGER_MS) {
-            lookAwayAlerts += 1;
-            updateStatus('danger', 'Face detected but not centered. Please move into the blue guide box.');
-          }
-        } else {
-          if (continuousAwayDurationMs > AWAY_TRIGGER_MS / 2) {
-            updateStatus('success', 'Face stable. Continue reading naturally.');
-          }
-          continuousAwayDurationMs = 0;
-        }
-
-        updateTrackingPanel();
-      } catch (_error) {
-        updateStatus('warning', 'Temporary face detection issue. Trying to recover…');
-      }
-
-      detectionRaf = requestAnimationFrame(detectionTick);
     }
 
     async function startDetection() {
