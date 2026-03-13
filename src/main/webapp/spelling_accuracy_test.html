@@ -8,7 +8,7 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <style>
     body { background: url("/IMAGES/kids.jpg") no-repeat center center/cover; font-family: Arial, sans-serif; padding: 20px; }
-    .container { max-width: min(1180px, 96vw); margin-top: clamp(18px, 4vh, 48px); background: rgba(255,255,255,.96); padding: clamp(18px, 2.5vw, 36px); border-radius: 14px; box-shadow: 0 12px 28px rgba(0,0,0,.16); }
+    .container { max-width: 860px; margin-top: 50px; background: rgba(255,255,255,.95); padding: 30px; border-radius: 12px; box-shadow: 0 10px 24px rgba(0,0,0,.15); }
     .feedback { margin-top: 20px; font-size: 1.1em; }
     .correct { color: green; }
     .incorrect { color: red; }
@@ -16,7 +16,7 @@
   </style>
 </head>
 <body>
-  <button class="global-back-btn" type="button" onclick="window.location.href='index.html'">← Back</button>
+  <button class="global-back-btn" type="button" onclick="window.location.replace('/dyslexia-prediction')">← Back</button>
   <div class="container">
     <h1 class="text-center mb-4">Spelling Accuracy Test</h1>
     <p class="text-muted">Words are randomized each time (includes commonly confusable dyslexia-risk letter patterns + regular words).</p>
@@ -105,6 +105,15 @@
       words = shuffle(wordBank).slice(0, TEST_LENGTH);
       updateProgress();
       loadNextWord();
+    });
+  
+    // Enter shortcut: submit/next actions
+    document.addEventListener('keydown', (event) => {
+      if (event.key !== 'Enter') return;
+      const finishBtn = document.getElementById('finishTestBtn');
+      const submitBtn = document.getElementById('submitBtn');
+      if (finishBtn && finishBtn.style.display !== 'none') { event.preventDefault(); finishBtn.click(); return; }
+      if (submitBtn && !submitBtn.disabled) { event.preventDefault(); submitBtn.click(); }
     });
   </script>
 </body>
