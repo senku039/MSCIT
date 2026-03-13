@@ -12,6 +12,7 @@ from werkzeug.exceptions import RequestEntityTooLarge
 from src.main.webapp.api.routes import api_bp
 from src.main.webapp.config import CONFIG_MAPPING
 from src.main.webapp.services.model_service import ModelService
+from src.main.webapp.services.rate_limiter import RateLimiter
 
 
 def create_app() -> Flask:
@@ -42,6 +43,7 @@ def create_app() -> Flask:
             "Model loading failed at startup. API will run, but prediction endpoints may return 500 until fixed."
         )
     app.extensions["model_service"] = model_service
+    app.extensions["rate_limiter"] = RateLimiter(app.config)
 
     app.register_blueprint(api_bp)
 
