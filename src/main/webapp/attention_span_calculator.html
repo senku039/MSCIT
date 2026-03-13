@@ -132,6 +132,15 @@
     });
 
     updateRoundInfo();
+  
+    // Enter shortcut: start/next
+    document.addEventListener('keydown', (event) => {
+      if (event.key !== 'Enter') return;
+      const finishBtn = document.getElementById('finishTestBtn');
+      const startBtn = document.getElementById('startBtn');
+      if (finishBtn && finishBtn.style.display !== 'none') { event.preventDefault(); finishBtn.click(); return; }
+      if (startBtn && startBtn.style.display !== 'none' && !startBtn.disabled) { event.preventDefault(); startBtn.click(); }
+    });
   </script>
 </body>
 </html>
