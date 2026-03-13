@@ -56,6 +56,7 @@
   </div>
 
   <script>
+    (() => {
     const passages = [
       {
         text: "Maya loves visiting the library after school. She picks a new book every week and reads with her grandmother in the evening. Reading together helps her learn new words and understand stories better.",
@@ -178,6 +179,28 @@
       cameraStatus.style.display = 'block';
       cameraStatus.className = `alert alert-${type} py-2 mt-2`;
       cameraStatus.textContent = message;
+    }
+
+    function formatCameraError(error) {
+      if (!error) return 'Camera unavailable.';
+      const name = error.name || 'Error';
+      if (name === 'NotAllowedError' || name === 'PermissionDeniedError') {
+        return 'Camera permission blocked. Allow camera access in browser site settings and retry.';
+      }
+      if (name === 'NotFoundError' || name === 'DevicesNotFoundError') {
+        return 'No camera device found. Connect a webcam and retry.';
+      }
+      if (name === 'NotReadableError' || name === 'TrackStartError') {
+        return 'Camera is already in use by another app. Close other camera apps and retry.';
+      }
+      if (name === 'SecurityError') {
+        return 'Camera requires secure context. Open this page via http://127.0.0.1:5000 or https.';
+      }
+      return `Camera error (${name}). Please retry.`;
+    }
+
+    function isCameraContextSupported() {
+      return window.isSecureContext || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
     }
 
     function updateTrackingPanel() {
@@ -339,6 +362,14 @@
         try {
           await loadExternalScript('https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.20.0/dist/tf.min.js');
           await loadExternalScript('https://cdn.jsdelivr.net/npm/@tensorflow-models/blazeface@0.0.7/dist/blazeface.min.js');
+
+          // Prefer CPU backend for maximum compatibility (many school/lab devices block WebGL).
+          // This avoids model-init failures where camera works but detector never starts.
+          if (window.tf && typeof window.tf.setBackend === 'function') {
+            await window.tf.setBackend('cpu');
+            await window.tf.ready();
+          }
+
           blazeModel = await window.blazeface.load();
           detectionEngine = 'blazeface';
           return true;
@@ -477,6 +508,11 @@
       const startCamBtn = document.getElementById('startCameraBtn');
       const stopCamBtn = document.getElementById('stopCameraBtn');
 
+      if (!isCameraContextSupported()) {
+        updateStatus('warning', 'Camera requires localhost/https. Open via http://127.0.0.1:5000 and retry.');
+        return false;
+      }
+
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
         updateStatus('warning', 'Camera API is not supported in this browser.');
         return false;
@@ -495,9 +531,10 @@
         startCamBtn.style.display = 'none';
         stopCamBtn.style.display = 'inline-block';
         updateTrackingPanel();
+        updateStatus('success', 'Camera stream started.');
         return true;
-      } catch (_error) {
-        updateStatus('warning', 'Camera permission denied or unavailable.');
+      } catch (error) {
+        updateStatus('warning', formatCameraError(error));
         return false;
       }
     }
@@ -543,7 +580,7 @@
           }
         })
         .catch(() => {
-          updateStatus('warning', 'Camera setup is delayed. Test continues and you can retry camera tracking.');
+          updateStatus('warning', 'Camera setup is delayed. Test continues; click Start Camera Tracking to retry after allowing permission.');
         });
     }
 
@@ -659,7 +696,7 @@
       stopRunningPhase();
       cleanupCamera();
       setState(STATE.FINISHED);
-      window.location.href = '/dyslexia-prediction';
+      window.location.href = 'dyslexia-prediction.html';
     });
 
     document.addEventListener('DOMContentLoaded', () => {
@@ -669,6 +706,7 @@
       // Warm detector before test starts to avoid 5-10s startup delay.
       setTimeout(() => { initDetectionEngine().catch(() => {}); }, 250);
     });
+    })();
   </script>
 </body>
 </html>
