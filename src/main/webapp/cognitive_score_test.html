@@ -7,27 +7,57 @@
   <link rel="stylesheet" href="/theme.css">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <style>
+
+    :root { --ink:#112a62; --muted:#48609a; --line:#bfd2ff; }
     body {
       font-family: Arial, sans-serif;
-      padding: 20px;
-      color: #0d1b4a;
+      padding: 18px;
+      color: var(--ink);
       background:
-        linear-gradient(140deg, rgba(7, 27, 84, 0.7), rgba(95, 57, 180, 0.6)),
+        linear-gradient(140deg, rgba(8, 34, 98, 0.74), rgba(95, 57, 180, 0.62)),
         url('/IMAGES/kids.jpg') no-repeat center center/cover;
       min-height: 100vh;
     }
     .page-shell {
       max-width: min(1240px, 96vw);
-      margin: clamp(18px, 4vh, 46px) auto;
-      background: rgba(255, 255, 255, 0.94);
-      border: 1px solid #d6e2ff;
+      margin: clamp(14px, 3vh, 34px) auto;
+      background: rgba(248, 251, 255, 0.95);
+      border: 1px solid var(--line);
       border-radius: 18px;
-      box-shadow: 0 16px 36px rgba(11, 24, 74, 0.26);
-      padding: clamp(18px, 2.3vw, 36px);
+      box-shadow: 0 16px 36px rgba(11, 24, 74, 0.24);
+      padding: clamp(16px, 2.1vw, 30px);
     }
-    .question-title { color: #172a65; font-weight: 700; }
-    .animal-card img { height: 170px; object-fit: cover; border-radius: 12px; width: 100%; }
-    .helper-text { color: #4e5e8f; font-size: 0.95rem; }
+    h1 { color:#14347d; font-weight:800; letter-spacing:.2px; }
+    .test-card { border:1px solid var(--line); border-radius:14px; background:#f4f8ff; padding:14px; }
+    .question-title { color: #173d8b; font-weight: 800; margin-bottom: .3rem; }
+    .animal-card img { height: 180px; object-fit: cover; border-radius: 12px; width: 100%; border:1px solid #c0d4ff; background:#eaf1ff; }
+    .helper-text { color: var(--muted); font-size: 1.02rem; }
+    .memory-words {
+      text-align: center;
+      font-size: clamp(1.3rem, 2.2vw, 1.95rem);
+      font-weight: 800;
+      color: #0f2f73;
+      letter-spacing: .2px;
+      border-radius: 12px;
+      background: #e9f0ff;
+      padding: 12px;
+      margin-bottom: 10px;
+    }
+    .stage-timer {
+      margin-left: auto;
+      display: inline-flex;
+      align-items: center;
+      padding: 8px 14px;
+      border-radius: 999px;
+      background: #e1ecff;
+      border: 1px solid #b9ceff;
+      color: #1a3f90;
+      font-weight: 800;
+      font-size: 1.08rem;
+    }
+    .stage-header { display:flex; align-items:center; gap:10px; justify-content:space-between; }
+    #submitBtn{ background: linear-gradient(120deg, #2f63e8, #7a4cf4); border:0; }
+  
   </style>
 </head>
 <body>
@@ -35,11 +65,11 @@
   <div class="page-shell">
     <h1 class="text-center mb-4">Cognitive Score Test</h1>
 
-    <div id="taskContainer">
+    <div id="taskContainer" class="test-card">
       <div id="memoryTest" class="mb-4">
-        <h3 class="question-title">Memory Test</h3>
+        <div class="stage-header"><h3 class="question-title mb-0">Memory Test</h3><span id="stageTimer" class="stage-timer">Memorize: 8s</span></div>
         <p class="helper-text mb-1">Remember these words:</p>
-        <p class="fw-semibold" id="memoryWords"></p>
+        <p class="fw-semibold memory-words" id="memoryWords"></p>
         <input type="text" id="memoryInput" class="form-control" placeholder="Type the words you remember" required>
       </div>
 
@@ -107,6 +137,47 @@
       return cloned.slice(0, count);
     }
 
+    function preloadImage(url) {
+      return new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => resolve(true);
+        img.onerror = () => resolve(false);
+        img.src = url;
+      });
+    }
+
+    async function warmImageCache() {
+      await Promise.all(imageLinks.map((item) => preloadImage(item.url)));
+    }
+
+    function clearMemoryCountdown() {
+      if (memoryCountdown) {
+        clearInterval(memoryCountdown);
+        memoryCountdown = null;
+      }
+    }
+
+    function startMemoryCountdown(seconds = 8) {
+      clearMemoryCountdown();
+      const timer = document.getElementById('stageTimer');
+      const wordsEl = document.getElementById('memoryWords');
+      let remaining = seconds;
+      timer.style.display = 'inline-flex';
+      timer.textContent = `Memorize: ${remaining}s`;
+      wordsEl.style.visibility = 'visible';
+
+      memoryCountdown = setInterval(() => {
+        remaining -= 1;
+        if (remaining > 0) {
+          timer.textContent = `Memorize: ${remaining}s`;
+          return;
+        }
+        clearMemoryCountdown();
+        timer.textContent = 'Now type from memory';
+        wordsEl.style.visibility = 'hidden';
+      }, 1000);
+    }
+
     const tests = [
       { id: 'memoryTest', inputId: 'memoryInput', correctAnswer: '' },
       { id: 'attentionTest', inputId: 'attentionInput', correctAnswer: '' },
@@ -116,17 +187,19 @@
 
     let currentTestIndex = 0;
     let totalScore = 0;
+    let memoryCountdown = null;
 
     function loadMemoryChallenge() {
       const words = pickRandom(memoryWordSets, 1)[0];
       document.getElementById('memoryWords').textContent = words.join(', ');
       tests[0].correctAnswer = words.join(', ');
+      startMemoryCountdown(8);
     }
 
     function displayRandomImages() {
       const selected = pickRandom(imageLinks, 3);
       document.getElementById('animalImages').innerHTML = selected
-        .map((item) => `<div class="col-md-4 mb-3 animal-card"><img src="${item.url}" alt="${item.label}" loading="lazy"></div>`)
+        .map((item) => `<div class="col-md-4 mb-3 animal-card"><img src="${item.url}" alt="${item.label}" loading="eager" decoding="async" referrerpolicy="no-referrer" onerror="this.src='/IMAGES/doggo.jpg'"></div>`)
         .join('');
       tests[1].correctAnswer = selected.map((item) => item.label).sort().join(',');
     }
@@ -143,7 +216,8 @@
       tests[3].correctAnswer = selected.answer.toLowerCase();
     }
 
-    function initializeTests() {
+    async function initializeTests() {
+      await warmImageCache();
       loadMemoryChallenge();
       displayRandomImages();
       loadRandomQuestion();
@@ -175,6 +249,11 @@
 
       document.getElementById(currentTest.id).style.display = "none";
       input.value = "";
+      if (currentTest.id === "memoryTest") {
+        clearMemoryCountdown();
+        document.getElementById("memoryWords").style.visibility = "visible";
+        document.getElementById("stageTimer").style.display = "none";
+      }
       currentTestIndex++;
 
       if (currentTestIndex < tests.length) {
@@ -188,7 +267,7 @@
     });
 
     document.getElementById('finishTestBtn').addEventListener('click', function() {
-      window.location.href = '/dyslexia-prediction';
+      window.location.href = 'dyslexia-prediction.html';
     });
   </script>
 </body>
