@@ -56,6 +56,7 @@
   </div>
 
   <script>
+    (() => {
     const passages = [
       {
         text: "Maya loves visiting the library after school. She picks a new book every week and reads with her grandmother in the evening. Reading together helps her learn new words and understand stories better.",
@@ -339,6 +340,14 @@
         try {
           await loadExternalScript('https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.20.0/dist/tf.min.js');
           await loadExternalScript('https://cdn.jsdelivr.net/npm/@tensorflow-models/blazeface@0.0.7/dist/blazeface.min.js');
+
+          // Prefer CPU backend for maximum compatibility (many school/lab devices block WebGL).
+          // This avoids model-init failures where camera works but detector never starts.
+          if (window.tf && typeof window.tf.setBackend === 'function') {
+            await window.tf.setBackend('cpu');
+            await window.tf.ready();
+          }
+
           blazeModel = await window.blazeface.load();
           detectionEngine = 'blazeface';
           return true;
@@ -659,7 +668,7 @@
       stopRunningPhase();
       cleanupCamera();
       setState(STATE.FINISHED);
-      window.location.href = '/dyslexia-prediction';
+      window.location.href = 'dyslexia-prediction.html';
     });
 
     document.addEventListener('DOMContentLoaded', () => {
@@ -669,6 +678,7 @@
       // Warm detector before test starts to avoid 5-10s startup delay.
       setTimeout(() => { initDetectionEngine().catch(() => {}); }, 250);
     });
+    })();
   </script>
 </body>
 </html>
