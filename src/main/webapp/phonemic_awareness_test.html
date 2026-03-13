@@ -108,7 +108,7 @@
       if (currentIndex < questions.length) speakWord(questions[currentIndex].prompt);
     });
     document.getElementById('nextButton').addEventListener('click', goNext);
-    document.getElementById('finishTestBtn').addEventListener('click', () => { window.location.href = '/dyslexia-prediction'; });
+    document.getElementById('finishTestBtn').addEventListener('click', () => { window.location.href = 'dyslexia-prediction.html'; });
 
     document.addEventListener('DOMContentLoaded', () => {
       questions = shuffle(questionBank).slice(0, TEST_LENGTH);

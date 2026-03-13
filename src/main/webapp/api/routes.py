@@ -323,7 +323,7 @@ def detailed_analysis_page() -> Any:
 
 
 
-@api_bp.route("/image-analysis", methods=["GET"])
+@api_bp.route("/legacy-image-analysis", methods=["GET"])
 def legacy_image_analysis_page() -> Any:
     return _serve_webapp_page("handwriting_analysis.html")
 
@@ -339,6 +339,17 @@ def legacy_image_analysis_upload() -> Any:
 def serve_theme_css():
     webapp_dir = Path(__file__).resolve().parent.parent
     return send_from_directory(webapp_dir, "theme.css")
+
+
+@api_bp.route("/favicon.ico", methods=["GET"])
+def serve_favicon():
+    webapp_dir = Path(__file__).resolve().parent.parent
+    image_dir = (webapp_dir / "IMAGES").resolve()
+    for name in ("favicon.ico", "doggo.jpg"):
+        candidate = (image_dir / name).resolve()
+        if str(candidate).startswith(str(image_dir)) and candidate.is_file():
+            return send_from_directory(image_dir, name)
+    return "", 204
 
 
 @api_bp.route("/IMAGES/<path:requested>", methods=["GET"])
