@@ -48,7 +48,6 @@
       text-align: center;
     }
     .sequence-board img { max-height: 170px; width: auto; border-radius: 10px; box-shadow: 0 8px 16px rgba(0,0,0,.18); }
-    .sequence-label { font-size: 1.3rem; font-weight: 600; text-align: center; letter-spacing: 0.4px; color: #0f172a; }
     .instruction-chip {
       border: 1px solid #bfd3ff;
       background: #eef4ff;
@@ -62,10 +61,10 @@
     }
     .badge-soft {
       display: inline-block;
-      padding: 4px 10px;
+      padding: 7px 14px;
       border-radius: 999px;
-      font-size: .75rem;
-      font-weight: 700;
+      font-size: .92rem;
+      font-weight: 800;
       background: #e8efff;
       color: #304da7;
       border: 1px solid #cddcff;
@@ -254,7 +253,6 @@
         const item = animalSequence[idx];
         board.innerHTML = `
           <img src="${buildAnimalCardDataUrl(item)}" alt="${item.label}" loading="eager">
-          <div class="sequence-label mt-2">${item.label.toUpperCase()}</div>
           <div class="mt-2 text-muted">Frame ${idx + 1} / ${animalSequence.length}</div>`;
         idx += 1;
         setTimeout(showNext, 1800);
