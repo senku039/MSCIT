@@ -223,6 +223,11 @@ def entrypoint() -> Any:
     return redirect(url_for("api.login_page"))
 
 
+@api_bp.route("/health", methods=["GET"])
+def health() -> Any:
+    return jsonify({"status": "ok", "service": "dyslexia-prediction-api"}), 200
+
+
 @api_bp.route("/ready", methods=["GET"])
 def readiness() -> Any:
     model_service = current_app.extensions["model_service"]
@@ -323,7 +328,7 @@ def detailed_analysis_page() -> Any:
 
 
 
-@api_bp.route("/image-analysis", methods=["GET"])
+@api_bp.route("/legacy-image-analysis", methods=["GET"])
 def legacy_image_analysis_page() -> Any:
     return _serve_webapp_page("handwriting_analysis.html")
 
