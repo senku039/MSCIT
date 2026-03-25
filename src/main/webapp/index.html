@@ -155,6 +155,7 @@
             background: linear-gradient(180deg, #ffffff, #f7faff);
             min-height: 100%;
         }
+        .feature-card.feature-trigger { cursor: pointer; width: 100%; text-align: left; }
 
         .feature-card .card-body { padding: 30px 24px; }
 
@@ -233,31 +234,31 @@
         <h2 class="section-title">Explore & Understand</h2>
         <div class="row g-4">
             <div class="col-md-4">
-                <a class="feature-card h-100" href="info_what_is_dyslexia.html">
+                <button class="feature-card feature-trigger h-100 border-0" type="button" data-topic="what_is_dyslexia">
                     <div class="card-body text-center">
                         <i class="fas fa-brain fa-3x text-primary mb-3"></i>
                         <h4>What is Dyslexia?</h4>
                         <p>Core concepts explained clearly with practical context.</p>
                     </div>
-                </a>
+                </button>
             </div>
             <div class="col-md-4">
-                <a class="feature-card h-100" href="info_common_signs.html">
+                <button class="feature-card feature-trigger h-100 border-0" type="button" data-topic="common_signs">
                     <div class="card-body text-center">
                         <i class="fas fa-list-check fa-3x text-primary mb-3"></i>
                         <h4>Common Signs</h4>
                         <p>Observable learning and reading patterns by profile.</p>
                     </div>
-                </a>
+                </button>
             </div>
             <div class="col-md-4">
-                <a class="feature-card h-100" href="info_support_paths.html">
+                <button class="feature-card feature-trigger h-100 border-0" type="button" data-topic="support_paths">
                     <div class="card-body text-center">
                         <i class="fas fa-hands-helping fa-3x text-primary mb-3"></i>
                         <h4>Support Paths</h4>
                         <p>School, home and technology interventions that help.</p>
                     </div>
-                </a>
+                </button>
             </div>
         </div>
     </div>
@@ -287,17 +288,60 @@
     </div>
 </section>
 
+<div class="modal fade" id="learnMoreModal" tabindex="-1" aria-labelledby="learnMoreTitle" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold" id="learnMoreTitle">Learn more</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p id="learnMoreBody" class="mb-0 text-secondary"></p>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
 (function(){
   const logoutBtn = document.getElementById('logoutBtn');
   const userWelcome = document.getElementById('userWelcome');
+  const modalEl = document.getElementById('learnMoreModal');
+  const modalTitle = document.getElementById('learnMoreTitle');
+  const modalBody = document.getElementById('learnMoreBody');
+  const infoModal = modalEl ? new bootstrap.Modal(modalEl) : null;
+  const infoBlocks = {
+    what_is_dyslexia: {
+      title: 'What is Dyslexia?',
+      body: 'Dyslexia is a learning difference that mainly affects reading and spelling. It is not related to intelligence. With early support, structured phonics practice, and classroom accommodations, learners can make strong progress.'
+    },
+    common_signs: {
+      title: 'Common Signs',
+      body: 'Common signs include slow or effortful reading, trouble matching letters and sounds, spelling inconsistencies, and mixing word order. Signs can vary by age, so patterns over time are more helpful than one-time mistakes.'
+    },
+    support_paths: {
+      title: 'Support Paths',
+      body: 'Effective support combines school plans, home reading routines, and specialist guidance. Helpful options include structured literacy programs, extra reading time, assistive tools, and regular progress reviews.'
+    }
+  };
 
   if (logoutBtn) {
     logoutBtn.addEventListener('click', () => {
       window.location.href = '/logout';
     });
   }
+
+  document.querySelectorAll('.feature-trigger').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const topic = btn.getAttribute('data-topic') || '';
+      const content = infoBlocks[topic];
+      if (!content || !infoModal) return;
+      modalTitle.textContent = content.title;
+      modalBody.textContent = content.body;
+      infoModal.show();
+    });
+  });
 
   function toDisplayName(email) {
     const local = String(email || '').split('@')[0] || 'User';
