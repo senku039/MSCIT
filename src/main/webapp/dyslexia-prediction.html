@@ -18,7 +18,7 @@
       --success: #16a34a;
       --warning: #f59e0b;
       --muted: #94a3b8;
-      --card: #ffffff;
+      --card: linear-gradient(135deg, #f5fbff, #ecfffb);
       --ink: #0f172a;
     }
 
@@ -158,8 +158,8 @@
       position: relative;
       padding: 18px;
       border-radius: 18px;
-      border: 1px solid #dbe4f0;
-      box-shadow: 0 12px 26px rgba(15, 23, 42, 0.09);
+      border: 1px solid #bfe1ff;
+      box-shadow: 0 12px 26px rgba(15, 23, 42, 0.1);
       transition: transform .3s ease, box-shadow .3s ease, opacity .3s ease;
       color: var(--ink);
       background: var(--card);
@@ -170,7 +170,7 @@
       content: "";
       position: absolute;
       inset: 0;
-      background: linear-gradient(120deg, rgba(37,99,235,.07), rgba(20,184,166,.05));
+      background: linear-gradient(120deg, rgba(37,99,235,.1), rgba(20,184,166,.08));
       pointer-events: none;
     }
 
@@ -246,8 +246,9 @@
     }
 
     .level-card.locked {
-      opacity: 0.62;
-      filter: grayscale(0.1);
+      opacity: 0.9;
+      filter: none;
+      border-style: dashed;
     }
 
     .level-card.locked .btn {
@@ -258,8 +259,8 @@
     .final-card {
       width: 84%;
       margin: 8px auto 0;
-      background: #fff;
-      border-color: #dbe4f0;
+      background: linear-gradient(135deg, #f7fcff, #effff8);
+      border-color: #bde2ff;
       box-shadow: 0 12px 24px rgba(15, 23, 42, 0.1);
     }
     .final-card::after { display: none; }
