@@ -8,7 +8,7 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <style>
     body { background: url('/IMAGES/kids.jpg') no-repeat center center/cover; font-family: Arial, sans-serif; padding: 20px; }
-    .container { max-width: min(1260px, 96vw); margin-top: clamp(16px, 3vh, 44px); background: rgba(255,255,255,.95); padding: clamp(18px, 2.4vw, 36px); border-radius: 12px; box-shadow: 0 10px 24px rgba(0,0,0,.18); }
+    .container { max-width: min(1120px, 96vw); margin-top: clamp(10px, 2vh, 24px); background: rgba(255,255,255,.95); padding: clamp(14px, 2vw, 24px); border-radius: 12px; box-shadow: 0 10px 24px rgba(0,0,0,.18); }
     .instruction-panel { border: 1px solid #bfe3ff; background: linear-gradient(135deg, #eef6ff, #e7fdf5); border-radius: 12px; padding: 12px 14px; margin-bottom: 12px; }
     .instruction-title { margin: 0 0 8px; font-size: 1.05rem; font-weight: 800; color: #124b9f; }
     .instruction-list { margin: 0; padding-left: 20px; color: #24456f; }
@@ -18,12 +18,28 @@
     .status-chip.done { border-color: #86efac; background: #dcfce7; color: #166534; }
     .status-chip.active { border-color: #93c5fd; background: #dbeafe; color: #1d4ed8; }
     #textToRead p { margin: 0; line-height: 1.85; font-size: 1.55rem; color: #0f172a; }
-    #textToRead { height: clamp(240px, 38vh, 420px); overflow-y: auto; border: 1px solid #ccd6f3; border-radius: 10px; padding: 14px; margin-bottom: 18px; background: #f8fbff; }
+    #textToRead { height: clamp(130px, 22vh, 220px); overflow-y: auto; border: 1px solid #ccd6f3; border-radius: 10px; padding: 14px; margin-bottom: 12px; background: #f8fbff; }
     .camera-block { border: 1px solid #ccd6f3; border-radius: 12px; background: #f8fbff; padding: 12px; margin-bottom: 10px; }
-    .video-shell { position: relative; width: 100%; max-height: 46vh; min-height: clamp(220px, 30vh, 360px); display: none; }
+    .video-shell { position: relative; width: 100%; max-height: 32vh; min-height: clamp(140px, 20vh, 240px); display: none; }
     video { width: 100%; height: 100%; object-fit: cover; border-radius: 10px; display: block; }
     #faceOverlay { position: absolute; inset: 0; width: 100%; height: 100%; border-radius: 10px; pointer-events: none; }
     #trackingHint { font-size: .88rem; color: #5f6b86; margin-top: 6px; display: none; }
+    .action-toolbar {
+      position: sticky;
+      top: 10px;
+      z-index: 30;
+      background: rgba(255,255,255,.9);
+      border: 1px solid #d7e4ff;
+      border-radius: 10px;
+      padding: 8px;
+      margin-bottom: 10px;
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .action-toolbar .btn { min-width: 160px; }
+    #questionBlock { margin-bottom: 10px; }
   </style>
 </head>
 <body>
@@ -45,6 +61,11 @@
         <span id="chipQuestion" class="status-chip">Step 3: Question</span>
         <span id="chipFinish" class="status-chip">Step 4: Finish</span>
       </div>
+    </div>
+    <div class="action-toolbar">
+      <button id="startBtn" class="btn btn-primary btn-sm">Start Reading Test</button>
+      <button id="stopBtn" class="btn btn-danger btn-sm" style="display:none;">Stop Reading</button>
+      <button id="finishTestBtn" class="btn btn-success btn-sm" style="display:none;">Finish Test</button>
     </div>
     <div class="camera-block">
       <div id="videoShell" class="video-shell">
@@ -73,10 +94,7 @@
       <button id="submitAnswerBtn" class="btn btn-outline-primary btn-sm mt-2" style="display:none;">Submit Answer</button>
     </div>
 
-    <button id="startBtn" class="btn btn-primary w-100">Start Reading Test</button>
-    <button id="stopBtn" class="btn btn-danger w-100 mt-3" style="display:none;">Stop Reading</button>
     <div id="result" class="mt-4 text-center" style="font-size:1.08em;"></div>
-    <button id="finishTestBtn" class="btn btn-info w-100 mt-3" style="display:none;">Finish Test</button>
   </div>
 
   <script>
