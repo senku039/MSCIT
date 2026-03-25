@@ -18,7 +18,7 @@
       --success: #16a34a;
       --warning: #f59e0b;
       --muted: #94a3b8;
-      --card: #ffffff;
+      --card: linear-gradient(135deg, #f5fbff, #ecfffb);
       --ink: #0f172a;
     }
 
@@ -158,8 +158,8 @@
       position: relative;
       padding: 18px;
       border-radius: 18px;
-      border: 1px solid #dbe4f0;
-      box-shadow: 0 12px 26px rgba(15, 23, 42, 0.09);
+      border: 1px solid #bfe1ff;
+      box-shadow: 0 12px 26px rgba(15, 23, 42, 0.1);
       transition: transform .3s ease, box-shadow .3s ease, opacity .3s ease;
       color: var(--ink);
       background: var(--card);
@@ -170,7 +170,7 @@
       content: "";
       position: absolute;
       inset: 0;
-      background: linear-gradient(120deg, rgba(37,99,235,.07), rgba(20,184,166,.05));
+      background: linear-gradient(120deg, rgba(37,99,235,.1), rgba(20,184,166,.08));
       pointer-events: none;
     }
 
@@ -246,8 +246,9 @@
     }
 
     .level-card.locked {
-      opacity: 0.62;
-      filter: grayscale(0.1);
+      opacity: 0.9;
+      filter: none;
+      border-style: dashed;
     }
 
     .level-card.locked .btn {
@@ -258,9 +259,9 @@
     .final-card {
       width: 84%;
       margin: 8px auto 0;
-      background: #fff;
-      border-color: #dbe4f0;
-      box-shadow: 0 12px 24px rgba(15, 23, 42, 0.1);
+      background: linear-gradient(135deg, #e0ecff, #d6f7ff);
+      border-color: #8ebdff;
+      box-shadow: 0 14px 26px rgba(37,99,235,.16);
     }
     .final-card::after { display: none; }
 
@@ -268,9 +269,9 @@
     .goal-card {
       width: 58%;
       margin: 10px auto 0;
-      border: 1px solid #bfdbfe;
-      background: linear-gradient(120deg, rgba(239,246,255,.95), rgba(236,253,245,.95));
-      box-shadow: 0 12px 24px rgba(37,99,235,.12);
+      border: 1px solid #9bc6ff;
+      background: linear-gradient(120deg, rgba(224,239,255,.97), rgba(210,252,244,.97));
+      box-shadow: 0 14px 28px rgba(37,99,235,.16);
     }
 
     .goal-card::after {
@@ -336,9 +337,9 @@
     }
 
     .btn-light {
-      background: linear-gradient(120deg, #f8fafc, #e2e8f0);
-      color: #0f172a !important;
-      border: 1px solid #cbd5e1;
+      background: linear-gradient(120deg, #7aa7ff, #6bd9cf);
+      color: #ffffff !important;
+      border: 1px solid #6da9ff;
     }
 
     #result { margin-top: 10px; }
