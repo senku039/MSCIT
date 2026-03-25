@@ -8,13 +8,37 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <style>
     body { background: url('/IMAGES/kids.jpg') no-repeat center center/cover; font-family: Arial, sans-serif; padding: 20px; }
-    .container { max-width: min(1260px, 96vw); margin-top: clamp(16px, 3vh, 44px); background: rgba(255,255,255,.95); padding: clamp(18px, 2.4vw, 36px); border-radius: 12px; box-shadow: 0 10px 24px rgba(0,0,0,.18); }
-    #textToRead { height: clamp(240px, 38vh, 420px); overflow-y: auto; border: 1px solid #ccd6f3; border-radius: 10px; padding: 14px; margin-bottom: 18px; background: #f8fbff; }
+    .container { max-width: min(1120px, 96vw); margin-top: clamp(10px, 2vh, 24px); background: rgba(255,255,255,.95); padding: clamp(14px, 2vw, 24px); border-radius: 12px; box-shadow: 0 10px 24px rgba(0,0,0,.18); }
+    .instruction-panel { border: 1px solid #bfe3ff; background: linear-gradient(135deg, #eef6ff, #e7fdf5); border-radius: 12px; padding: 12px 14px; margin-bottom: 12px; }
+    .instruction-title { margin: 0 0 8px; font-size: 1.05rem; font-weight: 800; color: #124b9f; }
+    .instruction-list { margin: 0; padding-left: 20px; color: #24456f; }
+    .instruction-list li { margin-bottom: 4px; }
+    .status-chip-wrap { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+    .status-chip { border-radius: 999px; border: 1px solid #bfd6ff; background: #eef4ff; color: #224f93; padding: 4px 10px; font-size: .8rem; font-weight: 700; }
+    .status-chip.done { border-color: #86efac; background: #dcfce7; color: #166534; }
+    .status-chip.active { border-color: #93c5fd; background: #dbeafe; color: #1d4ed8; }
+    #textToRead p { margin: 0; line-height: 1.85; font-size: 1.55rem; color: #0f172a; }
+    #textToRead { height: clamp(130px, 22vh, 220px); overflow-y: auto; border: 1px solid #ccd6f3; border-radius: 10px; padding: 14px; margin-bottom: 12px; background: #f8fbff; }
     .camera-block { border: 1px solid #ccd6f3; border-radius: 12px; background: #f8fbff; padding: 12px; margin-bottom: 10px; }
-    .video-shell { position: relative; width: 100%; max-height: 46vh; min-height: clamp(220px, 30vh, 360px); display: none; }
+    .video-shell { position: relative; width: 100%; max-height: 32vh; min-height: clamp(140px, 20vh, 240px); display: none; }
+    .video-shell.active { margin-bottom: 14px; }
     video { width: 100%; height: 100%; object-fit: cover; border-radius: 10px; display: block; }
     #faceOverlay { position: absolute; inset: 0; width: 100%; height: 100%; border-radius: 10px; pointer-events: none; }
-    #trackingHint { font-size: .88rem; color: #5f6b86; margin-top: 6px; display: none; }
+    #trackingHint { font-size: .88rem; color: #5f6b86; margin-top: 8px; display: none; }
+    .action-toolbar {
+      background: rgba(255,255,255,.9);
+      border: 1px solid #d7e4ff;
+      border-radius: 10px;
+      padding: 8px;
+      margin-bottom: 10px;
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .action-toolbar .btn { min-width: 160px; }
+    #questionBlock { margin-bottom: 10px; }
+    #cameraStatus, #trackingPanel { margin-top: 14px !important; }
   </style>
 </head>
 <body>
@@ -22,12 +46,31 @@
   <div class="container">
     <h1 class="text-center mb-3">Reading Speed Test</h1>
     <p class="text-muted">To prevent false high scores, the test validates minimum reading time and a quick comprehension check.</p>
+    <div class="instruction-panel">
+      <p class="instruction-title">How to complete this test (important):</p>
+      <ol class="instruction-list">
+        <li>Start camera tracking and keep your face centered.</li>
+        <li>Click <strong>Start Reading Test</strong> and read the full paragraph naturally (don’t rush).</li>
+        <li>Click <strong>Stop Reading</strong> only after finishing the paragraph.</li>
+        <li>Answer the comprehension question to save your score.</li>
+      </ol>
+      <div class="status-chip-wrap">
+        <span id="chipCamera" class="status-chip">Step 1: Camera</span>
+        <span id="chipReading" class="status-chip">Step 2: Reading</span>
+        <span id="chipQuestion" class="status-chip">Step 3: Question</span>
+        <span id="chipFinish" class="status-chip">Step 4: Finish</span>
+      </div>
+    </div>
+    <div class="action-toolbar">
+      <button id="startBtn" class="btn btn-primary btn-sm">Start Reading Test</button>
+      <button id="stopBtn" class="btn btn-danger btn-sm" style="display:none;">Stop Reading</button>
+    </div>
     <div class="camera-block">
       <div id="videoShell" class="video-shell">
         <video id="webcam" autoplay playsinline muted></video>
         <canvas id="faceOverlay"></canvas>
       </div>
-      <div id="trackingHint">Tip: keep your full face centered in the guide zone for accurate tracking.</div>
+      <div id="trackingHint">Tip: keep both eyes near the middle of the blue guide box for better dyslexia-focus tracking.</div>
       <div class="d-flex gap-2 mt-2 mb-2">
         <button id="startCameraBtn" class="btn btn-outline-primary btn-sm">Start Camera Tracking</button>
         <button id="stopCameraBtn" class="btn btn-outline-secondary btn-sm" style="display:none;">Stop Camera</button>
@@ -49,10 +92,8 @@
       <button id="submitAnswerBtn" class="btn btn-outline-primary btn-sm mt-2" style="display:none;">Submit Answer</button>
     </div>
 
-    <button id="startBtn" class="btn btn-primary w-100">Start Reading Test</button>
-    <button id="stopBtn" class="btn btn-danger w-100 mt-3" style="display:none;">Stop Reading</button>
     <div id="result" class="mt-4 text-center" style="font-size:1.08em;"></div>
-    <button id="finishTestBtn" class="btn btn-info w-100 mt-3" style="display:none;">Finish Test</button>
+    <button id="finishTestBtn" class="btn btn-success btn-sm w-100 mt-2" style="display:none;">Finish Test</button>
   </div>
 
   <script>
@@ -149,11 +190,32 @@
       if (next === STATE.SUBMITTED || next === STATE.FINISHED) {
         finishBtn.style.display = 'block';
       }
+      updateStepChips();
+    }
+
+    function updateStepChips() {
+      const cam = document.getElementById('chipCamera');
+      const reading = document.getElementById('chipReading');
+      const question = document.getElementById('chipQuestion');
+      const finish = document.getElementById('chipFinish');
+      [cam, reading, question, finish].forEach((chip) => chip.className = 'status-chip');
+
+      if (videoStream) cam.classList.add('done');
+      if (testState === STATE.RUNNING) reading.classList.add('active');
+      if (testState === STATE.SUBMITTED) {
+        reading.classList.add('done');
+        question.classList.add('active');
+      }
+      if (testState === STATE.FINISHED) {
+        reading.classList.add('done');
+        question.classList.add('done');
+        finish.classList.add('done');
+      }
     }
 
     function loadPassage() {
       selectedPassage = randomPick(passages);
-      document.getElementById('textToRead').innerText = selectedPassage.text;
+      document.getElementById('textToRead').innerHTML = `<p>${selectedPassage.text}</p>`;
       document.getElementById('questionBlock').style.display = 'none';
       document.getElementById('result').innerText = '';
     }
@@ -256,11 +318,12 @@
     function getRoi(video) {
       const w = video.videoWidth || 1;
       const h = video.videoHeight || 1;
-      const roiW = w * 0.78;
-      const roiH = h * 0.82;
+      // Slightly tighter frame improves focus-break sensitivity for this dyslexia screening step.
+      const roiW = w * 0.68;
+      const roiH = h * 0.66;
       return {
         x: (w - roiW) / 2,
-        y: (h - roiH) / 2,
+        y: h * 0.14,
         width: roiW,
         height: roiH,
       };
@@ -489,12 +552,14 @@
         });
         video.srcObject = videoStream;
         shell.style.display = 'block';
+        shell.classList.add('active');
         await video.play();
 
         document.getElementById('trackingHint').style.display = 'block';
         startCamBtn.style.display = 'none';
         stopCamBtn.style.display = 'inline-block';
         updateTrackingPanel();
+        updateStepChips();
         return true;
       } catch (_error) {
         updateStatus('warning', 'Camera permission denied or unavailable.');
@@ -511,9 +576,11 @@
       const video = document.getElementById('webcam');
       video.srcObject = null;
       document.getElementById('videoShell').style.display = 'none';
+      document.getElementById('videoShell').classList.remove('active');
       document.getElementById('trackingHint').style.display = 'none';
       document.getElementById('startCameraBtn').style.display = 'inline-block';
       document.getElementById('stopCameraBtn').style.display = 'none';
+      updateStepChips();
 
       const canvas = document.getElementById('faceOverlay');
       const ctx = canvas.getContext('2d');
@@ -584,7 +651,7 @@
       pendingMetrics.trackingQuality = buildTrackingQuality(pendingMetrics);
 
       renderQuestion();
-      document.getElementById('result').innerText = 'Submitted. Answer the comprehension question to complete validation.';
+      document.getElementById('result').innerText = 'Great. Now answer the comprehension question to complete this test.';
       setState(STATE.SUBMITTED);
     }
 
