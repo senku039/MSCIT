@@ -48,6 +48,18 @@
       text-align: center;
     }
     .sequence-board img { max-height: 170px; width: auto; border-radius: 10px; box-shadow: 0 8px 16px rgba(0,0,0,.18); }
+    .sequence-label { font-size: 1.3rem; font-weight: 600; text-align: center; letter-spacing: 0.4px; color: #0f172a; }
+    .instruction-chip {
+      border: 1px solid #bfd3ff;
+      background: #eef4ff;
+      border-radius: 10px;
+      padding: 10px 12px;
+      color: #314d8f;
+      font-size: 0.95rem;
+      margin-bottom: 10px;
+      text-align: center;
+      font-weight: 600;
+    }
     .badge-soft {
       display: inline-block;
       padding: 4px 10px;
@@ -72,6 +84,7 @@
           <h3 class="m-0">Stage 1 · Memory Flash</h3>
           <span class="badge-soft" id="memoryTimer">Memorize: 8s</span>
         </div>
+        <div class="instruction-chip">Task: Memorize all 4 words → wait for them to hide → type all remembered words in any order.</div>
         <p class="helper-text mb-2">Memorize the words below. They will disappear.</p>
         <p class="fw-semibold" id="memoryWords"></p>
         <input type="text" id="memoryInput" class="form-control" placeholder="Type the words you remember (comma separated)" required>
@@ -82,6 +95,7 @@
           <h3 class="m-0">Stage 2 · Symbol Sequence</h3>
           <span class="badge-soft" id="sequenceHint">Watch carefully</span>
         </div>
+        <div class="instruction-chip">Task: Watch 4 animal cards in order → then type the exact order (example: cat,dog,lion,rabbit).</div>
         <p class="helper-text">Images appear one by one. After playback, type the full animal order (comma separated).</p>
         <div id="sequenceBoard" class="sequence-board">Press <strong>Submit &amp; Next</strong> to start playback.</div>
         <button id="rewatchBtn" type="button" class="btn btn-outline-primary btn-sm mb-2" style="display:none;">Rewatch Sequence (1 left)</button>
@@ -115,13 +129,31 @@
     ];
 
     const sequenceItems = [
-      { label: "cat", url: "https://upload.wikimedia.org/wikipedia/commons/3/3a/Cat03.jpg" },
-      { label: "elephant", url: "https://upload.wikimedia.org/wikipedia/commons/3/37/African_Bush_Elephant.jpg" },
-      { label: "dog", url: "https://upload.wikimedia.org/wikipedia/commons/6/6e/Golde33443.jpg" },
-      { label: "horse", url: "https://upload.wikimedia.org/wikipedia/commons/d/de/Nokota_Horses_cropped.jpg" },
-      { label: "lion", url: "https://upload.wikimedia.org/wikipedia/commons/7/73/Lion_waiting_in_Namibia.jpg" },
-      { label: "rabbit", url: "https://upload.wikimedia.org/wikipedia/commons/6/6b/Talbingo_Rabbit.jpg" }
+      { label: "cat", emoji: "🐱" },
+      { label: "elephant", emoji: "🐘" },
+      { label: "dog", emoji: "🐶" },
+      { label: "horse", emoji: "🐴" },
+      { label: "lion", emoji: "🦁" },
+      { label: "rabbit", emoji: "🐰" }
     ];
+
+    function buildAnimalCardDataUrl(item) {
+      const label = String(item.label || '').toUpperCase();
+      const emoji = String(item.emoji || '🐾');
+      const svg = `
+        <svg xmlns="http://www.w3.org/2000/svg" width="520" height="320" viewBox="0 0 520 320">
+          <defs>
+            <linearGradient id="g" x1="0" x2="1" y1="0" y2="1">
+              <stop offset="0%" stop-color="#dbeafe"/>
+              <stop offset="100%" stop-color="#c7d2fe"/>
+            </linearGradient>
+          </defs>
+          <rect x="8" y="8" width="504" height="304" rx="24" fill="url(#g)" stroke="#8ea8ff" stroke-width="6"/>
+          <text x="260" y="150" text-anchor="middle" font-size="98">${emoji}</text>
+          <text x="260" y="235" text-anchor="middle" font-size="44" font-weight="700" fill="#1e3a8a">${label}</text>
+        </svg>`;
+      return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
+    }
 
     const problemQuestions = [
       { question: "Find next number: 3, 6, 12, 24, ?", answer: "48" },
@@ -221,10 +253,8 @@
         }
         const item = animalSequence[idx];
         board.innerHTML = `
-          <img src="${item.url}" alt="${item.label}" loading="eager"
-               onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
-          <div style="display:none; font-size:1.1rem; color:#334155;">Image failed to load: ${item.label.toUpperCase()}</div>
-          <div class="fw-semibold mt-2">${item.label.toUpperCase()}</div>
+          <img src="${buildAnimalCardDataUrl(item)}" alt="${item.label}" loading="eager">
+          <div class="sequence-label mt-2">${item.label.toUpperCase()}</div>
           <div class="mt-2 text-muted">Frame ${idx + 1} / ${animalSequence.length}</div>`;
         idx += 1;
         setTimeout(showNext, 1800);
