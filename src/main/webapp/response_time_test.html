@@ -19,9 +19,9 @@
       padding: 20px;
     }
     .test-card {
-      max-width: 900px;
-      margin: 100px auto;
-      background: rgba(9, 20, 61, 0.78);
+      max-width: min(980px, 96vw);
+      margin: clamp(20px, 4vh, 76px) auto;
+      background: rgba(9, 20, 61, 0.8);
       border: 1px solid rgba(201, 216, 255, 0.35);
       border-radius: 18px;
       padding: clamp(18px, 2.4vw, 36px);
@@ -51,7 +51,7 @@
   </style>
 </head>
 <body>
-  <button class="global-back-btn" type="button" onclick="window.location.replace('/dyslexia-prediction')">← Back</button>
+  <button class="global-back-btn" type="button" onclick="window.location.href='index.html'">← Back</button>
   <div class="test-card">
     <h1 class="mb-2">Response Time · Signal Sprint</h1>
     <p class="text-light">Match the symbol quickly. Use keyboard (<strong>W A S L</strong>) or click buttons.</p>
