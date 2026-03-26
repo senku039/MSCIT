@@ -39,6 +39,9 @@
     .action-toolbar .btn { min-width: 160px; }
     #questionBlock { margin-bottom: 10px; }
     #cameraStatus, #trackingPanel { margin-top: 14px !important; }
+    .tracking-status-stack {
+      margin-top: 22px;
+    }
   </style>
 </head>
 <body>
@@ -75,8 +78,10 @@
         <button id="startCameraBtn" class="btn btn-outline-primary btn-sm">Start Camera Tracking</button>
         <button id="stopCameraBtn" class="btn btn-outline-secondary btn-sm" style="display:none;">Stop Camera</button>
       </div>
-      <div id="cameraStatus" class="alert alert-warning py-2 mt-2" style="display:none;"></div>
-      <div id="trackingPanel" class="alert alert-info py-2" style="display:none;"></div>
+      <div class="tracking-status-stack">
+        <div id="cameraStatus" class="alert alert-warning py-2 mt-2" style="display:none;"></div>
+        <div id="trackingPanel" class="alert alert-info py-2" style="display:none;"></div>
+      </div>
       <small id="testStateLabel" class="text-muted">State: idle</small>
     </div>
 
@@ -168,6 +173,7 @@
     let eyeWindowAlerts = 0;
 
     let smoothedCenter = null;
+    let smoothedEyeCenter = null;
     let lastRawCenter = null;
     let recentConfidences = [];
     let detectorWarmupPromise = null;
@@ -270,6 +276,7 @@
       eyeWindowAlerts = 0;
       submitLocked = false;
       smoothedCenter = null;
+      smoothedEyeCenter = null;
       lastRawCenter = null;
       recentConfidences = [];
       pendingMetrics = null;
@@ -292,15 +299,76 @@
       }
     }
 
-    function getEyeWindow(roi) {
-      const width = roi.width * 0.36;
-      const height = roi.height * 0.2;
+    function getEyeWindow(roi, face = null, eyeHint = null) {
+      if (face) {
+        const width = face.width * 0.46;
+        const height = face.height * 0.19;
+        const fallbackX = face.x + (face.width * 0.27);
+        const fallbackY = face.y + (face.height * 0.42);
+        const hintedX = eyeHint ? (eyeHint.x - (width / 2)) : fallbackX;
+        const hintedY = eyeHint ? (eyeHint.y - (height / 2)) : fallbackY;
+        const raw = {
+          x: (fallbackX * 0.35) + (hintedX * 0.65),
+          y: Math.max(face.y + (face.height * 0.3), (fallbackY * 0.22) + (hintedY * 0.78)),
+          width,
+          height,
+        };
+        return {
+          x: Math.max(roi.x, Math.min(raw.x, (roi.x + roi.width) - raw.width)),
+          y: Math.max(roi.y, Math.min(raw.y, (roi.y + roi.height) - raw.height)),
+          width: Math.min(raw.width, roi.width),
+          height: Math.min(raw.height, roi.height),
+        };
+      }
+      const width = roi.width * 0.42;
+      const height = roi.height * 0.24;
       return {
         x: roi.x + ((roi.width - width) / 2),
-        y: roi.y + (roi.height * 0.33),
+        y: roi.y + (roi.height * 0.42),
         width,
         height,
       };
+    }
+
+    function smoothEyeCenter(rawCenter) {
+      if (!smoothedEyeCenter) {
+        smoothedEyeCenter = { ...rawCenter };
+        return smoothedEyeCenter;
+      }
+      const alpha = 0.34;
+      smoothedEyeCenter = {
+        x: (alpha * rawCenter.x) + ((1 - alpha) * smoothedEyeCenter.x),
+        y: (alpha * rawCenter.y) + ((1 - alpha) * smoothedEyeCenter.y),
+      };
+      return smoothedEyeCenter;
+    }
+
+    function estimateEyePoints(face) {
+      const fallback = [
+        { x: face.x + (face.width * 0.37), y: face.y + (face.height * 0.46) },
+        { x: face.x + (face.width * 0.63), y: face.y + (face.height * 0.46) },
+      ];
+      if (!Array.isArray(face.eyes) || face.eyes.length < 2) {
+        return fallback;
+      }
+
+      const yMin = face.y + (face.height * 0.24);
+      const yMax = face.y + (face.height * 0.72);
+      const xMin = face.x + (face.width * 0.12);
+      const xMax = face.x + (face.width * 0.88);
+      const plausible = face.eyes
+        .slice(0, 2)
+        .map((pt) => ({ x: Number(pt.x), y: Number(pt.y) }))
+        .filter((pt) => Number.isFinite(pt.x) && Number.isFinite(pt.y))
+        .filter((pt) => pt.y >= yMin && pt.y <= yMax && pt.x >= xMin && pt.x <= xMax);
+
+      if (plausible.length < 2) {
+        return fallback;
+      }
+
+      // Keep deterministic order (left eye first) for stable center math.
+      plausible.sort((a, b) => a.x - b.x);
+      return plausible;
     }
 
     function drawOverlay(face, roi, stable = true, eyeWindow = null, eyeCenter = null) {
@@ -472,7 +540,7 @@
       if (!detectionActive || testState !== STATE.RUNNING) return;
       const video = document.getElementById('webcam');
       const roi = getRoi(video);
-      const eyeWindow = getEyeWindow(roi);
+      const fallbackEyeWindow = getEyeWindow(roi, null);
 
       if (!lastDetectionTick) lastDetectionTick = timestamp;
       const delta = timestamp - lastDetectionTick;
@@ -490,6 +558,8 @@
         let awayNow = true;
         let eyesInWindow = false;
         let eyeCenter = null;
+        let eyeWindow = fallbackEyeWindow;
+        let isTrackableFace = false;
         if (face) {
           const center = { x: face.x + (face.width / 2), y: face.y + (face.height / 2) };
           const smooth = smoothCenter(center);
@@ -501,23 +571,23 @@
             && smooth.y >= (roi.y - roiMarginY) && smooth.y <= (roi.y + roi.height + roiMarginY);
           const largeEnough = areaRatio >= MIN_FACE_AREA_RATIO;
           const confGood = confAvg >= MIN_CONFIDENCE;
+          isTrackableFace = inRoi && largeEnough && confGood;
 
-          const eyePoints = (Array.isArray(face.eyes) && face.eyes.length >= 2)
-            ? face.eyes
-            : [
-              { x: face.x + (face.width * 0.38), y: face.y + (face.height * 0.42) },
-              { x: face.x + (face.width * 0.62), y: face.y + (face.height * 0.42) },
-            ];
-          eyeCenter = {
+          const eyePoints = estimateEyePoints(face);
+          const rawEyeCenter = {
             x: (eyePoints[0].x + eyePoints[1].x) / 2,
             y: (eyePoints[0].y + eyePoints[1].y) / 2,
           };
-          eyesInWindow = eyeCenter.x >= eyeWindow.x
-            && eyeCenter.x <= (eyeWindow.x + eyeWindow.width)
-            && eyeCenter.y >= eyeWindow.y
-            && eyeCenter.y <= (eyeWindow.y + eyeWindow.height);
+          eyeCenter = smoothEyeCenter(rawEyeCenter);
+          eyeWindow = getEyeWindow(roi, face, eyeCenter);
+          const eyeMarginX = eyeWindow.width * 0.14;
+          const eyeMarginY = eyeWindow.height * 0.22;
+          eyesInWindow = eyeCenter.x >= (eyeWindow.x - eyeMarginX)
+            && eyeCenter.x <= (eyeWindow.x + eyeWindow.width + eyeMarginX)
+            && eyeCenter.y >= (eyeWindow.y - eyeMarginY)
+            && eyeCenter.y <= (eyeWindow.y + eyeWindow.height + eyeMarginY);
 
-          awayNow = !(inRoi && largeEnough && confGood && eyesInWindow);
+          awayNow = !(isTrackableFace && eyesInWindow);
 
           // Count face presence whenever a face is detected; away-state is tracked separately.
           facePresenceMs += delta;
@@ -538,10 +608,10 @@
         } else {
           awayNow = true;
           unstableSamples += 1;
-          drawOverlay(null, roi, false, eyeWindow, null);
+          drawOverlay(null, roi, false, fallbackEyeWindow, null);
         }
 
-        if (face && !eyesInWindow) {
+        if (face && isTrackableFace && !eyesInWindow) {
           eyesOutsideWindowMs += delta;
           if (delta > AWAY_GRACE_MS) {
             eyeWindowAlerts += 1;
