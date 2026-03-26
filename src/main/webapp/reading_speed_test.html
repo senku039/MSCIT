@@ -304,12 +304,12 @@
         const width = face.width * 0.46;
         const height = face.height * 0.19;
         const fallbackX = face.x + (face.width * 0.27);
-        const fallbackY = face.y + (face.height * 0.42);
+        const fallbackY = face.y + (face.height * 0.5);
         const hintedX = eyeHint ? (eyeHint.x - (width / 2)) : fallbackX;
         const hintedY = eyeHint ? (eyeHint.y - (height / 2)) : fallbackY;
         const raw = {
           x: (fallbackX * 0.35) + (hintedX * 0.65),
-          y: Math.max(face.y + (face.height * 0.3), (fallbackY * 0.22) + (hintedY * 0.78)),
+          y: Math.max(face.y + (face.height * 0.38), (fallbackY * 0.2) + (hintedY * 0.8)),
           width,
           height,
         };
@@ -345,8 +345,8 @@
 
     function estimateEyePoints(face) {
       const fallback = [
-        { x: face.x + (face.width * 0.37), y: face.y + (face.height * 0.46) },
-        { x: face.x + (face.width * 0.63), y: face.y + (face.height * 0.46) },
+        { x: face.x + (face.width * 0.37), y: face.y + (face.height * 0.52) },
+        { x: face.x + (face.width * 0.63), y: face.y + (face.height * 0.52) },
       ];
       if (!Array.isArray(face.eyes) || face.eyes.length < 2) {
         return fallback;
