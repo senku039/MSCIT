@@ -292,12 +292,28 @@
       }
     }
 
-    function getEyeWindow(roi) {
-      const width = roi.width * 0.36;
-      const height = roi.height * 0.2;
+    function getEyeWindow(roi, face = null) {
+      if (face) {
+        const width = face.width * 0.58;
+        const height = face.height * 0.26;
+        const raw = {
+          x: face.x + (face.width * 0.21),
+          y: face.y + (face.height * 0.27),
+          width,
+          height,
+        };
+        return {
+          x: Math.max(roi.x, Math.min(raw.x, (roi.x + roi.width) - raw.width)),
+          y: Math.max(roi.y, Math.min(raw.y, (roi.y + roi.height) - raw.height)),
+          width: Math.min(raw.width, roi.width),
+          height: Math.min(raw.height, roi.height),
+        };
+      }
+      const width = roi.width * 0.42;
+      const height = roi.height * 0.24;
       return {
         x: roi.x + ((roi.width - width) / 2),
-        y: roi.y + (roi.height * 0.33),
+        y: roi.y + (roi.height * 0.42),
         width,
         height,
       };
@@ -472,7 +488,7 @@
       if (!detectionActive || testState !== STATE.RUNNING) return;
       const video = document.getElementById('webcam');
       const roi = getRoi(video);
-      const eyeWindow = getEyeWindow(roi);
+      const fallbackEyeWindow = getEyeWindow(roi, null);
 
       if (!lastDetectionTick) lastDetectionTick = timestamp;
       const delta = timestamp - lastDetectionTick;
@@ -490,6 +506,8 @@
         let awayNow = true;
         let eyesInWindow = false;
         let eyeCenter = null;
+        let eyeWindow = fallbackEyeWindow;
+        let isTrackableFace = false;
         if (face) {
           const center = { x: face.x + (face.width / 2), y: face.y + (face.height / 2) };
           const smooth = smoothCenter(center);
@@ -501,23 +519,27 @@
             && smooth.y >= (roi.y - roiMarginY) && smooth.y <= (roi.y + roi.height + roiMarginY);
           const largeEnough = areaRatio >= MIN_FACE_AREA_RATIO;
           const confGood = confAvg >= MIN_CONFIDENCE;
+          isTrackableFace = inRoi && largeEnough && confGood;
+          eyeWindow = getEyeWindow(roi, face);
 
           const eyePoints = (Array.isArray(face.eyes) && face.eyes.length >= 2)
             ? face.eyes
             : [
-              { x: face.x + (face.width * 0.38), y: face.y + (face.height * 0.42) },
-              { x: face.x + (face.width * 0.62), y: face.y + (face.height * 0.42) },
+              { x: face.x + (face.width * 0.37), y: face.y + (face.height * 0.46) },
+              { x: face.x + (face.width * 0.63), y: face.y + (face.height * 0.46) },
             ];
           eyeCenter = {
             x: (eyePoints[0].x + eyePoints[1].x) / 2,
             y: (eyePoints[0].y + eyePoints[1].y) / 2,
           };
-          eyesInWindow = eyeCenter.x >= eyeWindow.x
-            && eyeCenter.x <= (eyeWindow.x + eyeWindow.width)
-            && eyeCenter.y >= eyeWindow.y
-            && eyeCenter.y <= (eyeWindow.y + eyeWindow.height);
+          const eyeMarginX = eyeWindow.width * 0.14;
+          const eyeMarginY = eyeWindow.height * 0.22;
+          eyesInWindow = eyeCenter.x >= (eyeWindow.x - eyeMarginX)
+            && eyeCenter.x <= (eyeWindow.x + eyeWindow.width + eyeMarginX)
+            && eyeCenter.y >= (eyeWindow.y - eyeMarginY)
+            && eyeCenter.y <= (eyeWindow.y + eyeWindow.height + eyeMarginY);
 
-          awayNow = !(inRoi && largeEnough && confGood && eyesInWindow);
+          awayNow = !(isTrackableFace && eyesInWindow);
 
           // Count face presence whenever a face is detected; away-state is tracked separately.
           facePresenceMs += delta;
@@ -538,10 +560,10 @@
         } else {
           awayNow = true;
           unstableSamples += 1;
-          drawOverlay(null, roi, false, eyeWindow, null);
+          drawOverlay(null, roi, false, fallbackEyeWindow, null);
         }
 
-        if (face && !eyesInWindow) {
+        if (face && isTrackableFace && !eyesInWindow) {
           eyesOutsideWindowMs += delta;
           if (delta > AWAY_GRACE_MS) {
             eyeWindowAlerts += 1;
