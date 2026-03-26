@@ -8,13 +8,37 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <style>
     body { background: url('/IMAGES/kids.jpg') no-repeat center center/cover; font-family: Arial, sans-serif; padding: 20px; }
-    .container { max-width: min(1260px, 96vw); margin-top: clamp(16px, 3vh, 44px); background: rgba(255,255,255,.95); padding: clamp(18px, 2.4vw, 36px); border-radius: 12px; box-shadow: 0 10px 24px rgba(0,0,0,.18); }
-    #textToRead { height: clamp(240px, 38vh, 420px); overflow-y: auto; border: 1px solid #ccd6f3; border-radius: 10px; padding: 14px; margin-bottom: 18px; background: #f8fbff; }
+    .container { max-width: min(1120px, 96vw); margin-top: clamp(10px, 2vh, 24px); background: rgba(255,255,255,.95); padding: clamp(14px, 2vw, 24px); border-radius: 12px; box-shadow: 0 10px 24px rgba(0,0,0,.18); }
+    .instruction-panel { border: 1px solid #bfe3ff; background: linear-gradient(135deg, #eef6ff, #e7fdf5); border-radius: 12px; padding: 12px 14px; margin-bottom: 12px; }
+    .instruction-title { margin: 0 0 8px; font-size: 1.05rem; font-weight: 800; color: #124b9f; }
+    .instruction-list { margin: 0; padding-left: 20px; color: #24456f; }
+    .instruction-list li { margin-bottom: 4px; }
+    .status-chip-wrap { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+    .status-chip { border-radius: 999px; border: 1px solid #bfd6ff; background: #eef4ff; color: #224f93; padding: 4px 10px; font-size: .8rem; font-weight: 700; }
+    .status-chip.done { border-color: #86efac; background: #dcfce7; color: #166534; }
+    .status-chip.active { border-color: #93c5fd; background: #dbeafe; color: #1d4ed8; }
+    #textToRead p { margin: 0; line-height: 1.85; font-size: 1.55rem; color: #0f172a; }
+    #textToRead { height: clamp(130px, 22vh, 220px); overflow-y: auto; border: 1px solid #ccd6f3; border-radius: 10px; padding: 14px; margin-bottom: 12px; background: #f8fbff; }
     .camera-block { border: 1px solid #ccd6f3; border-radius: 12px; background: #f8fbff; padding: 12px; margin-bottom: 10px; }
-    .video-shell { position: relative; width: 100%; max-height: 46vh; min-height: clamp(220px, 30vh, 360px); display: none; }
+    .video-shell { position: relative; width: 100%; max-height: 32vh; min-height: clamp(140px, 20vh, 240px); display: none; }
+    .video-shell.active { margin-bottom: 14px; }
     video { width: 100%; height: 100%; object-fit: cover; border-radius: 10px; display: block; }
     #faceOverlay { position: absolute; inset: 0; width: 100%; height: 100%; border-radius: 10px; pointer-events: none; }
-    #trackingHint { font-size: .88rem; color: #5f6b86; margin-top: 6px; display: none; }
+    #trackingHint { font-size: .88rem; color: #5f6b86; margin-top: 8px; display: none; }
+    .action-toolbar {
+      background: rgba(255,255,255,.9);
+      border: 1px solid #d7e4ff;
+      border-radius: 10px;
+      padding: 8px;
+      margin-bottom: 10px;
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .action-toolbar .btn { min-width: 160px; }
+    #questionBlock { margin-bottom: 10px; }
+    #cameraStatus, #trackingPanel { margin-top: 14px !important; }
   </style>
 </head>
 <body>
@@ -22,12 +46,31 @@
   <div class="container">
     <h1 class="text-center mb-3">Reading Speed Test</h1>
     <p class="text-muted">To prevent false high scores, the test validates minimum reading time and a quick comprehension check.</p>
+    <div class="instruction-panel">
+      <p class="instruction-title">How to complete this test (important):</p>
+      <ol class="instruction-list">
+        <li>Start camera tracking and keep your face centered.</li>
+        <li>Click <strong>Start Reading Test</strong> and read the full paragraph naturally (don’t rush).</li>
+        <li>Click <strong>Stop Reading</strong> only after finishing the paragraph.</li>
+        <li>Answer the comprehension question to save your score.</li>
+      </ol>
+      <div class="status-chip-wrap">
+        <span id="chipCamera" class="status-chip">Step 1: Camera</span>
+        <span id="chipReading" class="status-chip">Step 2: Reading</span>
+        <span id="chipQuestion" class="status-chip">Step 3: Question</span>
+        <span id="chipFinish" class="status-chip">Step 4: Finish</span>
+      </div>
+    </div>
+    <div class="action-toolbar">
+      <button id="startBtn" class="btn btn-primary btn-sm">Start Reading Test</button>
+      <button id="stopBtn" class="btn btn-danger btn-sm" style="display:none;">Stop Reading</button>
+    </div>
     <div class="camera-block">
       <div id="videoShell" class="video-shell">
         <video id="webcam" autoplay playsinline muted></video>
         <canvas id="faceOverlay"></canvas>
       </div>
-      <div id="trackingHint">Tip: keep your full face centered in the guide zone for accurate tracking.</div>
+      <div id="trackingHint">Tip: keep both eyes near the middle of the blue guide box for better dyslexia-focus tracking.</div>
       <div class="d-flex gap-2 mt-2 mb-2">
         <button id="startCameraBtn" class="btn btn-outline-primary btn-sm">Start Camera Tracking</button>
         <button id="stopCameraBtn" class="btn btn-outline-secondary btn-sm" style="display:none;">Stop Camera</button>
@@ -49,10 +92,8 @@
       <button id="submitAnswerBtn" class="btn btn-outline-primary btn-sm mt-2" style="display:none;">Submit Answer</button>
     </div>
 
-    <button id="startBtn" class="btn btn-primary w-100">Start Reading Test</button>
-    <button id="stopBtn" class="btn btn-danger w-100 mt-3" style="display:none;">Stop Reading</button>
     <div id="result" class="mt-4 text-center" style="font-size:1.08em;"></div>
-    <button id="finishTestBtn" class="btn btn-info w-100 mt-3" style="display:none;">Finish Test</button>
+    <button id="finishTestBtn" class="btn btn-success btn-sm w-100 mt-2" style="display:none;">Finish Test</button>
   </div>
 
   <script>
@@ -123,6 +164,8 @@
     let stableFaceSamples = 0;
     let lookAwayAlerts = 0;
     let eyeMovementScore = 0;
+    let eyesOutsideWindowMs = 0;
+    let eyeWindowAlerts = 0;
 
     let smoothedCenter = null;
     let lastRawCenter = null;
@@ -149,11 +192,32 @@
       if (next === STATE.SUBMITTED || next === STATE.FINISHED) {
         finishBtn.style.display = 'block';
       }
+      updateStepChips();
+    }
+
+    function updateStepChips() {
+      const cam = document.getElementById('chipCamera');
+      const reading = document.getElementById('chipReading');
+      const question = document.getElementById('chipQuestion');
+      const finish = document.getElementById('chipFinish');
+      [cam, reading, question, finish].forEach((chip) => chip.className = 'status-chip');
+
+      if (videoStream) cam.classList.add('done');
+      if (testState === STATE.RUNNING) reading.classList.add('active');
+      if (testState === STATE.SUBMITTED) {
+        reading.classList.add('done');
+        question.classList.add('active');
+      }
+      if (testState === STATE.FINISHED) {
+        reading.classList.add('done');
+        question.classList.add('done');
+        finish.classList.add('done');
+      }
     }
 
     function loadPassage() {
       selectedPassage = randomPick(passages);
-      document.getElementById('textToRead').innerText = selectedPassage.text;
+      document.getElementById('textToRead').innerHTML = `<p>${selectedPassage.text}</p>`;
       document.getElementById('questionBlock').style.display = 'none';
       document.getElementById('result').innerText = '';
     }
@@ -188,7 +252,7 @@
       const qualityRatio = Math.min(facePresenceMs / (elapsedMs || 1), 1);
       const qualityPct = Math.round(qualityRatio * 100);
 
-      panel.innerHTML = `Face presence: <strong>${Math.round(facePresenceMs / 1000)}s</strong> | Looking away: <strong>${Math.round(lookingAwayMs / 1000)}s</strong> | Eye movement: <strong>${eyeMovementScore.toFixed(1)}</strong> | Tracking quality: <strong>${qualityPct}%</strong> | Run time: <strong>${elapsedSeconds.toFixed(1)}s</strong>`;
+      panel.innerHTML = `Face presence: <strong>${Math.round(facePresenceMs / 1000)}s</strong> | Looking away: <strong>${Math.round(lookingAwayMs / 1000)}s</strong> | Eyes outside window: <strong>${Math.round(eyesOutsideWindowMs / 1000)}s</strong> | Eye movement: <strong>${eyeMovementScore.toFixed(1)}</strong> | Tracking quality: <strong>${qualityPct}%</strong> | Run time: <strong>${elapsedSeconds.toFixed(1)}s</strong>`;
     }
 
     function resetMetrics() {
@@ -202,6 +266,8 @@
       stableFaceSamples = 0;
       lookAwayAlerts = 0;
       eyeMovementScore = 0;
+      eyesOutsideWindowMs = 0;
+      eyeWindowAlerts = 0;
       submitLocked = false;
       smoothedCenter = null;
       lastRawCenter = null;
@@ -226,7 +292,18 @@
       }
     }
 
-    function drawOverlay(face, roi, stable = true) {
+    function getEyeWindow(roi) {
+      const width = roi.width * 0.36;
+      const height = roi.height * 0.2;
+      return {
+        x: roi.x + ((roi.width - width) / 2),
+        y: roi.y + (roi.height * 0.33),
+        width,
+        height,
+      };
+    }
+
+    function drawOverlay(face, roi, stable = true, eyeWindow = null, eyeCenter = null) {
       const video = document.getElementById('webcam');
       const canvas = document.getElementById('faceOverlay');
       const ctx = canvas.getContext('2d');
@@ -244,23 +321,36 @@
       ctx.lineWidth = 2;
       ctx.strokeRect(roi.x, roi.y, roi.width, roi.height);
 
+      if (eyeWindow) {
+        ctx.strokeStyle = stable ? 'rgba(27,180,103,0.95)' : 'rgba(245,158,11,0.95)';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(eyeWindow.x, eyeWindow.y, eyeWindow.width, eyeWindow.height);
+      }
+
       if (face) {
-        ctx.strokeStyle = stable ? 'rgba(27,180,103,0.95)' : 'rgba(220,53,69,0.95)';
-        ctx.lineWidth = 3;
+        ctx.strokeStyle = stable ? 'rgba(22,163,74,0.72)' : 'rgba(220,53,69,0.85)';
+        ctx.lineWidth = 2;
         ctx.strokeRect(face.x, face.y, face.width, face.height);
-        ctx.fillStyle = stable ? 'rgba(27,180,103,0.14)' : 'rgba(220,53,69,0.14)';
+        ctx.fillStyle = stable ? 'rgba(22,163,74,0.08)' : 'rgba(220,53,69,0.12)';
         ctx.fillRect(face.x, face.y, face.width, face.height);
+      }
+      if (eyeCenter) {
+        ctx.fillStyle = 'rgba(245, 158, 11, 0.9)';
+        ctx.beginPath();
+        ctx.arc(eyeCenter.x, eyeCenter.y, 4, 0, Math.PI * 2);
+        ctx.fill();
       }
     }
 
     function getRoi(video) {
       const w = video.videoWidth || 1;
       const h = video.videoHeight || 1;
-      const roiW = w * 0.78;
-      const roiH = h * 0.82;
+      // Slightly tighter frame improves focus-break sensitivity for this dyslexia screening step.
+      const roiW = w * 0.68;
+      const roiH = h * 0.66;
       return {
         x: (w - roiW) / 2,
-        y: (h - roiH) / 2,
+        y: h * 0.14,
         width: roiW,
         height: roiH,
       };
@@ -270,7 +360,12 @@
       if (face.boundingBox) {
         const box = face.boundingBox;
         const conf = typeof face.confidence === 'number' ? face.confidence : 0.9;
-        return { x: box.x, y: box.y, width: box.width, height: box.height, confidence: conf };
+        const landmarks = Array.isArray(face.landmarks) ? face.landmarks : [];
+        const eyes = landmarks
+          .filter((l) => l && typeof l.type === 'string' && l.type.toLowerCase().includes('eye'))
+          .map((l) => ({ x: Number(l.location?.x || l.x || 0), y: Number(l.location?.y || l.y || 0) }))
+          .filter((p) => Number.isFinite(p.x) && Number.isFinite(p.y));
+        return { x: box.x, y: box.y, width: box.width, height: box.height, confidence: conf, eyes };
       }
       const [x1, y1] = face.topLeft || [0, 0];
       const [x2, y2] = face.bottomRight || [0, 0];
@@ -281,6 +376,9 @@
         width: Math.max(Number(x2) - Number(x1), 1),
         height: Math.max(Number(y2) - Number(y1), 1),
         confidence: Number.isFinite(p) ? Number(p) : 0.85,
+        eyes: Array.isArray(face.landmarks)
+          ? face.landmarks.slice(0, 2).map((pt) => ({ x: Number(pt[0] || 0), y: Number(pt[1] || 0) }))
+          : [],
       };
     }
 
@@ -374,6 +472,7 @@
       if (!detectionActive || testState !== STATE.RUNNING) return;
       const video = document.getElementById('webcam');
       const roi = getRoi(video);
+      const eyeWindow = getEyeWindow(roi);
 
       if (!lastDetectionTick) lastDetectionTick = timestamp;
       const delta = timestamp - lastDetectionTick;
@@ -389,6 +488,8 @@
         detectionSamples += 1;
 
         let awayNow = true;
+        let eyesInWindow = false;
+        let eyeCenter = null;
         if (face) {
           const center = { x: face.x + (face.width / 2), y: face.y + (face.height / 2) };
           const smooth = smoothCenter(center);
@@ -401,7 +502,22 @@
           const largeEnough = areaRatio >= MIN_FACE_AREA_RATIO;
           const confGood = confAvg >= MIN_CONFIDENCE;
 
-          awayNow = !(inRoi && largeEnough && confGood);
+          const eyePoints = (Array.isArray(face.eyes) && face.eyes.length >= 2)
+            ? face.eyes
+            : [
+              { x: face.x + (face.width * 0.38), y: face.y + (face.height * 0.42) },
+              { x: face.x + (face.width * 0.62), y: face.y + (face.height * 0.42) },
+            ];
+          eyeCenter = {
+            x: (eyePoints[0].x + eyePoints[1].x) / 2,
+            y: (eyePoints[0].y + eyePoints[1].y) / 2,
+          };
+          eyesInWindow = eyeCenter.x >= eyeWindow.x
+            && eyeCenter.x <= (eyeWindow.x + eyeWindow.width)
+            && eyeCenter.y >= eyeWindow.y
+            && eyeCenter.y <= (eyeWindow.y + eyeWindow.height);
+
+          awayNow = !(inRoi && largeEnough && confGood && eyesInWindow);
 
           // Count face presence whenever a face is detected; away-state is tracked separately.
           facePresenceMs += delta;
@@ -418,11 +534,18 @@
           }
           lastRawCenter = center;
 
-          drawOverlay(face, roi, !awayNow);
+          drawOverlay(face, roi, !awayNow, eyeWindow, eyeCenter);
         } else {
           awayNow = true;
           unstableSamples += 1;
-          drawOverlay(null, roi, false);
+          drawOverlay(null, roi, false, eyeWindow, null);
+        }
+
+        if (face && !eyesInWindow) {
+          eyesOutsideWindowMs += delta;
+          if (delta > AWAY_GRACE_MS) {
+            eyeWindowAlerts += 1;
+          }
         }
 
         if (awayNow) {
@@ -435,7 +558,7 @@
           }
           if (continuousAwayDurationMs > AWAY_TRIGGER_MS && (continuousAwayDurationMs - delta) <= AWAY_TRIGGER_MS) {
             lookAwayAlerts += 1;
-            updateStatus('danger', 'Face detected but not centered. Please move into the blue guide box.');
+            updateStatus('danger', 'Keep eyes in the green window and head inside the blue box.');
           }
         } else {
           if (continuousAwayDurationMs > AWAY_TRIGGER_MS / 2) {
@@ -489,12 +612,14 @@
         });
         video.srcObject = videoStream;
         shell.style.display = 'block';
+        shell.classList.add('active');
         await video.play();
 
         document.getElementById('trackingHint').style.display = 'block';
         startCamBtn.style.display = 'none';
         stopCamBtn.style.display = 'inline-block';
         updateTrackingPanel();
+        updateStepChips();
         return true;
       } catch (_error) {
         updateStatus('warning', 'Camera permission denied or unavailable.');
@@ -511,9 +636,11 @@
       const video = document.getElementById('webcam');
       video.srcObject = null;
       document.getElementById('videoShell').style.display = 'none';
+      document.getElementById('videoShell').classList.remove('active');
       document.getElementById('trackingHint').style.display = 'none';
       document.getElementById('startCameraBtn').style.display = 'inline-block';
       document.getElementById('stopCameraBtn').style.display = 'none';
+      updateStepChips();
 
       const canvas = document.getElementById('faceOverlay');
       const ctx = canvas.getContext('2d');
@@ -574,9 +701,11 @@
         focusTime: Math.round(elapsedMs / 1000),
         faceVisibleSeconds: Math.round(facePresenceMs / 1000),
         lookAwaySeconds: Math.round(lookingAwayMs / 1000),
+        eyesOutsideWindowSeconds: Math.round(eyesOutsideWindowMs / 1000),
         maxContinuousAwaySeconds: Math.round(maxContinuousAwayMs / 1000),
         eyeMovementScore,
         lookAwayAlerts,
+        eyeWindowAlerts,
         detectionSamples,
         stableFaceSamples,
         unstableRate: detectionSamples ? ((detectionSamples - stableFaceSamples) / detectionSamples) : 0,
@@ -584,7 +713,7 @@
       pendingMetrics.trackingQuality = buildTrackingQuality(pendingMetrics);
 
       renderQuestion();
-      document.getElementById('result').innerText = 'Submitted. Answer the comprehension question to complete validation.';
+      document.getElementById('result').innerText = 'Great. Now answer the comprehension question to complete this test.';
       setState(STATE.SUBMITTED);
     }
 
@@ -648,6 +777,7 @@
       sessionStorage.setItem('face_presence_time', String(pendingMetrics.faceVisibleSeconds));
       sessionStorage.setItem('eye_movement_index', pendingMetrics.eyeMovementScore.toFixed(2));
       sessionStorage.setItem('looking_away_seconds', String(pendingMetrics.lookAwaySeconds));
+      sessionStorage.setItem('eyes_outside_window_seconds', String(pendingMetrics.eyesOutsideWindowSeconds));
       sessionStorage.setItem('tracking_quality', (pendingMetrics.trackingQuality * 100).toFixed(0));
 
       document.getElementById('submitAnswerBtn').disabled = true;
