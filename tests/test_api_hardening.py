@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import pytest
+
 from src.main.webapp.app import create_app
 
 
@@ -78,3 +80,23 @@ def test_handwriting_flow(monkeypatch):
     payload = response.get_json()
     assert payload["predicted_class"] == "Non_Dyslexic"
     assert payload["result_redirect"].startswith("/handwriting-result?data=")
+
+
+def test_production_boot_fails_with_insecure_defaults(monkeypatch):
+    monkeypatch.setenv("FLASK_ENV", "production")
+    monkeypatch.delenv("SECRET_KEY", raising=False)
+    monkeypatch.delenv("API_TOKENS", raising=False)
+    monkeypatch.delenv("ALLOW_INSECURE_BOOTSTRAP", raising=False)
+
+    with pytest.raises(RuntimeError, match="default SECRET_KEY"):
+        create_app()
+
+
+def test_production_boot_allows_secure_configuration(monkeypatch):
+    monkeypatch.setenv("FLASK_ENV", "production")
+    monkeypatch.setenv("SECRET_KEY", "super-long-random-key-for-tests")
+    monkeypatch.setenv("API_TOKENS", "token-a,token-b")
+    monkeypatch.delenv("ALLOW_INSECURE_BOOTSTRAP", raising=False)
+
+    app = create_app()
+    assert app is not None
