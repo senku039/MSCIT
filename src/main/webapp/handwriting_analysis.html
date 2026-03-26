@@ -127,6 +127,7 @@
         async function uploadImage() {
             const fileInput = document.getElementById('fileInput');
             const result = document.getElementById("result");
+            result.classList.remove("text-danger");
             if (fileInput.files.length === 0) {
                 result.innerText = "Please select an image first!";
                 return;
@@ -144,7 +145,8 @@
                 }
                 result.innerHTML = `<span class="badge bg-success">Prediction: ${data.predicted_class}</span>`;
             } catch (error) {
-                result.innerText = `Failed to connect to handwriting server. ${error.message} Start Flask backend on http://127.0.0.1:5000.`;
+                result.classList.add("text-danger");
+                result.innerText = `Handwriting service issue: ${error.message}`;
             } finally {
                 fileInput.value = "";
             }

@@ -6,9 +6,6 @@
 
 This repository hosts the Dyslexia Early Detection System, a multi-modal assessment prototype combining cognitive tests, handwriting analysis, and eye-tracking support.
 
-For a full architecture/workflow/algorithm/project-report write-up, see `PROJECT_REPORT.md`.
-For a complete engineering audit with risks and prioritized action items, see `FULL_CODE_AUDIT.md`.
-
 ## Features
 
 - Cognitive tests for reading speed, spelling accuracy, phonemic awareness, response time, and rapid naming (RAN).
@@ -62,23 +59,6 @@ Set these before production deployment:
 
 ```bash
 flask --app src.main.webapp.wsgi:app run --debug
-```
-
-## Common startup fix
-
-If running `python -m src.main.webapp.app` fails with `ModuleNotFoundError: No module named 'sklearn'`, reinstall dependencies in your active virtualenv:
-
-```bash
-pip install -r requirements.txt
-```
-
-On Windows Command Prompt:
-
-```bat
-py -m venv .venv
-.venv\Scripts\activate
-py -m pip install -r requirements.txt
-py -m src.main.webapp.app
 ```
 
 ## Running (production)
