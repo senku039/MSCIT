@@ -118,7 +118,7 @@
       <div id="memoryTest" class="mb-4 stage-card">
         <div class="d-flex justify-content-between align-items-center mb-2">
           <h3 class="m-0">Stage 1 · Memory Flash</h3>
-          <span class="badge-soft" id="memoryTimer" aria-live="polite">Memorize: 12s</span>
+          <span class="badge-soft" id="memoryTimer" aria-live="polite">Memorize: 8s</span>
         </div>
         <div class="instruction-chip">Task: Memorize all 4 words → wait for them to hide → type all remembered words in any order.</div>
         <p class="helper-text mb-2">Memorize the words below. They will disappear.</p>
@@ -235,7 +235,7 @@
     let memoryRecallReady = false;
     let rewatchUsed = false;
     let sequenceBusy = false;
-    const MEMORIZE_SECONDS = 12;
+    const MEMORIZE_SECONDS = 8;
 
     function playTimerBeep(frequency = 920, duration = 140) {
       try {
