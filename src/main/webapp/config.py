@@ -64,6 +64,7 @@ class BaseConfig:
     API_TOKENS = {token.strip() for token in os.getenv("API_TOKENS", "").split(",") if token.strip()}
 
     RATE_LIMIT_PER_MINUTE = int(os.getenv("RATE_LIMIT_PER_MINUTE", "60"))
+    REDIS_URL = os.getenv("REDIS_URL", "")
 
 
 class DevelopmentConfig(BaseConfig):
