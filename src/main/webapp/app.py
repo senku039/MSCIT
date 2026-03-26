@@ -16,6 +16,27 @@ from src.main.webapp.services.model_service import ModelService
 from src.main.webapp.services.rate_limiter import RateLimiter
 
 
+def _validate_security_config(app: Flask, env_name: str) -> None:
+    """Fail fast on insecure production bootstraps unless explicitly overridden."""
+    if env_name != "production":
+        return
+
+    if app.config.get("ALLOW_INSECURE_BOOTSTRAP", False):
+        logging.getLogger(__name__).warning("ALLOW_INSECURE_BOOTSTRAP=true: skipping strict production checks.")
+        return
+
+    secret_key = os.getenv("SECRET_KEY", app.config.get("SECRET_KEY", "replace-in-production"))
+    api_tokens = {token.strip() for token in os.getenv("API_TOKENS", "").split(",") if token.strip()}
+    if not api_tokens:
+        api_tokens = app.config.get("API_TOKENS", set())
+
+    if secret_key == "replace-in-production":
+        raise RuntimeError("Refusing to start production with default SECRET_KEY.")
+
+    if not api_tokens:
+        raise RuntimeError("Refusing to start production without API_TOKENS.")
+
+
 def create_app() -> Flask:
     """Application factory for WSGI servers and tests."""
     env_name = os.getenv("FLASK_ENV", "default")
@@ -23,6 +44,7 @@ def create_app() -> Flask:
 
     app = Flask(__name__)
     app.config.from_object(config_class)
+    _validate_security_config(app, env_name)
 
     logging.basicConfig(
         level=logging.INFO,
