@@ -261,7 +261,55 @@
       return true;
     }
 
-    async function startWebcam() {
+    function resetMetrics() {
+      elapsedMs = 0;
+      facePresenceMs = 0;
+      lookingAwayMs = 0;
+      continuousAwayDurationMs = 0;
+      maxContinuousAwayMs = 0;
+      unstableSamples = 0;
+      detectionSamples = 0;
+      stableFaceSamples = 0;
+      lookAwayAlerts = 0;
+      eyeMovementScore = 0;
+      eyesOutsideWindowMs = 0;
+      eyeWindowAlerts = 0;
+      submitLocked = false;
+      smoothedCenter = null;
+      lastRawCenter = null;
+      recentConfidences = [];
+      pendingMetrics = null;
+    }
+
+    function startTimer() {
+      stopTimer();
+      runStartEpochMs = Date.now();
+      timerInterval = setInterval(() => {
+        if (testState !== STATE.RUNNING) return;
+        elapsedMs = Date.now() - runStartEpochMs;
+        updateTrackingPanel();
+      }, 200);
+    }
+
+    function stopTimer() {
+      if (timerInterval) {
+        clearInterval(timerInterval);
+        timerInterval = null;
+      }
+    }
+
+    function getEyeWindow(roi) {
+      const width = roi.width * 0.36;
+      const height = roi.height * 0.2;
+      return {
+        x: roi.x + ((roi.width - width) / 2),
+        y: roi.y + (roi.height * 0.33),
+        width,
+        height,
+      };
+    }
+
+    function drawOverlay(face, roi, stable = true, eyeWindow = null, eyeCenter = null) {
       const video = document.getElementById('webcam');
       const cameraStatus = document.getElementById('cameraStatus');
       cameraStatus.style.display = 'none';
@@ -320,10 +368,12 @@
       stopFaceTracking();
     }
 
-    function trackFocusTime() {
-      if (!tracking) return;
-      focusTime++;
-      setTimeout(trackFocusTime, 1000);
+    function buildTrackingQuality(metrics) {
+      const total = Math.max(metrics.elapsedSeconds, 1);
+      const presenceRatio = metrics.faceVisibleSeconds / total;
+      const awayPenalty = Math.min(metrics.maxContinuousAwaySeconds / total, 1) * 0.25;
+      const unstablePenalty = Math.min(metrics.unstableRate, 1) * 0.2;
+      return Math.max(0, Math.min(1, presenceRatio - awayPenalty - unstablePenalty));
     }
 
     document.getElementById('startBtn').addEventListener('click', function() {
@@ -338,10 +388,24 @@
       startWebcam();
     });
 
-    document.getElementById('stopBtn').addEventListener('click', function() {
-      if (stopPressed) return;
-      stopPressed = true;
-      document.getElementById('stopBtn').disabled = true;
+    document.getElementById('stopBtn').addEventListener('click', () => {
+      if (testState !== STATE.RUNNING || submitLocked) return;
+      submitLocked = true;
+      stopRunningPhase();
+      finalizeSubmission();
+    });
+
+    document.getElementById('submitAnswerBtn').addEventListener('click', () => {
+      if (testState !== STATE.SUBMITTED || !pendingMetrics) return;
+      const chosen = document.querySelector('input[name="answer"]:checked');
+      if (!chosen) {
+        document.getElementById('result').innerText = 'Please select an answer before finishing submission.';
+        return;
+      }
+
+      const correct = chosen.value === selectedPassage.answer;
+      const rawWpm = (pendingMetrics.wordCount / pendingMetrics.elapsedSeconds) * 60;
+      const wordsPerMinute = Math.min(rawWpm, MAX_VALID_WPM);
 
       endTime = Date.now();
       const elapsedSeconds = Math.max((endTime - startTime) / 1000, 1);
@@ -393,11 +457,31 @@
       document.getElementById('submitAnswerBtn').disabled = true;
     });
 
-    document.getElementById('finishTestBtn').addEventListener('click', function() {
-      window.location.href = "/dyslexia-prediction";
+    document.getElementById('finishTestBtn').addEventListener('click', () => {
+      stopRunningPhase();
+      cleanupCamera();
+      setState(STATE.FINISHED);
+      window.location.href = '/dyslexia-prediction';
     });
 
-    document.addEventListener('DOMContentLoaded', loadPassage);
+    document.addEventListener('DOMContentLoaded', () => {
+      loadPassage();
+      setState(STATE.IDLE);
+      updateTrackingPanel();
+      // Warm detector before test starts to avoid 5-10s startup delay.
+      setTimeout(() => { initDetectionEngine().catch(() => {}); }, 250);
+    });
+  
+    // Enter shortcut: start/submit/finish progression
+    document.addEventListener('keydown', (event) => {
+      if (event.key !== 'Enter') return;
+      const finishBtn = document.getElementById('finishTestBtn');
+      const submitBtn = document.getElementById('submitAnswerBtn');
+      const startBtn = document.getElementById('startBtn');
+      if (finishBtn && finishBtn.style.display !== 'none') { event.preventDefault(); finishBtn.click(); return; }
+      if (submitBtn && submitBtn.style.display !== 'none' && !submitBtn.disabled) { event.preventDefault(); submitBtn.click(); return; }
+      if (startBtn && startBtn.style.display !== 'none' && !startBtn.disabled) { event.preventDefault(); startBtn.click(); }
+    });
   </script>
 </body>
 </html>

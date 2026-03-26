@@ -18,6 +18,7 @@ For a complete engineering audit with risks and prioritized action items, see `F
 - API endpoints:
   - `POST /predict`
   - `POST /handwriting-analysis`
+  - `POST /image-analysis-upload`
 
 ## Secure backend layout
 
