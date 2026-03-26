@@ -236,23 +236,34 @@
     let rewatchUsed = false;
     let sequenceBusy = false;
     const MEMORIZE_SECONDS = 8;
+    let timerAudioCtx = null;
 
-    function playTimerBeep(frequency = 920, duration = 140) {
+    async function getTimerAudioContext() {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (!AudioCtx) return null;
+      if (!timerAudioCtx || timerAudioCtx.state === 'closed') {
+        timerAudioCtx = new AudioCtx();
+      }
+      if (timerAudioCtx.state === 'suspended') {
+        await timerAudioCtx.resume();
+      }
+      return timerAudioCtx;
+    }
+
+    async function playTimerBeep(frequency = 920, duration = 180) {
       try {
-        const AudioCtx = window.AudioContext || window.webkitAudioContext;
-        if (!AudioCtx) return;
-        const ctx = new AudioCtx();
+        const ctx = await getTimerAudioContext();
+        if (!ctx) return;
         const oscillator = ctx.createOscillator();
         const gain = ctx.createGain();
         oscillator.type = 'sine';
         oscillator.frequency.setValueAtTime(frequency, ctx.currentTime);
         gain.gain.setValueAtTime(0.0001, ctx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.12, ctx.currentTime + 0.01);
+        gain.gain.exponentialRampToValueAtTime(0.28, ctx.currentTime + 0.01);
         gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + duration / 1000);
         oscillator.connect(gain).connect(ctx.destination);
         oscillator.start();
         oscillator.stop(ctx.currentTime + duration / 1000);
-        oscillator.onended = () => ctx.close();
       } catch (error) {
         console.debug('Timer beep unavailable:', error);
       }

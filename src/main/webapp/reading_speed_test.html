@@ -168,6 +168,7 @@
     let eyeWindowAlerts = 0;
 
     let smoothedCenter = null;
+    let smoothedEyeCenter = null;
     let lastRawCenter = null;
     let recentConfidences = [];
     let detectorWarmupPromise = null;
@@ -270,6 +271,7 @@
       eyeWindowAlerts = 0;
       submitLocked = false;
       smoothedCenter = null;
+      smoothedEyeCenter = null;
       lastRawCenter = null;
       recentConfidences = [];
       pendingMetrics = null;
@@ -292,13 +294,17 @@
       }
     }
 
-    function getEyeWindow(roi, face = null) {
+    function getEyeWindow(roi, face = null, eyeHint = null) {
       if (face) {
-        const width = face.width * 0.58;
-        const height = face.height * 0.26;
+        const width = face.width * 0.48;
+        const height = face.height * 0.2;
+        const fallbackX = face.x + (face.width * 0.26);
+        const fallbackY = face.y + (face.height * 0.38);
+        const hintedX = eyeHint ? (eyeHint.x - (width / 2)) : fallbackX;
+        const hintedY = eyeHint ? (eyeHint.y - (height / 2)) : fallbackY;
         const raw = {
-          x: face.x + (face.width * 0.21),
-          y: face.y + (face.height * 0.27),
+          x: (fallbackX * 0.35) + (hintedX * 0.65),
+          y: (fallbackY * 0.25) + (hintedY * 0.75),
           width,
           height,
         };
@@ -317,6 +323,19 @@
         width,
         height,
       };
+    }
+
+    function smoothEyeCenter(rawCenter) {
+      if (!smoothedEyeCenter) {
+        smoothedEyeCenter = { ...rawCenter };
+        return smoothedEyeCenter;
+      }
+      const alpha = 0.34;
+      smoothedEyeCenter = {
+        x: (alpha * rawCenter.x) + ((1 - alpha) * smoothedEyeCenter.x),
+        y: (alpha * rawCenter.y) + ((1 - alpha) * smoothedEyeCenter.y),
+      };
+      return smoothedEyeCenter;
     }
 
     function drawOverlay(face, roi, stable = true, eyeWindow = null, eyeCenter = null) {
@@ -520,7 +539,6 @@
           const largeEnough = areaRatio >= MIN_FACE_AREA_RATIO;
           const confGood = confAvg >= MIN_CONFIDENCE;
           isTrackableFace = inRoi && largeEnough && confGood;
-          eyeWindow = getEyeWindow(roi, face);
 
           const eyePoints = (Array.isArray(face.eyes) && face.eyes.length >= 2)
             ? face.eyes
@@ -528,10 +546,12 @@
               { x: face.x + (face.width * 0.37), y: face.y + (face.height * 0.46) },
               { x: face.x + (face.width * 0.63), y: face.y + (face.height * 0.46) },
             ];
-          eyeCenter = {
+          const rawEyeCenter = {
             x: (eyePoints[0].x + eyePoints[1].x) / 2,
             y: (eyePoints[0].y + eyePoints[1].y) / 2,
           };
+          eyeCenter = smoothEyeCenter(rawEyeCenter);
+          eyeWindow = getEyeWindow(roi, face, eyeCenter);
           const eyeMarginX = eyeWindow.width * 0.14;
           const eyeMarginY = eyeWindow.height * 0.22;
           eyesInWindow = eyeCenter.x >= (eyeWindow.x - eyeMarginX)
