@@ -61,13 +61,32 @@
     }
     .badge-soft {
       display: inline-block;
-      padding: 9px 17px;
+      padding: 13px 24px;
       border-radius: 999px;
-      font-size: 1.03rem;
+      font-size: 1.25rem;
       font-weight: 800;
       background: linear-gradient(130deg, #dbe9ff, #d9f3ff);
       color: #18439b;
       border: 1px solid #aac6ff;
+      transition: transform .2s ease, box-shadow .2s ease, background .2s ease;
+    }
+    .badge-soft.timer-warning {
+      background: linear-gradient(130deg, #fff1f2, #ffe4e6);
+      color: #9f1239;
+      border-color: #fda4af;
+      box-shadow: 0 0 0 4px rgba(244, 63, 94, 0.16);
+      animation: timerPulse .8s ease-in-out infinite;
+    }
+    .badge-soft.timer-done {
+      background: linear-gradient(130deg, #ecfdf5, #dcfce7);
+      color: #166534;
+      border-color: #86efac;
+      box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.14);
+      transform: scale(1.04);
+    }
+    @keyframes timerPulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.09); }
     }
     .stage-card .form-control {
       border-radius: 10px;
@@ -99,7 +118,7 @@
       <div id="memoryTest" class="mb-4 stage-card">
         <div class="d-flex justify-content-between align-items-center mb-2">
           <h3 class="m-0">Stage 1 · Memory Flash</h3>
-          <span class="badge-soft" id="memoryTimer">Memorize: 8s</span>
+          <span class="badge-soft" id="memoryTimer" aria-live="polite">Memorize: 8s</span>
         </div>
         <div class="instruction-chip">Task: Memorize all 4 words → wait for them to hide → type all remembered words in any order.</div>
         <p class="helper-text mb-2">Memorize the words below. They will disappear.</p>
@@ -216,6 +235,63 @@
     let memoryRecallReady = false;
     let rewatchUsed = false;
     let sequenceBusy = false;
+    const MEMORIZE_SECONDS = 8;
+    let timerAudioCtx = null;
+
+    async function getTimerAudioContext() {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (!AudioCtx) return null;
+      if (!timerAudioCtx || timerAudioCtx.state === 'closed') {
+        timerAudioCtx = new AudioCtx();
+      }
+      if (timerAudioCtx.state === 'suspended') {
+        await timerAudioCtx.resume();
+      }
+      return timerAudioCtx;
+    }
+
+    async function playTimerBeep(frequency = 920, duration = 180, volume = 0.28) {
+      try {
+        const ctx = await getTimerAudioContext();
+        if (!ctx) return;
+        const oscillator = ctx.createOscillator();
+        const harmony = ctx.createOscillator();
+        const gain = ctx.createGain();
+        oscillator.type = 'triangle';
+        harmony.type = 'sine';
+        oscillator.frequency.setValueAtTime(frequency, ctx.currentTime);
+        harmony.frequency.setValueAtTime(frequency * 1.5, ctx.currentTime);
+        gain.gain.setValueAtTime(0.0001, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(volume, ctx.currentTime + 0.01);
+        gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + duration / 1000);
+        oscillator.connect(gain).connect(ctx.destination);
+        harmony.connect(gain).connect(ctx.destination);
+        oscillator.start();
+        harmony.start();
+        oscillator.stop(ctx.currentTime + duration / 1000);
+        harmony.stop(ctx.currentTime + (duration * 0.82) / 1000);
+      } catch (error) {
+        console.debug('Timer beep unavailable:', error);
+      }
+    }
+
+    function playCountdownBeep(secondsLeft) {
+      const freq = 680 + ((8 - Math.max(secondsLeft, 1)) * 38);
+      const duration = secondsLeft <= 3 ? 190 : 140;
+      const volume = secondsLeft <= 3 ? 0.34 : 0.24;
+      playTimerBeep(freq, duration, volume);
+    }
+
+    function setTimerVisualState(timerEl, timerValue) {
+      timerEl.classList.remove('timer-warning', 'timer-done');
+      if (timerValue <= 0) {
+        timerEl.classList.add('timer-done');
+        return;
+      }
+      if (timerValue <= 3) {
+        timerEl.classList.add('timer-warning');
+      }
+    }
 
     function loadMemoryChallenge() {
       const words = pickRandom(memoryWordSets, 1)[0];
@@ -224,16 +300,24 @@
       memoryRecallReady = false;
       document.getElementById('memoryInput').disabled = true;
 
-      let timer = 8;
+      let timer = MEMORIZE_SECONDS;
       const timerEl = document.getElementById('memoryTimer');
       timerEl.textContent = `Memorize: ${timer}s`;
+      setTimerVisualState(timerEl, timer);
+      playCountdownBeep(timer);
       const interval = setInterval(() => {
         timer -= 1;
         timerEl.textContent = `Memorize: ${Math.max(timer, 0)}s`;
+        setTimerVisualState(timerEl, timer);
+        if (timer > 0) {
+          playCountdownBeep(timer);
+        }
         if (timer <= 0) {
           clearInterval(interval);
           document.getElementById('memoryWords').textContent = '••• hidden •••';
           timerEl.textContent = 'Recall now';
+          setTimerVisualState(timerEl, timer);
+          playTimerBeep(620, 320, 0.38);
           memoryRecallReady = true;
           const memoryInput = document.getElementById('memoryInput');
           memoryInput.disabled = false;
