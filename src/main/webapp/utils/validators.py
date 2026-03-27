@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
 from werkzeug.datastructures import FileStorage
 
@@ -14,6 +15,37 @@ class ValidationResult:
 
     ok: bool
     message: str = ""
+
+
+def validate_json_payload(payload: Any) -> ValidationResult:
+    if not isinstance(payload, dict):
+        return ValidationResult(False, "Request body must be a JSON object.")
+    return ValidationResult(True)
+
+
+def validate_feature_payload(payload: dict[str, Any], expected_features: list[str]) -> ValidationResult:
+    missing = [feature for feature in expected_features if feature not in payload]
+    if missing:
+        return ValidationResult(False, f"Missing features: {missing}")
+
+    unexpected = [feature for feature in payload if feature not in expected_features]
+    if unexpected:
+        return ValidationResult(False, f"Unexpected features: {unexpected}")
+
+    return ValidationResult(True)
+
+
+def cast_numeric_features(payload: dict[str, Any], expected_features: list[str]) -> list[float]:
+    values: list[float] = []
+    for feature in expected_features:
+        value = payload[feature]
+        if isinstance(value, bool):
+            raise ValueError(f"Feature '{feature}' must be numeric, boolean is not allowed.")
+        numeric_value = float(value)
+        if numeric_value != numeric_value or numeric_value in (float("inf"), float("-inf")):
+            raise ValueError(f"Feature '{feature}' must be a finite number.")
+        values.append(numeric_value)
+    return values
 
 
 def allowed_extension(filename: str, allowed_extensions: set[str]) -> bool:
